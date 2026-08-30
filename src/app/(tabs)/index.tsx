@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
@@ -62,6 +63,13 @@ export default function HomeScreen() {
         })}
       </View>
 
+      <Pressable
+        style={[styles.search, { backgroundColor: colors.surface }]}
+        onPress={() => router.push('/search')}>
+        <Ionicons name="search" size={18} color={colors.textTertiary} />
+        <Text style={[styles.searchText, { color: colors.textTertiary }]}>Search words</Text>
+      </Pressable>
+
       <View style={styles.center}>
         <Text style={[styles.round, { color: colors.textSecondary }]}>Round {round}</Text>
         <View style={styles.metricRow}>
@@ -89,6 +97,18 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     gap: spacing.s,
+  },
+  search: {
+    alignItems: 'center',
+    borderRadius: radius.l,
+    flexDirection: 'row',
+    gap: spacing.s,
+    marginTop: spacing.m,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+  },
+  searchText: {
+    fontSize: fontSize.body,
   },
   chip: {
     borderRadius: radius.l,
