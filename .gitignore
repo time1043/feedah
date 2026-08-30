@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# local word bucket data (user-provided, not tracked)
+/data/
+
 # typescript
 *.tsbuildinfo
 
