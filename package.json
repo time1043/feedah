@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/ui": "~57.0.14",
     "@expo/vector-icons": "^15.1.1",
+    "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.18",
     "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
@@ -41,5 +42,10 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@shopify/react-native-skia"
+    ]
+  }
 }
