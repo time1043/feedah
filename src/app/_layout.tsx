@@ -1,6 +1,11 @@
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+import { getDb } from '@/db/index';
+import { SettingsProvider, useSettings } from '@/db/settings';
+import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage';
 import { ThemeProvider, useTheme } from '@/theme/context';
 
 function RootNavigator() {
@@ -17,10 +22,38 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function ThemedShell() {
+  const { settings } = useSettings();
+
+  useEffect(() => {
+    void getDb();
+    startAppUsage();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        startAppUsage();
+      } else {
+        pauseAppUsage();
+        void flushUsage();
+      }
+    });
+    return () => {
+      subscription.remove();
+      pauseAppUsage();
+      void flushUsage();
+    };
+  }, []);
+
   return (
-    <ThemeProvider>
+    <ThemeProvider mode={settings.theme}>
       <RootNavigator />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SettingsProvider>
+      <ThemedShell />
+    </SettingsProvider>
   );
 }
