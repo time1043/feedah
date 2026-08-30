@@ -16,6 +16,7 @@ import {
   listDailyStats,
 } from '@/db/repo';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
+import { formatMinutes } from '@/lib/format';
 import { todayLocalDate } from '@/lib/date';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -33,12 +34,6 @@ type RoundDisplay = {
 
 const WORD_THRESHOLDS: [number, number, number] = [10, 30, 100];
 const MINUTE_THRESHOLDS: [number, number, number] = [10, 30, 60];
-
-function formatMinutes(totalSeconds: number): string {
-  const minutes = Math.round(totalSeconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 export default function StatsScreen() {
   const { colors } = useTheme();
