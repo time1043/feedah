@@ -174,6 +174,11 @@ export default function FeedScreen() {
         windowSize={3}
         getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
         initialScrollIndex={Math.min(current, items.length - 1)}
+        onMomentumScrollBegin={() => {
+          // A real gesture is starting: drop any stale jump suppression
+          // left behind by an instant scrollToIndex (which fires no events).
+          suppressSettle.current = false;
+        }}
         onMomentumScrollEnd={(event) => {
           if (suppressSettle.current) {
             suppressSettle.current = false;
