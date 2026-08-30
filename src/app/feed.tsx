@@ -192,6 +192,16 @@ export default function FeedScreen() {
         accessibilityLabel="Close feed">
         <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
       </Pressable>
+
+      {settings.feedSearch && (
+        <Pressable
+          style={styles.search}
+          onPress={() => router.push('/search')}
+          hitSlop={12}
+          accessibilityLabel="Search words">
+          <Ionicons name="search" size={22} color={colors.textTertiary} />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -223,6 +233,12 @@ const styles = StyleSheet.create({
     left: spacing.l,
     padding: spacing.s,
     position: 'absolute',
+    top: spacing.s,
+  },
+  search: {
+    padding: spacing.s,
+    position: 'absolute',
+    right: spacing.l,
     top: spacing.s,
   },
 });
