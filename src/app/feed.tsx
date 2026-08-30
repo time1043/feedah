@@ -5,6 +5,7 @@ import { useRouter, useIsFocused } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
+import { ProgressBar } from '@/components/progress-bar';
 import {
   advancePointer,
   getProgress,
@@ -121,8 +122,24 @@ export default function FeedScreen() {
     setWords((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
+  const jumpTo = (index: number) => {
+    suppressSettle.current = true;
+    listRef.current?.scrollToIndex({ index, animated: false });
+    setCurrent(index);
+  };
+
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
+      {settings.progressBar && (
+        <View style={styles.progress}>
+          <ProgressBar
+            value={current}
+            max={items.length}
+            interactive={settings.progressBarDrag}
+            onScrub={jumpTo}
+          />
+        </View>
+      )}
       <FlatList
         ref={listRef}
         data={items}
@@ -182,6 +199,10 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  progress: {
+    paddingHorizontal: spacing.m,
+    zIndex: 1,
   },
   empty: {
     flex: 1,
