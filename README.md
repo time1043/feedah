@@ -1,56 +1,52 @@
-# Welcome to your Expo app 👋
+# feedah
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Vocabulary building as a short-video feed. Words are swiped one card at a
+time; mastery comes from repeated exposure across rounds, not from memorizing
+a word on first sight.
+
+Built with Expo SDK 57, React Native, expo-router, expo-sqlite, expo-speech,
+and @shopify/react-native-skia. React Compiler is enabled; no manual memo
+hooks are used. Local-only data (SQLite), no accounts.
 
 ## Get started
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
 ```bash
-npm run reset-project
+pnpm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Run on a real device for pronunciation: `npx expo start` then open in
+Expo Go. On iPhone, pronunciation is muted while the ring/silent switch is on.
 
-### Other setup steps
+## Word buckets
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Buckets live in `data/` as markdown tables (columns: `# | word | ipa |
+meaning | forms`) and are **not tracked by git**. They are converted to JSON
+and bundled into the app:
 
-## Learn more
+```bash
+node scripts/convert-bucket.mjs   # data/*.md -> data/*.json
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+The JSON is seeded into SQLite on first launch (re-seeded automatically if a
+bucket file changes). Buckets are isolated: each keeps its own round, pointer,
+and flags.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## How progress works
 
-## Join the community
+- The only counting event is a card settled by a hand gesture. Programmatic
+  jumps via the progress bar never count, and positions skipped by a jump
+  stay unreached for the round.
+- The pointer is a high-water mark: going back to review never moves it.
+- Daily word count = difference of daily pointer snapshots; nothing is
+  counted twice.
+- Two time metrics are tracked per day: total app time and feed time.
+- The bookmark flags a word as unfamiliar; flags are recorded per round and
+  drive the red/green round timelines in Stats.
 
-Join our community of developers creating universal apps.
+## Branches
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `main` — upstream baseline.
+- `mvp/260830` — MVP integration branch.
+- `mvp/feat/<module>/260830` — one branch per module, merged back with
+  `--no-ff` and deleted after merge.
