@@ -16,18 +16,22 @@ type WordCardProps = {
 };
 
 /**
- * The full-screen word card. Tap the word to replay it, tap anywhere else to
- * reveal/hide the meaning, tap the bookmark to flag the word as unfamiliar.
- * Purely presentational: playback timing and statistics live in the screens.
+ * The full-screen word card, split into two independent halves so toggling
+ * the meaning never shifts anything:
+ *   - top: position number, the word, and a fixed-height slot for the meaning
+ *   - bottom: supplementary word forms, shown together with the meaning
+ * Tap the word to replay it; tap anywhere else to reveal/hide the meaning;
+ * tap the bookmark to flag the word as unfamiliar.
  */
 export function WordCard({ position, text, meaning, forms, flagged, onReplay, onToggleFlagged }: WordCardProps) {
   const { colors } = useTheme();
   const [meaningVisible, setMeaningVisible] = useState(false);
+  const toggleMeaning = () => setMeaningVisible((v) => !v);
 
   return (
     <View style={styles.root}>
-      <Pressable style={styles.center} onPress={() => setMeaningVisible((v) => !v)}>
-        <Text style={[styles.position, { color: colors.textTertiary }]}>{position}</Text>
+      <Pressable style={styles.top} onPress={toggleMeaning}>
+        <Text style={[styles.position, { color: colors.textSecondary }]}>{position}</Text>
         <Pressable onPress={onReplay} hitSlop={12}>
           <Text
             adjustsFontSizeToFit
@@ -37,9 +41,15 @@ export function WordCard({ position, text, meaning, forms, flagged, onReplay, on
             {text}
           </Text>
         </Pressable>
-        {meaningVisible && meaning.length > 0 && (
-          <Text style={[styles.meaning, { color: colors.textSecondary }]}>{meaning}</Text>
-        )}
+        {/* Reserved slot: keeps number and word anchored while meaning toggles. */}
+        <View style={styles.meaningSlot}>
+          {meaningVisible && meaning.length > 0 && (
+            <Text style={[styles.meaning, { color: colors.textSecondary }]}>{meaning}</Text>
+          )}
+        </View>
+      </Pressable>
+
+      <Pressable style={styles.bottom} onPress={toggleMeaning}>
         {meaningVisible && forms.length > 0 && (
           <Text style={[styles.forms, { color: colors.textTertiary }]}>{forms.join(', ')}</Text>
         )}
@@ -64,15 +74,22 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  center: {
+  top: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  bottom: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
   position: {
-    fontSize: fontSize.body,
+    fontSize: 28,
     fontVariant: ['tabular-nums'],
+    fontWeight: '600',
     marginBottom: spacing.m,
   },
   word: {
@@ -80,14 +97,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  meaningSlot: {
+    alignItems: 'center',
+    height: 96,
+    justifyContent: 'flex-start',
+    marginTop: spacing.m,
+  },
   meaning: {
     fontSize: 20,
-    marginTop: spacing.l,
     textAlign: 'center',
   },
   forms: {
-    fontSize: fontSize.caption,
-    marginTop: spacing.s,
+    fontSize: fontSize.body,
     textAlign: 'center',
   },
   flag: {
