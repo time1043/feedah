@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useIsFocused } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,13 +30,15 @@ export default function FeedScreen() {
   const { settings, update } = useSettings();
   const router = useRouter();
   const isFocused = useIsFocused();
-  const { height } = useWindowDimensions();
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
   const [round, setRound] = useState(1);
   const [pointer, setPointer] = useState(0);
   const [current, setCurrent] = useState(0);
+  // Measured height of the scroll viewport. Cards must be exactly this tall,
+  // otherwise pagingEnabled snapping drifts away from card boundaries.
+  const [viewport, setViewport] = useState(0);
 
   const listRef = useRef<FlatList<FeedItem> | null>(null);
   const suppressSettle = useRef(false);
@@ -129,7 +131,7 @@ export default function FeedScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {settings.progressBar && (
         <View style={styles.progress}>
           <ProgressBar
@@ -140,55 +142,65 @@ export default function FeedScreen() {
           />
         </View>
       )}
-      <FlatList
-        ref={listRef}
-        data={items}
-        keyExtractor={(item) => (item.kind === 'word' ? `${item.word.position}` : 'round-end')}
-        renderItem={({ item, index }) =>
-          item.kind === 'word' ? (
-            <View style={{ height }}>
-              <WordCard
-                position={item.word.position}
-                text={item.word.text}
-                meaning={item.word.meaning}
-                forms={item.word.forms}
-                flagged={item.word.flagged}
-                onReplay={() => speakWord(item.word.text, settings.speechRate)}
-                onToggleFlagged={() => void toggleFlagged(index)}
-              />
-            </View>
-          ) : (
-            <View style={[styles.roundEnd, { height }]}>
-              <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
-              <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
-                Swipe up to start round {round + 1}
-              </Text>
-            </View>
-          )
-        }
-        horizontal={false}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={3}
-        getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
-        initialScrollIndex={Math.min(current, items.length - 1)}
-        onMomentumScrollBegin={() => {
-          // A real gesture is starting: drop any stale jump suppression
-          // left behind by an instant scrollToIndex (which fires no events).
-          suppressSettle.current = false;
-        }}
-        onMomentumScrollEnd={(event) => {
-          if (suppressSettle.current) {
-            suppressSettle.current = false;
-            return;
-          }
-          const index = Math.round(event.nativeEvent.contentOffset.y / height);
-          const clamped = Math.max(0, Math.min(index, items.length - 1));
-          void handleSettle(clamped);
-        }}
-      />
+
+      <View
+        style={styles.listWrap}
+        onLayout={(event) => {
+          const height = Math.round(event.nativeEvent.layout.height);
+          if (height > 0 && height !== viewport) setViewport(height);
+        }}>
+        {viewport > 0 && (
+          <FlatList
+            ref={listRef}
+            data={items}
+            keyExtractor={(item) => (item.kind === 'word' ? `${item.word.position}` : 'round-end')}
+            renderItem={({ item, index }) =>
+              item.kind === 'word' ? (
+                <View style={{ height: viewport }}>
+                  <WordCard
+                    position={item.word.position}
+                    text={item.word.text}
+                    meaning={item.word.meaning}
+                    forms={item.word.forms}
+                    flagged={item.word.flagged}
+                    onReplay={() => speakWord(item.word.text, settings.speechRate)}
+                    onToggleFlagged={() => void toggleFlagged(index)}
+                  />
+                </View>
+              ) : (
+                <View style={[styles.roundEnd, { height: viewport }]}>
+                  <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
+                  <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
+                    Swipe up to start round {round + 1}
+                  </Text>
+                </View>
+              )
+            }
+            horizontal={false}
+            pagingEnabled
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            getItemLayout={(_, index) => ({ length: viewport, offset: viewport * index, index })}
+            initialScrollIndex={Math.min(current, items.length - 1)}
+            onMomentumScrollBegin={() => {
+              // A real gesture is starting: drop any stale jump suppression
+              // left behind by an instant scrollToIndex (which fires no events).
+              suppressSettle.current = false;
+            }}
+            onMomentumScrollEnd={(event) => {
+              if (suppressSettle.current) {
+                suppressSettle.current = false;
+                return;
+              }
+              const index = Math.round(event.nativeEvent.contentOffset.y / viewport);
+              const clamped = Math.max(0, Math.min(index, items.length - 1));
+              void handleSettle(clamped);
+            }}
+          />
+        )}
+      </View>
 
       <Pressable
         style={styles.back}
@@ -215,11 +227,14 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  empty: {
+    flex: 1,
+  },
   progress: {
     paddingHorizontal: spacing.m,
     zIndex: 1,
   },
-  empty: {
+  listWrap: {
     flex: 1,
   },
   roundEnd: {
