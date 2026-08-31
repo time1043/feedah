@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
 import { useSettings, type SpeechRate, type ThemeMode } from '@/db/settings';
+import { getLiveUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
-import { formatMinutes } from '@/lib/format';
+import { formatClock } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
 
@@ -27,10 +29,19 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const { settings, update } = useSettings();
   const [today, setToday] = useState<DailyStatRow | null>(null);
+  const [, setTick] = useState(0);
 
   useFocusEffect(() => {
     void getDailyStat(todayLocalDate()).then(setToday);
+    // Live clock: one small text re-render per second while settings is open.
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timer);
   });
+
+  // Flushed seconds from the database plus unflushed in-memory time.
+  const live = getLiveUsage();
+  const appTotal = (today?.appSeconds ?? 0) + Math.floor(live.appMs / 1000);
+  const feedTotal = (today?.feedSeconds ?? 0) + Math.floor(live.feedMs / 1000);
 
   const showSoundHint = () => {
     update({ silentHintShown: true });
@@ -43,8 +54,7 @@ export default function SettingsScreen() {
         {settings.todayReadout && (
           <View style={[styles.readout, { backgroundColor: colors.surface }]}>
             <Text style={[styles.readoutText, { color: colors.textSecondary }]}>
-              Today · App {formatMinutes(today?.appSeconds ?? 0)} · Feed{' '}
-              {formatMinutes(today?.feedSeconds ?? 0)}
+              Today · App {formatClock(appTotal)} · Feed {formatClock(feedTotal)}
             </Text>
           </View>
         )}
@@ -55,7 +65,7 @@ export default function SettingsScreen() {
             value={settings.autoPronounce}
             onValueChange={(v) => update({ autoPronounce: v })}
           />
-          <OptionRow
+          <SelectRow
             label="Speech rate"
             options={RATE_OPTIONS}
             value={settings.speechRate}
@@ -198,6 +208,59 @@ function OptionRow<T extends string>({
   );
 }
 
+/** Row that opens a dropdown-style modal to pick one option. */
+function SelectRow<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const { colors } = useTheme();
+  const [open, setOpen] = useState(false);
+  const current = options.find((option) => option.value === value);
+
+  return (
+    <>
+      <Pressable style={styles.row} onPress={() => setOpen(true)}>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        <View style={styles.selectValue}>
+          <Text style={[styles.value, { color: colors.textSecondary }]}>{current?.label}</Text>
+          <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
+        </View>
+      </Pressable>
+
+      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
+          <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+            {options.map((option) => {
+              const active = option.value === value;
+              return (
+                <Pressable
+                  key={option.value}
+                  style={styles.modalOption}
+                  onPress={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}>
+                  <Text style={{ color: active ? colors.accent : colors.text, fontSize: fontSize.body }}>
+                    {option.label}
+                  </Text>
+                  {active && <Ionicons name="checkmark" size={20} color={colors.accent} />}
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   content: {
     gap: spacing.l,
@@ -245,5 +308,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.l,
     paddingHorizontal: spacing.m,
     paddingVertical: 6,
+  },
+  selectValue: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  modalOverlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  modalSheet: {
+    borderRadius: radius.m,
+    paddingVertical: spacing.xs,
+  },
+  modalOption: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingHorizontal: spacing.m,
   },
 });

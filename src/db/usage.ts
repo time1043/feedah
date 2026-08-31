@@ -65,3 +65,12 @@ export function pauseFeedUsage(): void {
   tick();
   feedStartedAt = null;
 }
+
+/** Current totals including unflushed in-memory time, for live displays. */
+export function getLiveUsage(): { appMs: number; feedMs: number } {
+  const now = Date.now();
+  return {
+    appMs: pendingAppMs + (appStartedAt !== null ? now - appStartedAt : 0),
+    feedMs: pendingFeedMs + (feedStartedAt !== null ? now - feedStartedAt : 0),
+  };
+}
