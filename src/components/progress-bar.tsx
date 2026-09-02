@@ -9,6 +9,8 @@ type ProgressBarProps = {
   value: number;
   /** Total item count. */
   max: number;
+  /** Highest index the scrubber may target; forward progress is swipe-only. */
+  maxIndex: number;
   /** Whether the bar can be grabbed and scrubbed. */
   interactive: boolean;
   /** Called with the target index when the gesture ends. */
@@ -17,22 +19,22 @@ type ProgressBarProps = {
 
 /**
  * Thin horizontal position bar. Doubles as a scrubber when interactive:
- * dragging shows the target position and jumps on release. The jump itself
- * never counts as studying — only hand-settled cards do.
+ * dragging shows the target position and jumps on release. Scrubbing is
+ * clamped to maxIndex so the feed can never be dragged past learned words.
  */
-export function ProgressBar({ value, max, interactive, onScrub }: ProgressBarProps) {
+export function ProgressBar({ value, max, maxIndex, interactive, onScrub }: ProgressBarProps) {
   const { colors } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const stateRef = useRef({ interactive, max, trackWidth });
-  stateRef.current = { interactive, max, trackWidth };
+  const stateRef = useRef({ interactive, max, maxIndex, trackWidth });
+  stateRef.current = { interactive, max, maxIndex, trackWidth };
 
   const indexAt = (x: number): number => {
-    const { max: maxCount, trackWidth: width } = stateRef.current;
+    const { max: maxCount, maxIndex: clamp, trackWidth: width } = stateRef.current;
     if (width <= 0) return 0;
     const ratio = Math.min(1, Math.max(0, x / width));
-    return Math.min(maxCount - 1, Math.floor(ratio * maxCount));
+    return Math.max(0, Math.min(clamp, Math.floor(ratio * maxCount)));
   };
 
   const panResponder = useRef(

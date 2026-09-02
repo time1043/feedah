@@ -73,6 +73,14 @@ export default function FeedScreen() {
     };
   }, [isFocused]);
 
+  // Feed opens (and re-aligns whenever the viewport settles) exactly on a
+  // card boundary, so a complete word is always shown.
+  useEffect(() => {
+    if (!ready || viewport <= 0) return;
+    listRef.current?.scrollToIndex({ index: Math.min(current, items.length - 1), animated: false });
+    // Re-align on layout changes only; current is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, viewport]);
   // One-time hint: iOS mutes speech while the ring/silent switch is on.
   useEffect(() => {
     if (!ready || !isFocused) return;
@@ -140,7 +148,8 @@ export default function FeedScreen() {
             <ProgressBar
               value={current}
               max={items.length}
-              interactive={settings.progressBarDrag}
+              maxIndex={pointer - 1}
+              interactive={settings.progressBarDrag && pointer > 0}
               onScrub={jumpTo}
             />
           </View>
