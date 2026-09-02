@@ -23,6 +23,7 @@ export default function WordPage() {
   const [word, setWord] = useState<WordRow | null>(null);
 
   useEffect(() => {
+    if (!Number.isInteger(position) || position <= 0) return;
     let cancelled = false;
     void (async () => {
       const row = await getWord(settings.activeBucketId, position);

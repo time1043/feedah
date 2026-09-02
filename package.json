@@ -43,10 +43,5 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true,
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@shopify/react-native-skia"
-    ]
-  }
+  "private": true
 }

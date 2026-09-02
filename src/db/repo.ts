@@ -172,6 +172,10 @@ export async function advancePointer(bucketId: string, position: number): Promis
 export async function startNextRound(bucketId: string): Promise<Progress> {
   const db = await getDb();
   const before = await getProgress(bucketId);
+  const wordCount = await getWordCount(bucketId);
+  // Idempotent: only advance from a fully walked-through round, so a
+  // duplicated settle on the round-end card cannot skip a round.
+  if (before.pointer < wordCount) return before;
   const now = Date.now();
 
   await db.withTransactionAsync(async () => {
