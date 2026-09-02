@@ -34,9 +34,9 @@ and flags.
 
 ## How progress works
 
-- The only counting event is a card settled by a hand gesture. Programmatic
-  jumps via the progress bar never count, and positions skipped by a jump
-  stay unreached for the round.
+- The only counting event is a card settled by a hand gesture; forward
+  progress is strictly swipe-by-swipe. The feed progress bar only drags
+  backward through already-learned words for review.
 - The pointer is a high-water mark: going back to review never moves it.
 - Daily word count = difference of daily pointer snapshots; nothing is
   counted twice.
