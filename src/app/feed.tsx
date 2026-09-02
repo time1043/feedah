@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useIsFocused } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,7 +60,12 @@ export default function FeedScreen() {
     };
   }, [settings.activeBucketId]);
 
-  // Feed time accrues only while the screen is focused; paused elsewhere.
+  // Feed time accrues only while the screen is focused AND the app is
+  // active; backgrounding pauses it, otherwise the whole background span
+  // would be credited on the next tick.
+  const focusedRef = useRef(isFocused);
+  focusedRef.current = isFocused;
+
   useEffect(() => {
     if (isFocused) {
       startFeedUsage();
@@ -72,6 +77,18 @@ export default function FeedScreen() {
       pauseFeedUsage();
     };
   }, [isFocused]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        if (focusedRef.current) startFeedUsage();
+      } else {
+        pauseFeedUsage();
+        void flushUsage();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Feed opens (and re-aligns whenever the viewport settles) exactly on a
   // card boundary, so a complete word is always shown.
@@ -169,8 +186,10 @@ export default function FeedScreen() {
       <View
         style={styles.listWrap}
         onLayout={(event) => {
-          const height = Math.round(event.nativeEvent.layout.height);
-          if (height > 0 && height !== viewport) setViewport(height);
+          // Keep the exact fractional height: rounding would accumulate
+          // sub-pixel drift between page snapping and item heights.
+          const height = event.nativeEvent.layout.height;
+          if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height);
         }}>
         {viewport > 0 && (
           <FlatList
