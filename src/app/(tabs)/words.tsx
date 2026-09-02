@@ -43,6 +43,7 @@ export default function WordsScreen() {
         <ProgressBar
           value={index}
           max={Math.max(words.length, 1)}
+          maxIndex={Math.max(words.length - 1, 0)}
           interactive
           onScrub={jumpTo}
         />
