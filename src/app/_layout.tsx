@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
@@ -51,9 +52,13 @@ function ThemedShell() {
 }
 
 export default function RootLayout() {
+  // Required for standalone builds: Expo Go supplies this provider itself,
+  // a packaged APK runs only what we render, so insets would resolve to zero.
   return (
-    <SettingsProvider>
-      <ThemedShell />
-    </SettingsProvider>
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <ThemedShell />
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
