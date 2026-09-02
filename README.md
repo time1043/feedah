@@ -18,6 +18,13 @@ npx expo start
 Run on a real device for pronunciation: `npx expo start` then open in
 Expo Go. On iPhone, pronunciation is muted while the ring/silent switch is on.
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — stack, structure, layers, gotchas
+- [Data model](docs/data-model.md) — tables and counting semantics
+- [Feature spec](docs/features.md) — the interaction contract per screen
+- [Development](docs/development.md) — setup, buckets, builds, conventions
+
 ## Word buckets
 
 Buckets live in `data/` as markdown tables (columns: `# | word | ipa |
