@@ -132,16 +132,30 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {settings.progressBar && (
-        <View style={styles.progress}>
-          <ProgressBar
-            value={current}
-            max={items.length}
-            interactive={settings.progressBarDrag}
-            onScrub={jumpTo}
-          />
+      {/* Fixed header: progress bar row, then controls row; the card area
+          always starts below it, so spacing stays constant. */}
+      <View style={styles.header}>
+        {settings.progressBar && (
+          <View style={styles.progress}>
+            <ProgressBar
+              value={current}
+              max={items.length}
+              interactive={settings.progressBarDrag}
+              onScrub={jumpTo}
+            />
+          </View>
+        )}
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close feed">
+            <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
+          </Pressable>
+          {settings.feedSearch && (
+            <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
+              <Ionicons name="search" size={22} color={colors.textTertiary} />
+            </Pressable>
+          )}
         </View>
-      )}
+      </View>
 
       <View
         style={styles.listWrap}
@@ -202,23 +216,6 @@ export default function FeedScreen() {
         )}
       </View>
 
-      <Pressable
-        style={styles.back}
-        onPress={() => router.back()}
-        hitSlop={12}
-        accessibilityLabel="Close feed">
-        <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
-      </Pressable>
-
-      {settings.feedSearch && (
-        <Pressable
-          style={styles.search}
-          onPress={() => router.push('/search')}
-          hitSlop={12}
-          accessibilityLabel="Search words">
-          <Ionicons name="search" size={22} color={colors.textTertiary} />
-        </Pressable>
-      )}
     </SafeAreaView>
   );
 }
@@ -230,9 +227,20 @@ const styles = StyleSheet.create({
   empty: {
     flex: 1,
   },
-  progress: {
+  header: {
+    paddingBottom: spacing.s,
     paddingHorizontal: spacing.m,
-    zIndex: 1,
+  },
+  progress: {
+    paddingTop: spacing.xs,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: spacing.s,
+    paddingVertical: spacing.s,
   },
   listWrap: {
     flex: 1,
@@ -248,17 +256,5 @@ const styles = StyleSheet.create({
   },
   roundEndHint: {
     fontSize: fontSize.body,
-  },
-  back: {
-    left: spacing.l,
-    padding: spacing.s,
-    position: 'absolute',
-    top: spacing.s,
-  },
-  search: {
-    padding: spacing.s,
-    position: 'absolute',
-    right: spacing.l,
-    top: spacing.s,
   },
 });
