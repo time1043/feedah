@@ -29,6 +29,10 @@ export function ProgressBar({ value, max, maxIndex, interactive, onScrub }: Prog
 
   const stateRef = useRef({ interactive, max, maxIndex, trackWidth });
   stateRef.current = { interactive, max, maxIndex, trackWidth };
+  // The PanResponder is created once, so route the callback through a ref
+  // to keep it from going stale across renders.
+  const onScrubRef = useRef(onScrub);
+  onScrubRef.current = onScrub;
 
   const indexAt = (x: number): number => {
     const { max: maxCount, maxIndex: clamp, trackWidth: width } = stateRef.current;
@@ -46,7 +50,7 @@ export function ProgressBar({ value, max, maxIndex, interactive, onScrub }: Prog
       onPanResponderRelease: (event) => {
         const index = indexAt(event.nativeEvent.locationX);
         setDragIndex(null);
-        onScrub(index);
+        onScrubRef.current(index);
       },
       onPanResponderTerminate: () => setDragIndex(null),
     }),
