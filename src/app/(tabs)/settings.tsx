@@ -29,19 +29,25 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const { settings, update } = useSettings();
   const [today, setToday] = useState<DailyStatRow | null>(null);
-  const [, setTick] = useState(0);
+  // Live samples held in state: reading module-level timers during render
+  // returns memoized values under React Compiler, so the clock would freeze.
+  const [live, setLive] = useState({ app: 0, feed: 0 });
 
   useFocusEffect(() => {
     void getDailyStat(todayLocalDate()).then(setToday);
-    // Live clock: one small text re-render per second while settings is open.
-    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    const sample = () => {
+      const usage = getLiveUsage();
+      setLive({ app: Math.floor(usage.appMs / 1000), feed: Math.floor(usage.feedMs / 1000) });
+    };
+    sample();
+    // One small text re-render per second while settings is open.
+    const timer = setInterval(sample, 1000);
     return () => clearInterval(timer);
   });
 
   // Flushed seconds from the database plus unflushed in-memory time.
-  const live = getLiveUsage();
-  const appTotal = (today?.appSeconds ?? 0) + Math.floor(live.appMs / 1000);
-  const feedTotal = (today?.feedSeconds ?? 0) + Math.floor(live.feedMs / 1000);
+  const appTotal = (today?.appSeconds ?? 0) + live.app;
+  const feedTotal = (today?.feedSeconds ?? 0) + live.feed;
 
   const showSoundHint = () => {
     update({ silentHintShown: true });
