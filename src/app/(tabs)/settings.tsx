@@ -78,7 +78,7 @@ export default function SettingsScreen() {
             onChange={(v) => update({ speechRate: v as SpeechRate })}
           />
           <SwitchRow
-            label="Progress bar"
+            label="Progress bar in feed"
             value={settings.progressBar}
             onValueChange={(v) => update({ progressBar: v })}
           />
@@ -86,6 +86,11 @@ export default function SettingsScreen() {
             label="Progress bar dragging"
             value={settings.progressBarDrag}
             onValueChange={(v) => update({ progressBarDrag: v })}
+          />
+          <SwitchRow
+            label="Progress bar in word page"
+            value={settings.wordProgressBar}
+            onValueChange={(v) => update({ wordProgressBar: v })}
           />
           <SwitchRow
             label="Search in feed"
