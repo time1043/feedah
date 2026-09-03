@@ -5,7 +5,16 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
 import { BucketTabs } from '@/components/bucket-tabs';
-import { getActiveBucketId, getProgress, getWordCount, listBuckets, type Bucket, type Progress } from '@/db/repo';
+import {
+  countFlaggedWords,
+  getActiveBucketId,
+  getProgress,
+  getRoundFlagCounts,
+  getWordCount,
+  listBuckets,
+  type Bucket,
+  type Progress,
+} from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -17,6 +26,8 @@ export default function HomeScreen() {
   const [activeId, setActiveId] = useState<string>('');
   const [progress, setProgress] = useState<Progress | null>(null);
   const [wordCount, setWordCount] = useState(0);
+  const [flagCounts, setFlagCounts] = useState({ green: 0, red: 0 });
+  const [flaggedTotal, setFlaggedTotal] = useState(0);
 
   const load = async () => {
     const list = await listBuckets();
@@ -28,6 +39,8 @@ export default function HomeScreen() {
     setActiveId(active);
     setProgress(await getProgress(active));
     setWordCount(await getWordCount(active));
+    setFlagCounts(await getRoundFlagCounts(active));
+    setFlaggedTotal(await countFlaggedWords(active));
   };
 
   useEffect(() => {
@@ -71,6 +84,12 @@ export default function HomeScreen() {
           <Text style={[styles.metric, { color: colors.text }]}>{pointer}</Text>
           <Text style={[styles.metricTotal, { color: colors.textTertiary }]}> / {wordCount}</Text>
         </View>
+        <View style={styles.flagRow}>
+          <View style={[styles.flagDot, { backgroundColor: colors.success }]} />
+          <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.green}</Text>
+          <View style={[styles.flagDot, { backgroundColor: colors.danger }]} />
+          <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.red}</Text>
+        </View>
         <Pressable
           style={({ pressed }) => [
             styles.start,
@@ -78,6 +97,15 @@ export default function HomeScreen() {
           ]}
           onPress={() => router.push(`/feed?bucket=${activeId}`)}>
           <Text style={styles.startText}>{started ? 'Continue' : 'Start'}</Text>
+        </Pressable>
+        <Pressable
+          disabled={flaggedTotal === 0}
+          style={({ pressed }) => [
+            styles.review,
+            { borderColor: colors.accent, opacity: flaggedTotal === 0 || pressed ? 0.4 : 1 },
+          ]}
+          onPress={() => router.push(`/review?bucket=${activeId}`)}>
+          <Text style={[styles.reviewText, { color: colors.accent }]}>Review · {flaggedTotal}</Text>
         </Pressable>
       </View>
     </Screen>
@@ -121,6 +149,21 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     fontWeight: '600',
   },
+  flagRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.s,
+  },
+  flagDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  flagCount: {
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
+    marginRight: spacing.xs,
+  },
   start: {
     borderRadius: radius.l,
     marginTop: spacing.m,
@@ -131,5 +174,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: fontSize.body,
     fontWeight: '700',
+  },
+  review: {
+    borderRadius: radius.l,
+    borderWidth: 1.5,
+    paddingHorizontal: spacing.l,
+    paddingVertical: spacing.s,
+  },
+  reviewText: {
+    fontSize: fontSize.caption,
+    fontWeight: '600',
   },
 });
