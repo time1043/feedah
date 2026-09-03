@@ -20,8 +20,14 @@ import { spacing } from '@/theme/tokens';
 export default function WordPage() {
   const { colors } = useTheme();
   const { settings } = useSettings();
-  const params = useLocalSearchParams<{ position: string }>();
+  const params = useLocalSearchParams<{ position: string; bucket?: string }>();
   const requested = Number(params.position);
+  // The bucket is pinned by the opener (word list passes its tab); search
+  // omits it and the active bucket is used.
+  const bucketId =
+    typeof params.bucket === 'string' && params.bucket.length > 0
+      ? params.bucket
+      : settings.activeBucketId;
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
@@ -35,7 +41,7 @@ export default function WordPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const list = await getWords(settings.activeBucketId);
+      const list = await getWords(bucketId);
       if (cancelled) return;
       const initial =
         Number.isInteger(requested) && requested > 0 ? Math.min(requested, list.length) - 1 : 0;
@@ -49,7 +55,7 @@ export default function WordPage() {
     return () => {
       cancelled = true;
     };
-  }, [settings.activeBucketId, requested]);
+  }, [bucketId, requested]);
 
   // Alignment insurance: whenever the layout settles, land exactly on a card.
   useEffect(() => {
@@ -75,7 +81,7 @@ export default function WordPage() {
     const word = words[index];
     if (!word) return;
     const next = !word.flagged;
-    await setFlag(settings.activeBucketId, word.position, next);
+    await setFlag(bucketId, word.position, next);
     setWords((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
