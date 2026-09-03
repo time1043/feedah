@@ -1,26 +1,42 @@
-import { useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
-import { getWords, type WordRow } from '@/db/repo';
+import { getWords, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
-import { fontSize, spacing } from '@/theme/tokens';
-import { useFocusEffect } from 'expo-router';
+import { fontSize, radius, spacing } from '@/theme/tokens';
 
 const ROW_HEIGHT = 52;
 
 export default function WordsScreen() {
   const { colors } = useTheme();
   const { settings } = useSettings();
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [tab, setTab] = useState('');
   const [words, setWords] = useState<WordRow[]>([]);
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<WordRow> | null>(null);
 
   useFocusEffect(() => {
-    void getWords(settings.activeBucketId).then(setWords);
+    void (async () => {
+      const list = await listBuckets();
+      setBuckets(list);
+      // Keep the current tab when valid; otherwise follow the active bucket.
+      const target =
+        tab && list.some((bucket) => bucket.id === tab)
+          ? tab
+          : (list.find((bucket) => bucket.id === settings.activeBucketId)?.id ?? list[0]?.id ?? '');
+      setTab(target);
+      if (target !== '') setWords(await getWords(target));
+    })();
   });
+
+  useEffect(() => {
+    if (tab !== '') void getWords(tab).then(setWords);
+  }, [tab]);
 
   const jumpTo = (target: number) => {
     setIndex(target);
@@ -33,10 +49,23 @@ export default function WordsScreen() {
 
   return (
     <Screen>
+      <View style={styles.tabs}>
+        {buckets.map((bucket) => {
+          const active = bucket.id === tab;
+          return (
+            <Pressable
+              key={bucket.id}
+              onPress={() => setTab(bucket.id)}
+              style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surface }]}>
+              <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.textSecondary }]}>
+                {bucket.id}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={styles.header}>
-        <Text style={[styles.count, { color: colors.textTertiary }]}>
-          {words.length} words
-        </Text>
+        <Text style={[styles.count, { color: colors.textTertiary }]}>{words.length} words</Text>
       </View>
       <View style={styles.jump}>
         <ProgressBar
@@ -50,7 +79,13 @@ export default function WordsScreen() {
         ref={listRef}
         data={words}
         keyExtractor={(word) => `${word.position}`}
-        renderItem={({ item }) => <Row word={item} />}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => router.push(`/word/${item.position}?bucket=${tab}`)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <Row word={item} />
+          </Pressable>
+        )}
         getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
         initialNumToRender={20}
         windowSize={7}
@@ -84,6 +119,20 @@ function Row({ word }: { word: WordRow }) {
 }
 
 const styles = StyleSheet.create({
+  tabs: {
+    flexDirection: 'row',
+    gap: spacing.s,
+    paddingHorizontal: spacing.m,
+  },
+  chip: {
+    borderRadius: radius.l,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+  },
+  chipText: {
+    fontSize: fontSize.caption,
+    fontWeight: '600',
+  },
   header: {
     paddingHorizontal: spacing.m,
   },
