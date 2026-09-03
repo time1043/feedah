@@ -44,10 +44,11 @@ prebuild: `npx expo prebuild --clean`.
 ## Working agreement
 
 - **Branches**
-  - `mvp/base` — the standing integration branch; always shippable.
-  - `mvp/feat/<module>/<date>` — one branch per module. `<date>` is the start
-    day of the development phase (一期 / 二期 / 三期 …), e.g. `260830`; a new
-    phase simply starts a new date suffix.
+  - `main` — the upstream baseline.
+  - `mvp/<date>` — the integration branch of a development phase; `<date>` is
+    the phase start (一期 = `260830`). A later phase starts a new integration
+    branch (`mvp/260930`) from the previous one.
+  - `mvp/feat/<module>/<date>` — one branch per module within a phase.
   - `mvp/fix/<topic>/<date>` — same shape, for bug fixes.
   - Merge with `--no-ff`, keep the branch after merging, push all branches.
 - **Parallel AI sessions**: when several sessions work at once, give each its

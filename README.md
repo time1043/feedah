@@ -55,6 +55,6 @@ and flags.
 ## Branches
 
 - `main` — upstream baseline.
-- `mvp/260830` — MVP integration branch.
-- `mvp/feat/<module>/260830` — one branch per module, merged back with
-  `--no-ff` and deleted after merge.
+- `mvp/260830` — MVP integration branch (a later phase starts `mvp/260930`).
+- `mvp/feat/<module>/<date>` and `mvp/fix/<topic>/<date>` — one branch per
+  unit of work, merged back with `--no-ff` and kept.
