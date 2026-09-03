@@ -226,6 +226,41 @@ export async function setFlag(
   });
 }
 
+export async function getFlaggedWords(bucketId: string): Promise<WordRow[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<WordDbRow>(
+    'SELECT * FROM word WHERE bucket_id = ? AND flagged = 1 ORDER BY position',
+    [bucketId],
+  );
+  return rows.map(toWord);
+}
+
+export async function countFlaggedWords(bucketId: string): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM word WHERE bucket_id = ? AND flagged = 1',
+    [bucketId],
+  );
+  return row?.n ?? 0;
+}
+
+/** Green/red counts for the current round, matching the stats timelines. */
+export async function getRoundFlagCounts(bucketId: string): Promise<{ green: number; red: number }> {
+  const db = await getDb();
+  const { round } = await getProgress(bucketId);
+  const rows = await db.getAllAsync<{ reached: number; flagged: number }>(
+    'SELECT reached, flagged FROM round_word WHERE bucket_id = ? AND round = ?',
+    [bucketId, round],
+  );
+  let green = 0;
+  let red = 0;
+  for (const row of rows) {
+    if (row.flagged === 1) red += 1;
+    else if (row.reached === 1) green += 1;
+  }
+  return { green, red };
+}
+
 export async function getRoundHistory(bucketId: string): Promise<RoundHistoryRow[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<{
