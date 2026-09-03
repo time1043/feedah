@@ -7,7 +7,6 @@ import { Heatmap } from '@/components/heatmap';
 import { RoundBar, type RoundWordStatus } from '@/components/round-bar';
 import { Screen } from '@/components/screen';
 import {
-  getActiveBucketId,
   getProgress,
   getRoundHistory,
   getRoundWords,
@@ -15,6 +14,7 @@ import {
   listDailyPointers,
   listDailyStats,
 } from '@/db/repo';
+import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
 import { formatMinutes } from '@/lib/format';
 import { todayLocalDate } from '@/lib/date';
@@ -37,6 +37,7 @@ const MINUTE_THRESHOLDS: [number, number, number] = [10, 30, 60];
 
 export default function StatsScreen() {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [usage, setUsage] = useState<Map<string, DailyUsage>>(new Map());
   const [metric, setMetric] = useState<Metric>('words');
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -45,7 +46,7 @@ export default function StatsScreen() {
 
   useFocusEffect(() => {
     void (async () => {
-      const bucket = await getActiveBucketId();
+      const bucket = settings.activeBucketId;
       const [stats, pointers, wordCount, history, progress] = await Promise.all([
         listDailyStats(),
         listDailyPointers(),

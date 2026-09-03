@@ -75,14 +75,6 @@ export async function getActiveBucketId(): Promise<string> {
   return row?.value ?? DEFAULT_BUCKET_ID;
 }
 
-export async function setActiveBucketId(id: string): Promise<void> {
-  const db = await getDb();
-  await db.runAsync(
-    'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-    ['activeBucketId', id],
-  );
-}
-
 export async function getProgress(bucketId: string): Promise<Progress> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ round: number; pointer: number; started_at: number }>(
