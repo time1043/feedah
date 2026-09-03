@@ -28,7 +28,7 @@ on the integration branch.
 
 ## Agreed, not started
 
-- [ ] Flagged-words review pass: study only the words marked unfamiliar in the
+- [x] Flagged-words review pass: study only the words marked unfamiliar in the
       current bucket (first item after the MVP; the data model already
       supports it)
 - [ ] Quiz mode: English word with four Chinese options, plus example

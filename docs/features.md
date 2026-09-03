@@ -6,7 +6,25 @@ rules is a product change, not a refactor.
 ## Home
 
 - Bucket chips (three fixed buckets, fully isolated progress), current round,
-  big `pointer / word_count` readout, Start/Continue button, search entry.
+  big `pointer / word_count` readout with green/red counts for the current
+  round, Start/Continue button, search entry.
+- Review entry: `Review · N` (N = currently flagged words in the bucket),
+  disabled while N is 0.
+
+## Review pass
+
+- A session over the bucket's currently flagged words, in bucket order —
+  entered from home with the bucket pinned.
+- Same card and gestures as the feed: swipe up/down, tap the word to replay,
+  tap elsewhere to reveal, bookmark to flag/unflag.
+- Header progress bar and the `Review` context label track the **queue**
+  position (`x/N`), not the bucket position; the card keeps showing the bucket
+  position as its anchor number.
+- The queue is snapshotted on entry. Unflagging during the session updates the
+  word immediately but the word stays in this pass; newly flagged words join
+  the next pass. Flags inherited from earlier rounds are part of the live set.
+- Nothing is recorded: no pointer movement, no rounds, no word counts. The
+  time spent counts as studying. Swiping past the end card leaves the session.
 
 ## Feed (the core)
 
