@@ -53,9 +53,15 @@ prebuild: `npx expo prebuild --clean`.
 - **Parallel AI sessions**: when several sessions work at once, give each its
   own checkout with `git worktree add <path> <branch>`; never share one
   working tree between concurrent sessions.
-- **Commits**: commit after every complete unit of work. Write clear messages;
-  stage only the files that belong to your change (check `git status` first) —
-  never sweep in unrelated work. Every commit must type-check and run.
+- **Terminal**: on Windows use Git Bash only — PowerShell and cmd are not
+  allowed. Network operations (push / fetch) go through the `ex` alias, which
+  exports a local proxy (`127.0.0.1:7890`); in non-interactive shells export
+  `https_proxy` / `http_proxy` directly instead. macOS (zsh) setups typically
+  do not need this.
+- **Commits**: commit after every complete unit of work, and keep every commit
+  as small as it can be while still building and running. Write clear
+  messages; stage only the files that belong to your change (check
+  `git status` first) — never sweep in unrelated work.
 - **Language**: code, comments, docs, and UI text in English, concise.
 - **Push** after every merged unit as soon as the network allows.
 - **Data**: `data/` is user-provided and never committed.

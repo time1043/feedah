@@ -16,10 +16,11 @@ rules is a product change, not a refactor.
   bottom. Slots are fixed so toggling never shifts the layout.
 - Tap the word → replay pronunciation. Tap anywhere else → toggle meaning and
   forms. Bookmark → flag the word as unfamiliar.
-- **Counting**: the only counting event is a card settled by a hand gesture —
-  a `pagingEnabled` momentum end that was not caused by a programmatic jump.
-  The settled card speaks (if auto pronunciation is on) and advances the
-  pointer. Nothing else records anything.
+- **Counting**: studying counts a card when you swipe **past** it — landing on
+  a card completes the previous one, so the card on screen is still in
+  progress and exiting there loses nothing. The newly shown card speaks (if
+  auto pronunciation is on) and the completed card advances the pointer.
+  Nothing else records anything.
 - **Modes**: the feed has a *studying* mode (default) and a *browsing* mode.
   Scrubbing the progress bar switches to browsing — free navigation in both
   directions, nothing recorded. A `Resume studying` control in the header
