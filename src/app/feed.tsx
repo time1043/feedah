@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useIsFocused } from 'expo-router';
+import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
@@ -27,9 +27,16 @@ const FOOTER: FeedItem = { kind: 'roundEnd' };
 /** Fullscreen swipe feed: one word card per page, immersive, no tab bar. */
 export default function FeedScreen() {
   const { colors } = useTheme();
-  const { settings, update } = useSettings();
+  const { settings, ready: settingsReady, update } = useSettings();
   const router = useRouter();
   const isFocused = useIsFocused();
+  // Home pins the bucket on navigation; without the param the active bucket
+  // from settings is used (only once settings have actually loaded).
+  const params = useLocalSearchParams<{ bucket?: string }>();
+  const bucketId =
+    typeof params.bucket === 'string' && params.bucket.length > 0
+      ? params.bucket
+      : settings.activeBucketId;
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
@@ -46,10 +53,13 @@ export default function FeedScreen() {
   const suppressSettle = useRef(false);
 
   useEffect(() => {
+    // Wait for settings: before the meta table loads, activeBucketId is a
+    // default and starting here would open the wrong bucket.
+    if (!settingsReady) return;
     let cancelled = false;
     void (async () => {
-      const progress = await getProgress(settings.activeBucketId);
-      const list = await getWords(settings.activeBucketId);
+      const progress = await getProgress(bucketId);
+      const list = await getWords(bucketId);
       if (cancelled) return;
       setWords(list);
       setRound(progress.round);
@@ -61,7 +71,7 @@ export default function FeedScreen() {
     return () => {
       cancelled = true;
     };
-  }, [settings.activeBucketId]);
+  }, [settingsReady, bucketId]);
 
   // Feed time accrues only while the screen is focused AND the app is
   // active; backgrounding pauses it, otherwise the whole background span
@@ -123,7 +133,7 @@ export default function FeedScreen() {
     if (items[index]?.kind === 'roundEnd') {
       // The round-complete card: moving past it opens the next round.
       if (mode === 'study' && pointer >= words.length) {
-        const next = await startNextRound(settings.activeBucketId);
+        const next = await startNextRound(bucketId);
         setRound(next.round);
         setPointer(0);
         setCurrent(0);
@@ -136,7 +146,7 @@ export default function FeedScreen() {
     const position = index + 1;
     // Only studying mode records; browsing is free navigation.
     if (mode === 'study' && position > pointer) {
-      const next = await advancePointer(settings.activeBucketId, position);
+      const next = await advancePointer(bucketId, position);
       setPointer(next.pointer);
     }
     setCurrent(index);
@@ -149,7 +159,7 @@ export default function FeedScreen() {
   const toggleFlagged = async (index: number) => {
     const word = words[index];
     const next = !word.flagged;
-    await setFlag(settings.activeBucketId, word.position, next);
+    await setFlag(bucketId, word.position, next);
     setWords((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
