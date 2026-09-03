@@ -14,7 +14,12 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       await migrate(db);
       await seedBuckets(db);
       return db;
-    })();
+    })().catch((error) => {
+      // A failed open must not poison the singleton: clear it so the next
+      // call retries instead of failing for the whole session.
+      instance = null;
+      throw error;
+    });
   }
   return instance;
 }

@@ -19,7 +19,10 @@ export default function HomeScreen() {
 
   const load = async () => {
     const list = await listBuckets();
-    const active = await getActiveBucketId();
+    if (list.length === 0) return; // DB not ready yet; the next focus retries
+    // A stale/unknown meta value falls back to the first bucket (2050).
+    const meta = await getActiveBucketId();
+    const active = list.some((bucket) => bucket.id === meta) ? meta : list[0].id;
     setBuckets(list);
     setActiveId(active);
     setProgress(await getProgress(active));
@@ -27,11 +30,11 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    void load();
+    load().catch(() => {});
   }, []);
 
   useFocusEffect(() => {
-    void load();
+    load().catch(() => {});
   });
 
   const selectBucket = (id: string) => {
@@ -89,7 +92,7 @@ export default function HomeScreen() {
             styles.start,
             { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
           ]}
-          onPress={() => router.push('/feed')}>
+          onPress={() => router.push(`/feed?bucket=${activeId}`)}>
           <Text style={styles.startText}>{started ? 'Continue' : 'Start'}</Text>
         </Pressable>
       </View>
