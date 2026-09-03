@@ -60,5 +60,8 @@ data/               user-provided buckets (gitignored)
   height; any mismatch drifts across pages and shows two cards at once.
 - On iOS, `expo-speech` is muted while the ring/silent switch is on; the feed
   shows a one-time hint for this.
+- Skia's `Canvas` does not support `onLayout` on the new architecture
+  (Fabric — the default in Expo Go). Measure a wrapping `View` and pass the
+  size to `Canvas` as an explicit style instead.
 - Consult the docs for the exact SDK version before adding APIs:
   https://docs.expo.dev/versions/v57.0.0/

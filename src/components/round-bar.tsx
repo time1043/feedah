@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutChangeEvent, StyleSheet } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Canvas, Rect } from '@shopify/react-native-skia';
 
 import { useTheme } from '@/theme/context';
@@ -21,6 +21,8 @@ export function RoundBar({ statuses }: RoundBarProps) {
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
 
+  // Canvas does not support onLayout on the new architecture (Fabric);
+  // measure a wrapping view instead and size the canvas from it.
   const onLayout = (event: LayoutChangeEvent) => {
     setWidth(event.nativeEvent.layout.width);
   };
@@ -53,18 +55,24 @@ export function RoundBar({ statuses }: RoundBarProps) {
     status === 'red' ? colors.danger : status === 'green' ? colors.success : colors.track;
 
   return (
-    <Canvas onLayout={onLayout} style={styles.canvas}>
-      {columns.map((column, index) => (
-        <Rect key={index} x={index} y={0} width={1} height={14} color={colorOf(column)} />
-      ))}
-    </Canvas>
+    <View onLayout={onLayout} style={styles.wrap}>
+      {width > 0 && (
+        <Canvas style={[styles.canvas, { width }]}>
+          {columns.map((column, index) => (
+            <Rect key={index} x={index} y={0} width={1} height={14} color={colorOf(column)} />
+          ))}
+        </Canvas>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    height: 14,
+  },
   canvas: {
     borderRadius: 3,
     height: 14,
-    width: '100%',
   },
 });
