@@ -9,36 +9,35 @@ type ProgressBarProps = {
   value: number;
   /** Total item count. */
   max: number;
-  /** Highest index the scrubber may target; forward progress is swipe-only. */
-  maxIndex: number;
   /** Whether the bar can be grabbed and scrubbed. */
   interactive: boolean;
-  /** Called with the target index when the gesture ends. */
+  /** Called with the raw target index when the gesture ends. Consumers
+   * enforce their own policy (e.g. the feed snaps back to learned words). */
   onScrub: (index: number) => void;
 };
 
 /**
  * Thin horizontal position bar. Doubles as a scrubber when interactive:
- * dragging shows the target position and jumps on release. Scrubbing is
- * clamped to maxIndex so the feed can never be dragged past learned words.
+ * the thumb follows the finger across the whole track and the raw index is
+ * reported on release.
  */
-export function ProgressBar({ value, max, maxIndex, interactive, onScrub }: ProgressBarProps) {
+export function ProgressBar({ value, max, interactive, onScrub }: ProgressBarProps) {
   const { colors } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const stateRef = useRef({ interactive, max, maxIndex, trackWidth });
-  stateRef.current = { interactive, max, maxIndex, trackWidth };
+  const stateRef = useRef({ interactive, max, trackWidth });
+  stateRef.current = { interactive, max, trackWidth };
   // The PanResponder is created once, so route the callback through a ref
   // to keep it from going stale across renders.
   const onScrubRef = useRef(onScrub);
   onScrubRef.current = onScrub;
 
   const indexAt = (x: number): number => {
-    const { max: maxCount, maxIndex: clamp, trackWidth: width } = stateRef.current;
+    const { max: maxCount, trackWidth: width } = stateRef.current;
     if (width <= 0) return 0;
     const ratio = Math.min(1, Math.max(0, x / width));
-    return Math.max(0, Math.min(clamp, Math.floor(ratio * maxCount)));
+    return Math.max(0, Math.min(maxCount - 1, Math.floor(ratio * maxCount)));
   };
 
   const panResponder = useRef(

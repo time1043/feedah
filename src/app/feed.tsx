@@ -150,9 +150,14 @@ export default function FeedScreen() {
   };
 
   const jumpTo = (index: number) => {
+    // The bar is a free locator while dragging, but you cannot camp beyond
+    // the learned frontier: releasing ahead of it returns to the last
+    // learned card, so learning can only advance by swiping.
+    const target = Math.min(index, pointer - 1);
+    if (target < 0) return;
     suppressSettle.current = true;
-    listRef.current?.scrollToIndex({ index, animated: false });
-    setCurrent(index);
+    listRef.current?.scrollToIndex({ index: target, animated: false });
+    setCurrent(target);
   };
 
   return (
@@ -165,7 +170,6 @@ export default function FeedScreen() {
             <ProgressBar
               value={current}
               max={items.length}
-              maxIndex={pointer - 1}
               interactive={settings.progressBarDrag && pointer > 0}
               onScrub={jumpTo}
             />
