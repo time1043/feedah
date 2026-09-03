@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
+import { BucketTabs } from '@/components/bucket-tabs';
 import { getActiveBucketId, getProgress, getWordCount, listBuckets, type Bucket, type Progress } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
@@ -54,25 +55,8 @@ export default function HomeScreen() {
   const started = pointer > 0 || round > 1;
 
   return (
-    <Screen style={styles.root}>
-      <View style={styles.chips}>
-        {buckets.map((bucket) => {
-          const active = bucket.id === activeId;
-          return (
-            <Pressable
-              key={bucket.id}
-              onPress={() => void selectBucket(bucket.id)}
-              style={[
-                styles.chip,
-                { backgroundColor: active ? colors.accent : colors.surface },
-              ]}>
-              <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.textSecondary }]}>
-                {bucket.id}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+    <Screen>
+      <BucketTabs buckets={buckets} activeId={activeId} onSelect={selectBucket} />
 
       <Pressable
         style={[styles.search, { backgroundColor: colors.surface }]}
@@ -101,34 +85,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: spacing.m,
-    paddingTop: spacing.s,
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: spacing.s,
-  },
   search: {
     alignItems: 'center',
     borderRadius: radius.l,
     flexDirection: 'row',
     gap: spacing.s,
+    marginHorizontal: spacing.m,
     marginTop: spacing.m,
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.s,
   },
   searchText: {
     fontSize: fontSize.body,
-  },
-  chip: {
-    borderRadius: radius.l,
-    paddingHorizontal: spacing.m,
-    paddingVertical: spacing.s,
-  },
-  chipText: {
-    fontSize: fontSize.caption,
-    fontWeight: '600',
   },
   center: {
     alignItems: 'center',
