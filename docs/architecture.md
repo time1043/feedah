@@ -49,6 +49,10 @@ data/               user-provided buckets (gitignored)
   never read module-level mutable state during render — the compiler treats it
   as pure and memoizes it, freezing the UI. Sample external state into
   `useState` instead (see the live clock in settings).
+- The settings store is the single source of truth for the active bucket.
+  Switching buckets on home must go through `update({ activeBucketId })`;
+  writing the `meta` table directly leaves feed, search, and the word page on
+  a stale bucket until restart.
 - The root layout must wrap everything in `SafeAreaProvider`. Expo Go injects
   one for you; a standalone APK does not, and insets silently resolve to zero.
 - Feed card height must be the *measured* viewport height (`onLayout`), not

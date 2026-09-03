@@ -20,20 +20,25 @@ rules is a product change, not a refactor.
   a `pagingEnabled` momentum end that was not caused by a programmatic jump.
   The settled card speaks (if auto pronunciation is on) and advances the
   pointer. Nothing else records anything.
-- **Continuity**: forward progress is strictly one card per swipe. The progress
-  bar only scrubs backward through already-learned words and is disabled until
-  something is learned. Review never moves the pointer and never records.
+- **Continuity**: learning advances only by swiping. The progress bar is a
+  free locator — the thumb follows the finger anywhere — but releasing ahead
+  of the learned frontier snaps back to the last learned card, so words can
+  never be counted after a jump. Review never moves the pointer and never
+  records. The bar defaults to hidden.
 - **Rounds**: walking off the last card shows a round-complete page; the next
   swipe starts the following round (idempotent, pointer resets to 0).
 - Header is fixed: progress bar row, then back/search row; the card area is
   measured below it so spacing never shifts.
 
-## Search & single word
+## Search & word page
 
-- Contains-match over the active bucket; rows show position and a red dot when
-  flagged.
-- A result opens a single card: replay, reveal, and flag all work, but nothing
-  is recorded — a lookup is not a study pass and never moves the pointer.
+- Search: contains-match over the active bucket; rows show position and a red
+  dot when flagged.
+- A result opens the **word page**: a full bucket browser. Swipe up/down to
+  move through words, scrub the progress bar (default on) to any position,
+  replay, reveal, and flag all work.
+- None of it counts as studying: no pointer movement, no word counts, no feed
+  time. The active bucket always follows the settings store.
 
 ## Stats
 
@@ -44,8 +49,9 @@ rules is a product change, not a refactor.
 
 ## Settings
 
-- Feed: auto pronunciation, speech rate (dropdown), progress bar, progress bar
-  dragging, search entry in feed.
+- Feed: auto pronunciation, speech rate (dropdown), progress bar in feed
+  (default off), progress bar dragging, progress bar in word page (default
+  on), search entry in feed.
 - Appearance: theme (system / light / dark).
 - General: today time readout.
 - About: version, sound hint (replays the iOS silent-switch notice).
