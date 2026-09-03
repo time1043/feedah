@@ -11,13 +11,14 @@ import {
   getRoundHistory,
   getRoundWords,
   getWordCount,
+  listBuckets,
   listDailyPointers,
   listDailyStats,
 } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
-import { formatMinutes } from '@/lib/format';
 import { todayLocalDate } from '@/lib/date';
+import { formatDayLabel, formatMinutes } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
 
@@ -30,10 +31,65 @@ type RoundDisplay = {
   done: boolean;
   pointer: number;
   wordCount: number;
+  green: number;
+  red: number;
 };
 
 const WORD_THRESHOLDS: [number, number, number] = [10, 30, 100];
 const MINUTE_THRESHOLDS: [number, number, number] = [10, 30, 60];
+
+function countOf(statuses: RoundWordStatus[], status: RoundWordStatus): number {
+  return statuses.reduce((total, s) => (s === status ? total + 1 : total), 0);
+}
+
+async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
+  const [wordCount, history, progress] = await Promise.all([
+    getWordCount(bucketId),
+    getRoundHistory(bucketId),
+    getProgress(bucketId),
+  ]);
+  const now = Date.now();
+  const displays: RoundDisplay[] = [];
+
+  for (const row of history) {
+    const statuses = toStatuses(await getRoundWords(bucketId, row.round), wordCount);
+    displays.push({
+      round: row.round,
+      statuses,
+      days: Math.max(1, Math.ceil((row.finishedAt - row.startedAt) / 86_400_000)),
+      done: true,
+      pointer: wordCount,
+      wordCount,
+      green: countOf(statuses, 'green'),
+      red: countOf(statuses, 'red'),
+    });
+  }
+
+  const currentStatuses = toStatuses(await getRoundWords(bucketId, progress.round), wordCount);
+  displays.push({
+    round: progress.round,
+    statuses: currentStatuses,
+    days: progress.startedAt > 0 ? Math.max(1, Math.ceil((now - progress.startedAt) / 86_400_000)) : 0,
+    done: progress.pointer >= wordCount,
+    pointer: progress.pointer,
+    wordCount,
+    green: countOf(currentStatuses, 'green'),
+    red: countOf(currentStatuses, 'red'),
+  });
+  return displays;
+}
+
+function toStatuses(
+  words: { position: number; reached: boolean; flagged: boolean }[],
+  wordCount: number,
+): RoundWordStatus[] {
+  const statuses: RoundWordStatus[] = Array.from({ length: wordCount }, () => 'gray');
+  for (const word of words) {
+    if (word.position < 1 || word.position > wordCount) continue;
+    statuses[word.position - 1] = word.flagged ? 'red' : 'green';
+  }
+  return statuses;
+}
 
 export default function StatsScreen() {
   const { colors } = useTheme();
@@ -41,49 +97,48 @@ export default function StatsScreen() {
   const [usage, setUsage] = useState<Map<string, DailyUsage>>(new Map());
   const [metric, setMetric] = useState<Metric>('words');
   const [year, setYear] = useState(() => new Date().getFullYear());
-  const [bucketId, setBucketId] = useState('');
+  const [selectedDay, setSelectedDay] = useState(() => todayLocalDate());
+  // Round tabs: only buckets that have been started appear here.
+  const [roundTabs, setRoundTabs] = useState<string[]>([]);
+  const [roundTab, setRoundTab] = useState('');
   const [rounds, setRounds] = useState<RoundDisplay[]>([]);
 
   useFocusEffect(() => {
     void (async () => {
-      const bucket = settings.activeBucketId;
-      const [stats, pointers, wordCount, history, progress] = await Promise.all([
+      const [stats, pointers, buckets] = await Promise.all([
         listDailyStats(),
         listDailyPointers(),
-        getWordCount(bucket),
-        getRoundHistory(bucket),
-        getProgress(bucket),
+        listBuckets(),
       ]);
-      setBucketId(bucket);
       setUsage(computeDailyUsage(stats, pointers));
 
-      const roundDisplays: RoundDisplay[] = [];
-      const now = Date.now();
-      for (const row of history) {
-        const words = await getRoundWords(bucket, row.round);
-        roundDisplays.push({
-          round: row.round,
-          statuses: toStatuses(words, wordCount),
-          days: Math.max(1, Math.ceil((row.finishedAt - row.startedAt) / 86_400_000)),
-          done: true,
-          pointer: wordCount,
-          wordCount,
-        });
+      const active = settings.activeBucketId;
+      const tabs: string[] = [];
+      for (const bucket of buckets) {
+        const [progress, history] = await Promise.all([
+          getProgress(bucket.id),
+          getRoundHistory(bucket.id),
+        ]);
+        if (progress.pointer > 0 || progress.round > 1 || history.length > 0) {
+          tabs.push(bucket.id);
+        }
       }
-      const currentWords = await getRoundWords(bucket, progress.round);
-      roundDisplays.push({
-        round: progress.round,
-        statuses: toStatuses(currentWords, wordCount),
-        days: progress.startedAt > 0 ? Math.max(1, Math.ceil((now - progress.startedAt) / 86_400_000)) : 0,
-        done: progress.pointer >= wordCount,
-        pointer: progress.pointer,
-        wordCount,
-      });
-      setRounds(roundDisplays);
+      setRoundTabs(tabs);
+      const tab = tabs.includes(active) ? active : (tabs[0] ?? '');
+      setRoundTab(tab);
+      setRounds(tab === '' ? [] : await loadRounds(tab));
     })();
   });
 
+  const selectRoundTab = (id: string) => {
+    if (id === roundTab) return;
+    setRoundTab(id);
+    void loadRounds(id).then(setRounds);
+  };
+
   const today = usage.get(todayLocalDate());
+  const dayUsage = usage.get(selectedDay);
+  const isToday = selectedDay === todayLocalDate();
   const heatValues = new Map<string, number>();
   for (const [day, value] of usage) {
     heatValues.set(day, metric === 'words' ? value.words : Math.round(value.feedSeconds / 60));
@@ -92,10 +147,16 @@ export default function StatsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.today}>
-          <StatBlock label="Words today" value={`${today?.words ?? 0}`} />
-          <StatBlock label="Studying" value={formatMinutes(today?.feedSeconds ?? 0)} />
-          <StatBlock label="In app" value={formatMinutes(today?.appSeconds ?? 0)} />
+        <View style={styles.todayCard}>
+          <Text style={[styles.dayTitle, { color: colors.textTertiary }]}>
+            {formatDayLabel(selectedDay)}
+            {isToday ? ' · today' : ''}
+          </Text>
+          <View style={styles.today}>
+            <StatBlock label="Words" value={`${dayUsage?.words ?? 0}`} />
+            <StatBlock label="Studying" value={formatMinutes(dayUsage?.feedSeconds ?? 0)} />
+            <StatBlock label="In app" value={formatMinutes(dayUsage?.appSeconds ?? 0)} />
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -118,35 +179,44 @@ export default function StatsScreen() {
             year={year}
             values={heatValues}
             thresholds={metric === 'words' ? WORD_THRESHOLDS : MINUTE_THRESHOLDS}
+            selectedDay={selectedDay}
+            onSelectDay={setSelectedDay}
           />
         </View>
 
         <View style={styles.rounds}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Rounds · {bucketId}</Text>
-          {rounds.map((round) => (
-            <View key={round.round} style={styles.roundItem}>
-              <Text style={[styles.roundLabel, { color: colors.textTertiary }]}>
-                {`Round ${round.round} · ${round.done ? `${round.days}d` : `day ${round.days || 1}`} · ${round.pointer}/${round.wordCount}`}
-              </Text>
-              <RoundBar statuses={round.statuses} />
-            </View>
-          ))}
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Rounds</Text>
+          {roundTabs.length === 0 ? (
+            <Text style={[styles.empty, { color: colors.textTertiary }]}>No rounds yet — start studying first.</Text>
+          ) : (
+            <>
+              <View style={styles.toggle}>
+                {roundTabs.map((id) => (
+                  <MetricPill key={id} label={id} active={id === roundTab} onPress={() => selectRoundTab(id)} />
+                ))}
+              </View>
+              {rounds.map((round) => (
+                <View key={round.round} style={styles.roundItem}>
+                  <View style={styles.roundHead}>
+                    <Text style={[styles.roundLabel, { color: colors.textTertiary }]}>
+                      {`Round ${round.round} · ${round.done ? `${round.days}d` : `day ${round.days || 1}`} · ${round.pointer}/${round.wordCount}`}
+                    </Text>
+                    <View style={styles.roundCounts}>
+                      <View style={[styles.countDot, { backgroundColor: colors.success }]} />
+                      <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.green}</Text>
+                      <View style={[styles.countDot, { backgroundColor: colors.danger }]} />
+                      <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.red}</Text>
+                    </View>
+                  </View>
+                  <RoundBar statuses={round.statuses} />
+                </View>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
     </Screen>
   );
-}
-
-function toStatuses(
-  words: { position: number; reached: boolean; flagged: boolean }[],
-  wordCount: number,
-): RoundWordStatus[] {
-  const statuses: RoundWordStatus[] = Array.from({ length: wordCount }, () => 'gray');
-  for (const word of words) {
-    if (word.position < 1 || word.position > wordCount) continue;
-    statuses[word.position - 1] = word.flagged ? 'red' : 'green';
-  }
-  return statuses;
 }
 
 function StatBlock({ label, value }: { label: string; value: string }) {
@@ -176,6 +246,13 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.l,
     padding: spacing.m,
+  },
+  todayCard: {
+    gap: spacing.xs,
+  },
+  dayTitle: {
+    fontSize: fontSize.caption,
+    fontWeight: '600',
   },
   today: {
     flexDirection: 'row',
@@ -232,11 +309,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
   },
+  empty: {
+    fontSize: fontSize.body,
+  },
   roundItem: {
     gap: spacing.xs,
+  },
+  roundHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   roundLabel: {
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
+  },
+  roundCounts: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  countDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  roundCount: {
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
+    marginRight: spacing.xs,
   },
 });
