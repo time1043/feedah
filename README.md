@@ -23,7 +23,8 @@ Expo Go. On iPhone, pronunciation is muted while the ring/silent switch is on.
 - [Architecture](docs/architecture.md) — stack, structure, layers, gotchas
 - [Data model](docs/data-model.md) — tables and counting semantics
 - [Feature spec](docs/features.md) — the interaction contract per screen
-- [Development](docs/development.md) — setup, buckets, builds, conventions
+- [Development](docs/development.md) — setup, buckets, builds, working agreement
+- [Plan](docs/plan.md) — roadmap: done, agreed-not-started, decided against
 
 ## Word buckets
 

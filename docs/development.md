@@ -41,15 +41,25 @@ node scripts/generate-assets.mjs     # requires: pnpm add -D sharp
 If a native build complains after dependency changes, start from a clean
 prebuild: `npx expo prebuild --clean`.
 
-## Conventions
+## Working agreement
 
-- **Branches**: `main` is the baseline, `mvp/260830` is the integration
-  branch, `mvp/feat/<module>/260830` is one branch per module. Merge with
-  `--no-ff`, keep the branch after merging, push all branches.
-- **Commits**: small complete units that each build and run, with conventional
-  prefixes (`feat:`, `fix:`, `chore:`, `docs:`).
+- **Branches**
+  - `mvp/base` — the standing integration branch; always shippable.
+  - `mvp/feat/<module>/<date>` — one branch per module. `<date>` is the start
+    day of the development phase (一期 / 二期 / 三期 …), e.g. `260830`; a new
+    phase simply starts a new date suffix.
+  - `mvp/fix/<topic>/<date>` — same shape, for bug fixes.
+  - Merge with `--no-ff`, keep the branch after merging, push all branches.
+- **Parallel AI sessions**: when several sessions work at once, give each its
+  own checkout with `git worktree add <path> <branch>`; never share one
+  working tree between concurrent sessions.
+- **Commits**: commit after every complete unit of work. Write clear messages;
+  stage only the files that belong to your change (check `git status` first) —
+  never sweep in unrelated work. Every commit must type-check and run.
 - **Language**: code, comments, docs, and UI text in English, concise.
-- **React Compiler is enabled** — no manual memo hooks; keep renders free of
-  external mutable state (see architecture gotchas).
+- **Push** after every merged unit as soon as the network allows.
+- **Data**: `data/` is user-provided and never committed.
+- **Docs**: keep `docs/plan.md` marks current; record new product rules in
+  `docs/features.md` in the same change that implements them.
 - Read the Expo docs for the exact SDK version before adding APIs:
   https://docs.expo.dev/versions/v57.0.0/
