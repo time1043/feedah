@@ -3,7 +3,8 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
-import { getActiveBucketId, getWords, type WordRow } from '@/db/repo';
+import { getWords, type WordRow } from '@/db/repo';
+import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 import { useFocusEffect } from 'expo-router';
@@ -12,15 +13,13 @@ const ROW_HEIGHT = 52;
 
 export default function WordsScreen() {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [words, setWords] = useState<WordRow[]>([]);
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<WordRow> | null>(null);
 
   useFocusEffect(() => {
-    void (async () => {
-      const bucketId = await getActiveBucketId();
-      setWords(await getWords(bucketId));
-    })();
+    void getWords(settings.activeBucketId).then(setWords);
   });
 
   const jumpTo = (target: number) => {
@@ -43,7 +42,6 @@ export default function WordsScreen() {
         <ProgressBar
           value={index}
           max={Math.max(words.length, 1)}
-          maxIndex={Math.max(words.length - 1, 0)}
           interactive
           onScrub={jumpTo}
         />

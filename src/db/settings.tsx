@@ -12,6 +12,7 @@ export type Settings = {
   speechRate: SpeechRate;
   progressBar: boolean;
   progressBarDrag: boolean;
+  wordProgressBar: boolean;
   feedSearch: boolean;
   todayReadout: boolean;
   silentHintShown: boolean;
@@ -22,8 +23,9 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   autoPronounce: true,
   speechRate: 'normal',
-  progressBar: true,
+  progressBar: false,
   progressBarDrag: true,
+  wordProgressBar: true,
   feedSearch: true,
   todayReadout: true,
   silentHintShown: false,

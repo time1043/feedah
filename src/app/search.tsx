@@ -4,32 +4,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getActiveBucketId, searchWords, type WordRow } from '@/db/repo';
+import { searchWords, type WordRow } from '@/db/repo';
+import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
-/** Word lookup over the active bucket; results open a single read-only card. */
+/** Word lookup over the active bucket; results open a single card. */
 export default function SearchScreen() {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const [query, setQuery] = useState('');
-  const [bucketId, setBucketId] = useState('');
   const [results, setResults] = useState<WordRow[]>([]);
-
-  useFocusEffect(() => {
-    void getActiveBucketId().then(setBucketId);
-  });
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (bucketId === '' || trimmed.length === 0) {
+    if (settings.activeBucketId === '' || trimmed.length === 0) {
       setResults([]);
       return;
     }
     const timer = setTimeout(() => {
-      void searchWords(bucketId, trimmed).then(setResults);
+      void searchWords(settings.activeBucketId, trimmed).then(setResults);
     }, 150);
     return () => clearTimeout(timer);
-  }, [query, bucketId]);
+  }, [query, settings.activeBucketId]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>

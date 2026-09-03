@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
-import { getActiveBucketId, getProgress, getWordCount, listBuckets, setActiveBucketId, type Bucket, type Progress } from '@/db/repo';
+import { getActiveBucketId, getProgress, getWordCount, listBuckets, type Bucket, type Progress } from '@/db/repo';
+import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { update } = useSettings();
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -32,10 +34,16 @@ export default function HomeScreen() {
     void load();
   });
 
-  const selectBucket = async (id: string) => {
+  const selectBucket = (id: string) => {
     if (id === activeId) return;
-    await setActiveBucketId(id);
-    await load();
+    // The settings store is the single source of truth for the active bucket:
+    // writing here keeps feed, search and the word page in sync immediately.
+    update({ activeBucketId: id });
+    setActiveId(id);
+    void (async () => {
+      setProgress(await getProgress(id));
+      setWordCount(await getWordCount(id));
+    })();
   };
 
   const round = progress?.round ?? 1;
