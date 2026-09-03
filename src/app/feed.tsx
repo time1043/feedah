@@ -18,7 +18,7 @@ import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
 import { speakWord } from '@/lib/speech';
 import { useTheme } from '@/theme/context';
-import { fontSize, spacing } from '@/theme/tokens';
+import { fontSize, radius, spacing } from '@/theme/tokens';
 
 type FeedItem = { kind: 'word'; word: WordRow } | { kind: 'roundEnd' };
 
@@ -36,6 +36,8 @@ export default function FeedScreen() {
   const [round, setRound] = useState(1);
   const [pointer, setPointer] = useState(0);
   const [current, setCurrent] = useState(0);
+  // Studying records; browsing (after a progress bar drag) records nothing.
+  const [mode, setMode] = useState<'study' | 'browse'>('study');
   // Measured height of the scroll viewport. Cards must be exactly this tall,
   // otherwise pagingEnabled snapping drifts away from card boundaries.
   const [viewport, setViewport] = useState(0);
@@ -53,6 +55,7 @@ export default function FeedScreen() {
       setRound(progress.round);
       setPointer(progress.pointer);
       setCurrent(Math.min(progress.pointer, list.length));
+      setMode('study');
       setReady(true);
     })();
     return () => {
@@ -119,7 +122,7 @@ export default function FeedScreen() {
   const handleSettle = async (index: number) => {
     if (items[index]?.kind === 'roundEnd') {
       // The round-complete card: moving past it opens the next round.
-      if (pointer >= words.length) {
+      if (mode === 'study' && pointer >= words.length) {
         const next = await startNextRound(settings.activeBucketId);
         setRound(next.round);
         setPointer(0);
@@ -131,7 +134,8 @@ export default function FeedScreen() {
     }
 
     const position = index + 1;
-    if (position > pointer) {
+    // Only studying mode records; browsing is free navigation.
+    if (mode === 'study' && position > pointer) {
       const next = await advancePointer(settings.activeBucketId, position);
       setPointer(next.pointer);
     }
@@ -150,11 +154,18 @@ export default function FeedScreen() {
   };
 
   const jumpTo = (index: number) => {
-    // The bar is a free locator while dragging, but you cannot camp beyond
-    // the learned frontier: releasing ahead of it returns to the last
-    // learned card, so learning can only advance by swiping.
-    const target = Math.min(index, pointer - 1);
-    if (target < 0) return;
+    // Dragging the bar switches to browse mode: free navigation, zero
+    // recording. Studying resumes from the frontier via the header control.
+    suppressSettle.current = true;
+    listRef.current?.scrollToIndex({ index, animated: false });
+    setCurrent(index);
+    setMode('browse');
+  };
+
+  const resumeStudy = () => {
+    // Return to the first unlearned card; instant scroll so no settle fires.
+    const target = Math.min(pointer, words.length);
+    setMode('study');
     suppressSettle.current = true;
     listRef.current?.scrollToIndex({ index: target, animated: false });
     setCurrent(target);
@@ -179,6 +190,13 @@ export default function FeedScreen() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close feed">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
+          {mode === 'browse' && (
+            <Pressable
+              style={[styles.modePill, { backgroundColor: colors.accent }]}
+              onPress={resumeStudy}>
+              <Text style={styles.modePillText}>Resume studying</Text>
+            </Pressable>
+          )}
           {settings.feedSearch && (
             <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
               <Ionicons name="search" size={22} color={colors.textTertiary} />
@@ -273,6 +291,16 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.s,
     paddingVertical: spacing.s,
+  },
+  modePill: {
+    borderRadius: radius.l,
+    paddingHorizontal: spacing.m,
+    paddingVertical: 6,
+  },
+  modePillText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.caption,
+    fontWeight: '600',
   },
   listWrap: {
     flex: 1,
