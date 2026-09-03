@@ -130,23 +130,29 @@ export default function FeedScreen() {
   const items: FeedItem[] = [...words.map((word) => ({ kind: 'word' as const, word })), FOOTER];
 
   const handleSettle = async (index: number) => {
+    // Studying counts the card you just LEFT BEHIND: landing on a card
+    // completes the previous one, so the card on screen is still in progress
+    // and exiting there loses nothing.
     if (items[index]?.kind === 'roundEnd') {
-      // The round-complete card: moving past it opens the next round.
-      if (mode === 'study' && pointer >= words.length) {
-        const next = await startNextRound(bucketId);
-        setRound(next.round);
-        setPointer(0);
-        setCurrent(0);
-        suppressSettle.current = true;
-        listRef.current?.scrollToIndex({ index: 0, animated: false });
+      // The footer is only reachable by swiping past the last card.
+      if (mode === 'study' && pointer >= words.length - 1 && index > pointer) {
+        const next = await advancePointer(bucketId, index);
+        setPointer(next.pointer);
+        if (next.pointer >= words.length) {
+          const progress = await startNextRound(bucketId);
+          setRound(progress.round);
+          setPointer(progress.pointer);
+          setCurrent(0);
+          suppressSettle.current = true;
+          listRef.current?.scrollToIndex({ index: 0, animated: false });
+        }
       }
       return;
     }
 
-    const position = index + 1;
     // Only studying mode records; browsing is free navigation.
-    if (mode === 'study' && position > pointer) {
-      const next = await advancePointer(bucketId, position);
+    if (mode === 'study' && index > pointer) {
+      const next = await advancePointer(bucketId, index);
       setPointer(next.pointer);
     }
     setCurrent(index);
