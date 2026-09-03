@@ -20,15 +20,15 @@ rules is a product change, not a refactor.
   a `pagingEnabled` momentum end that was not caused by a programmatic jump.
   The settled card speaks (if auto pronunciation is on) and advances the
   pointer. Nothing else records anything.
-- **Continuity**: learning advances only by swiping. The progress bar is a
-  free locator — the thumb follows the finger anywhere — but releasing ahead
-  of the learned frontier snaps back to the last learned card, so words can
-  never be counted after a jump. Review never moves the pointer and never
-  records. The bar defaults to hidden.
+- **Modes**: the feed has a *studying* mode (default) and a *browsing* mode.
+  Scrubbing the progress bar switches to browsing — free navigation in both
+  directions, nothing recorded. A `Resume studying` control in the header
+  returns to the first unlearned card and re-enables recording. The bar
+  defaults to hidden.
 - **Rounds**: walking off the last card shows a round-complete page; the next
   swipe starts the following round (idempotent, pointer resets to 0).
-- Header is fixed: progress bar row, then back/search row; the card area is
-  measured below it so spacing never shifts.
+- Header is fixed: progress bar row, then back/browse/search row; the card
+  area is measured below it so spacing never shifts.
 
 ## Search & word page
 
@@ -42,10 +42,14 @@ rules is a product change, not a refactor.
 
 ## Stats
 
-- Today row: words, studying time, in-app time.
-- Heatmap: calendar year (switchable), Words/Minutes toggle, five color levels.
-- Rounds: one pixel-column timeline per round — red = flagged during that
-  round, green = hand-settled, gray = skipped or not reached.
+- Selected day row: words, studying time, in-app time for the day tapped on
+  the heatmap (defaults to today; the title shows its date).
+- Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
+  toggle, five color levels, tappable cells.
+- Rounds: one tab per bucket that has been started (defaults to the active
+  bucket; never-started buckets do not appear). Each round shows its position
+  progress, green/red word counts, and a pixel-column timeline — red =
+  flagged, green = hand-settled, gray = skipped or not reached.
 
 ## Settings
 
