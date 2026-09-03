@@ -4,10 +4,11 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
+import { BucketTabs } from '@/components/bucket-tabs';
 import { getWords, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
-import { fontSize, radius, spacing } from '@/theme/tokens';
+import { fontSize, spacing } from '@/theme/tokens';
 
 const ROW_HEIGHT = 52;
 
@@ -49,21 +50,7 @@ export default function WordsScreen() {
 
   return (
     <Screen>
-      <View style={styles.tabs}>
-        {buckets.map((bucket) => {
-          const active = bucket.id === tab;
-          return (
-            <Pressable
-              key={bucket.id}
-              onPress={() => setTab(bucket.id)}
-              style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surface }]}>
-              <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.textSecondary }]}>
-                {bucket.id}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <BucketTabs buckets={buckets} activeId={tab} onSelect={setTab} />
       <View style={styles.header}>
         <Text style={[styles.count, { color: colors.textTertiary }]}>{words.length} words</Text>
       </View>
@@ -119,21 +106,8 @@ function Row({ word }: { word: WordRow }) {
 }
 
 const styles = StyleSheet.create({
-  tabs: {
-    flexDirection: 'row',
-    gap: spacing.s,
-    paddingHorizontal: spacing.m,
-  },
-  chip: {
-    borderRadius: radius.l,
-    paddingHorizontal: spacing.m,
-    paddingVertical: spacing.s,
-  },
-  chipText: {
-    fontSize: fontSize.caption,
-    fontWeight: '600',
-  },
   header: {
+    marginTop: spacing.m,
     paddingHorizontal: spacing.m,
   },
   count: {
