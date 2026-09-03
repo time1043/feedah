@@ -30,6 +30,14 @@ rules is a product change, not a refactor.
 - Header is fixed: progress bar row, then back/browse/search row; the card
   area is measured below it so spacing never shifts.
 
+## Word list
+
+- Bucket tabs for **all** buckets (browsing only — switching tabs here does
+  not change the bucket being studied; the tab defaults to the active bucket).
+- Bucket order, four columns (position, word, meaning, forms), red dots on
+  flagged words, jump bar for quick positioning.
+- Tapping a row opens the word page pinned to that row's bucket and position.
+
 ## Search & word page
 
 - Search: contains-match over the active bucket; rows show position and a red
@@ -37,8 +45,10 @@ rules is a product change, not a refactor.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
   move through words, scrub the progress bar (default on) to any position,
   replay, reveal, and flag all work.
+- The word page browses the bucket it was opened from: search omits the bucket
+  (uses the active one), the word list pins its tab's bucket explicitly.
 - None of it counts as studying: no pointer movement, no word counts, no feed
-  time. The active bucket always follows the settings store.
+  time.
 
 ## Stats
 
