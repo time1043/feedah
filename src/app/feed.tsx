@@ -67,6 +67,11 @@ export default function FeedScreen() {
       setCurrent(Math.min(progress.pointer, list.length));
       setMode('study');
       setReady(true);
+      // Speak the card the feed opens on; other cards speak on settle.
+      const initial = Math.min(progress.pointer, list.length);
+      if (settings.autoPronounce && list[initial]) {
+        speakWord(list[initial].text, settings.speechRate);
+      }
     })();
     return () => {
       cancelled = true;
