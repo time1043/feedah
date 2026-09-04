@@ -19,9 +19,13 @@ const MONTHS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-/** Formats a YYYY-MM-DD day as a short label like "Jan 15". */
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Formats a YYYY-MM-DD day as a short label like "Wed, Sep 3". */
 export function formatDayLabel(day: string): string {
   const [year, month, date] = day.split('-').map(Number);
   if (!year || !month || !date) return day;
-  return `${MONTHS[month - 1]} ${date}`;
+  // Build a local date from parts to avoid UTC shift from `new Date(iso)`.
+  const weekday = WEEKDAYS[new Date(year, month - 1, date).getDay()];
+  return `${weekday}, ${MONTHS[month - 1]} ${date}`;
 }
