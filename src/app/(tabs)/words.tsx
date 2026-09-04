@@ -98,9 +98,6 @@ function Row({ word }: { word: WordRow }) {
       <Text style={[styles.meaning, { color: colors.textSecondary }]} numberOfLines={1}>
         {word.meaning}
       </Text>
-      <Text style={[styles.forms, { color: colors.textTertiary }]} numberOfLines={1}>
-        {word.forms.join(', ')}
-      </Text>
     </View>
   );
 }
@@ -141,12 +138,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.s,
   },
   meaning: {
-    flex: 1.2,
-    fontSize: 15,
-    marginRight: spacing.s,
-  },
-  forms: {
     flex: 1,
-    fontSize: fontSize.caption,
+    fontSize: 15,
   },
 });
