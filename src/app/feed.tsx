@@ -247,6 +247,7 @@ export default function FeedScreen() {
                     text={item.word.text}
                     meaning={item.word.meaning}
                     forms={item.word.forms}
+                    ipa={item.word.ipa}
                     flagged={item.word.flagged}
                     onReplay={() => speakWord(item.word.text, settings.speechRate)}
                     onToggleFlagged={() => void toggleFlagged(index)}

@@ -10,6 +10,7 @@ type WordCardProps = {
   text: string;
   meaning: string;
   forms: string[];
+  ipa?: string;
   flagged: boolean;
   onReplay: () => void;
   onToggleFlagged: () => void;
@@ -23,7 +24,7 @@ type WordCardProps = {
  * Tap the word to replay it; tap anywhere else to reveal/hide the meaning;
  * tap the bookmark to flag the word as unfamiliar.
  */
-export function WordCard({ position, text, meaning, forms, flagged, onReplay, onToggleFlagged }: WordCardProps) {
+export function WordCard({ position, text, meaning, forms, ipa, flagged, onReplay, onToggleFlagged }: WordCardProps) {
   const { colors } = useTheme();
   const [meaningVisible, setMeaningVisible] = useState(false);
   const toggleMeaning = () => setMeaningVisible((v) => !v);
@@ -41,6 +42,9 @@ export function WordCard({ position, text, meaning, forms, flagged, onReplay, on
             {text}
           </Text>
         </Pressable>
+        {ipa && ipa.length > 0 && (
+          <Text style={[styles.ipa, { color: colors.textTertiary }]}>{ipa}</Text>
+        )}
         {/* Reserved slot: keeps number and word anchored while meaning toggles. */}
         <View style={styles.meaningSlot}>
           {meaningVisible && meaning.length > 0 && (
@@ -96,6 +100,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.word,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  ipa: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: spacing.s,
   },
   meaningSlot: {
     alignItems: 'center',
