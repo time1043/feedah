@@ -12,17 +12,17 @@ ring/silent switch is on — the app shows a one-time hint.
 
 ## Word buckets
 
-Buckets live in `data/*.md` (gitignored) as markdown tables with columns
-`# | word | ipa | meaning | forms`:
+Buckets live in `data/*.json` (gitignored, never committed) with the shape
+`{ name, words: [{ position, word, ipa, meaning, forms }] }`. The JSON is bundled
+through static imports in `src/db/seed.ts` at build time and seeded into SQLite on
+first launch; a later APK whose bundled word count differs is re-seeded
+automatically (flags reset). To add a bucket, drop `data/<name>.json` and register
+it in `src/db/seed.ts` (import + add to `BUNDLED_BUCKETS`). Restart the dev server
+after changing buckets so Metro picks up the JSON. A fresh clone needs the bucket
+JSON locally or bundling fails.
 
-```bash
-node scripts/convert-bucket.mjs     # data/*.md -> data/*.json
-```
-
-The JSON is bundled through imports and seeded into SQLite on first launch; a
-bucket whose word count changed is re-seeded automatically (flags reset).
-Restart the dev server after changing buckets so Metro picks up the JSON.
-Note: a fresh clone needs the bucket files locally or bundling fails.
+Reference word banks: https://github.com/time1043/vocabulary-bucket (same schema;
+its JSON bucket files map 1:1 to this project's buckets).
 
 ## Local builds
 

@@ -22,8 +22,8 @@ src/
   db/               sqlite: schema, seed, repo, settings store, usage tracker
   lib/              pure helpers: date, format, daily aggregation, speech, color
   theme/            palette, tokens, provider
-scripts/            convert-bucket.mjs, generate-assets.mjs
-data/               user-provided buckets (gitignored)
+scripts/            generate-assets.mjs
+data/               local word buckets (gitignored, bundled at build)
 ```
 
 ## Layers

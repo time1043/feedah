@@ -13,6 +13,12 @@ export type SeedWord = {
 
 type SeedFile = { name: string; words: SeedWord[] };
 
+// Each bucket JSON is imported above and listed here, then bundled into the app
+// at build time. Seeding runs on the first DB open (getDb in src/db/index.ts)
+// and on every later cold start; it is idempotent against the device's stored
+// bucket.word_count, so an APK rebuild that changes a bucket's word count
+// re-seeds that bucket on the user's device (flags reset), while an unchanged
+// bundle leaves existing data untouched.
 export const BUNDLED_BUCKETS = [raw2050, raw700, raw370] as SeedFile[];
 
 export const DEFAULT_BUCKET_ID = '2050';

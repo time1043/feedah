@@ -28,17 +28,15 @@ Expo Go. On iPhone, pronunciation is muted while the ring/silent switch is on.
 
 ## Word buckets
 
-Buckets live in `data/` as markdown tables (columns: `# | word | ipa |
-meaning | forms`) and are **not tracked by git**. They are converted to JSON
-and bundled into the app:
+Buckets live in `data/` as local JSON (`{ name, words: [{ position, word, ipa,
+meaning, forms }] }`), gitignored and never committed. The JSON is bundled at build
+time and seeded into SQLite on first launch; a later APK whose bundled word count
+changed is re-seeded automatically (flags reset). To add a bucket, drop
+`data/<name>.json` and register it in `src/db/seed.ts` (import + add to
+`BUNDLED_BUCKETS`). Buckets are isolated: each keeps its own round, pointer, flags.
 
-```bash
-node scripts/convert-bucket.mjs   # data/*.md -> data/*.json
-```
-
-The JSON is seeded into SQLite on first launch (re-seeded automatically if a
-bucket file changes). Buckets are isolated: each keeps its own round, pointer,
-and flags.
+Reference word banks: https://github.com/time1043/vocabulary-bucket (same schema;
+its JSON bucket files map 1:1 to this project's buckets).
 
 ## How progress works
 

@@ -37,7 +37,7 @@ on the integration branch.
 
 ## Open questions
 
-- [ ] `data/370.md` contains 369 words — confirm whether a row is missing or
+- [x] `data/370.json` contains 369 words — confirm whether a row is missing or
       the bucket should be renamed
 
 ## Decided against
