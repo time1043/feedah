@@ -33,8 +33,7 @@ All behave identically:
 - The queue is snapshotted on entry. Unflagging during the session updates the
   word and the current round immediately, but the queue keeps the word until
   the next pass, and historical rounds are never rewritten.
-- The end card lingers for two seconds with a confetti burst, then leaves the
-  session.
+- The end card lingers for two seconds, then leaves the session.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
   time spent counts as studying.
 
@@ -57,8 +56,7 @@ All behave identically:
   returns to the first unlearned card and re-enables recording. The bar
   defaults to hidden.
 - **Rounds**: walking off the last card shows a round-complete page; it
-  lingers for two seconds (with a confetti burst) and then opens the new
-  round automatically.
+  lingers for two seconds and then opens the new round automatically.
 - Header is fixed: progress bar row, then back/browse/search row; the card
   area is measured below it so spacing never shifts.
 

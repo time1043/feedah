@@ -50,6 +50,11 @@ on the integration branch.
 
 ## Decided against
 
+- End-page confetti burst (feed round-complete / review end card): implemented
+  twice — hand-rolled RN Animated physics, then a two-cannon parabola version —
+  but it was janky and fired unreliably on device, so it was removed. The
+  two-second linger stays. (`react-native-confetti-cannon` remains an option
+  for a future retry.)
 - Left/right swipe semantics on feed cards (gesture conflicts; the bookmark
   already covers the need)
 - A–Z sorting in the word list (bucket order is a memory anchor)

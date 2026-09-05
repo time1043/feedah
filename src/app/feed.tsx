@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
-import { Confetti } from '@/components/confetti';
 import {
   advancePointer,
   getProgress,
@@ -274,7 +273,6 @@ export default function FeedScreen() {
                 </View>
               ) : (
                 <View style={[styles.roundEnd, { height: viewport }]}>
-                  <Confetti active={current === items.length - 1} />
                   <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
                   <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
                     Round {round + 1} starts in a moment
