@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
 import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage';
+import { enabledMealTimes, syncMealReminders } from '@/lib/reminders';
 import { ThemeProvider, useTheme } from '@/theme/context';
 
 function RootNavigator() {
@@ -24,7 +25,7 @@ function RootNavigator() {
 }
 
 function ThemedShell() {
-  const { settings } = useSettings();
+  const { settings, ready: settingsReady } = useSettings();
 
   useEffect(() => {
     void getDb();
@@ -43,6 +44,16 @@ function ThemedShell() {
       void flushUsage();
     };
   }, []);
+
+  // Keep the OS notification schedule in step with the reminder settings.
+  // Runs on launch and after any change; a disabled feature cancels all.
+  useEffect(() => {
+    if (!settingsReady) return;
+    const times = settings.mealReminders
+      ? enabledMealTimes(settings.mealTimes, settings.mealEnabled)
+      : [];
+    syncMealReminders(times).catch(() => {});
+  }, [settingsReady, settings.mealReminders, settings.mealTimes, settings.mealEnabled]);
 
   return (
     <ThemeProvider mode={settings.theme}>

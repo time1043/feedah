@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -7,12 +18,22 @@ import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/screen';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
-import { useSettings, type SpeechRate, type ThemeMode } from '@/db/settings';
+import { useSettings, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
 import { getLiveUsage, resetUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
 import { formatClock } from '@/lib/format';
+import {
+  enabledMealTimes,
+  formatTimeOfDay,
+  parseMealTimeSetting,
+  parseTimeOfDay,
+  requestReminderPermission,
+  syncMealReminders,
+} from '@/lib/reminders';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
+
+const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner'];
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -53,6 +74,44 @@ export default function SettingsScreen() {
   const showSoundHint = () => {
     update({ silentHintShown: true });
     alertSoundHint();
+  };
+
+  const syncFrom = (next: Settings) => {
+    void syncMealReminders(
+      next.mealReminders ? enabledMealTimes(next.mealTimes, next.mealEnabled) : [],
+    ).catch(() => {});
+  };
+
+  const toggleMealReminders = async (v: boolean) => {
+    if (v) {
+      const granted = await requestReminderPermission();
+      if (!granted) {
+        Alert.alert(
+          'Notifications disabled',
+          'Allow notifications for feedah in system settings, then try again.',
+        );
+        return;
+      }
+    }
+    const next = { ...settings, mealReminders: v };
+    update({ mealReminders: v });
+    syncFrom(next);
+  };
+
+  const changeMealTime = (index: number, time: string) => {
+    const times = [...settings.mealTimes];
+    times[index] = time;
+    const next = { ...settings, mealTimes: times };
+    update({ mealTimes: times });
+    syncFrom(next);
+  };
+
+  const toggleMealEnabled = (index: number, v: boolean) => {
+    const enabled = [...settings.mealEnabled];
+    enabled[index] = v;
+    const next = { ...settings, mealEnabled: enabled };
+    update({ mealEnabled: enabled });
+    syncFrom(next);
   };
 
   const confirmClearData = () => {
@@ -123,6 +182,31 @@ export default function SettingsScreen() {
             value={settings.feedSearch}
             onValueChange={(v) => update({ feedSearch: v })}
           />
+        </Group>
+
+        <Group title="Reminders">
+          <SwitchRow
+            label="Meal reminders"
+            value={settings.mealReminders}
+            onValueChange={(v) => void toggleMealReminders(v)}
+          />
+          {settings.mealReminders && (
+            <>
+              {MEAL_LABELS.map((label, index) => (
+                <MealTimeRow
+                  key={label}
+                  label={label}
+                  time={settings.mealTimes[index] ?? '08:30'}
+                  enabled={settings.mealEnabled[index] ?? true}
+                  onToggle={(v) => toggleMealEnabled(index, v)}
+                  onTimeChange={(time) => changeMealTime(index, time)}
+                />
+              ))}
+              <Text style={[styles.groupCaption, { color: colors.textTertiary }]}>
+                A notification is sent at each enabled time — right after a meal works best.
+              </Text>
+            </>
+          )}
         </Group>
 
         <Group title="Appearance">
@@ -302,6 +386,85 @@ function SelectRow<T extends string>({
   );
 }
 
+/** Row with a per-meal switch and a tappable time that opens an editor. */
+function MealTimeRow({
+  label,
+  time,
+  enabled,
+  onToggle,
+  onTimeChange,
+}: {
+  label: string;
+  time: string;
+  enabled: boolean;
+  onToggle: (value: boolean) => void;
+  onTimeChange: (time: string) => void;
+}) {
+  const { colors } = useTheme();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(time);
+
+  const openEdit = () => {
+    setDraft(time);
+    setEditing(true);
+  };
+
+  const save = () => {
+    const parsed = parseTimeOfDay(draft);
+    if (parsed) onTimeChange(formatTimeOfDay(parsed));
+    setEditing(false);
+  };
+
+  return (
+    <>
+      <View style={styles.row}>
+        <Text style={[styles.label, { color: enabled ? colors.text : colors.textTertiary }]}>
+          {label}
+        </Text>
+        <View style={styles.mealControls}>
+          <Pressable onPress={openEdit} disabled={!enabled} hitSlop={8}>
+            <Text
+              style={[
+                styles.value,
+                { color: enabled ? colors.accent : colors.textTertiary },
+              ]}>
+              {formatTimeOfDay(parseMealTimeSetting(time))}
+            </Text>
+          </Pressable>
+          <Switch value={enabled} onValueChange={onToggle} />
+        </View>
+      </View>
+
+      <Modal transparent visible={editing} animationType="fade" onRequestClose={() => setEditing(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setEditing(false)}>
+          <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{label} time</Text>
+            <TextInput
+              autoFocus
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="8:30"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numbers-and-punctuation"
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+            />
+            <View style={styles.modalActions}>
+              <Pressable onPress={() => setEditing(false)} hitSlop={8}>
+                <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={save} hitSlop={8}>
+                <Text style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: '600' }}>
+                  Save
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   content: {
     gap: spacing.l,
@@ -358,6 +521,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.xs,
+  },
+  mealControls: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.m,
+  },
+  groupCaption: {
+    fontSize: fontSize.caption,
+    paddingHorizontal: spacing.m,
+  },
+  modalTitle: {
+    fontSize: fontSize.body,
+    fontWeight: '600',
+    paddingHorizontal: spacing.m,
+    paddingTop: spacing.m,
+  },
+  modalInput: {
+    borderRadius: radius.s,
+    fontSize: fontSize.title,
+    fontVariant: ['tabular-nums'],
+    margin: spacing.m,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.l,
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.m,
+    paddingBottom: spacing.m,
   },
   modalOverlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
