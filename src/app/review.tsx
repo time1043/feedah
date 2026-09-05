@@ -112,6 +112,8 @@ export default function ReviewScreen() {
   const handleSettle = (index: number) => {
     if (endTimer.current) return;
     if (index >= queue.length) {
+      // Mark the end card current so the confetti burst plays.
+      setCurrent(index);
       endTimer.current = setTimeout(() => {
         endTimer.current = null;
         router.back();

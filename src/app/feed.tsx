@@ -154,6 +154,7 @@ export default function FeedScreen() {
     if (items[index]?.kind === 'roundEnd') {
       // The footer is only reachable by swiping past the last card.
       if (mode === 'study' && pointer >= words.length - 1 && index > pointer) {
+        setCurrent(index);
         const next = await advancePointer(bucketId, index);
         setPointer(next.pointer);
         if (next.pointer >= words.length) {
