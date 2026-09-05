@@ -13,25 +13,33 @@ rules is a product change, not a refactor.
 
 ## Review pass
 
-- A session over the bucket's currently flagged words, in bucket order —
-  entered from home with the bucket pinned.
+Two review flavors share one screen:
+
+- **Live set** (default, `Review · N` on home): the bucket's currently flagged
+  words — the set that round inheritance carries forward.
+- **Round review** (red count entries): the words flagged during one specific
+  round (a historical snapshot). Entered by tapping a red count — the current
+  round's on home, or any round's in the stats list.
+
+Both behave identically:
+
 - Same card and gestures as the feed: swipe up/down, tap the word to replay,
   tap elsewhere to reveal, bookmark to flag/unflag.
-- Header progress bar and the `Review` context label track the **queue**
-  position (`x/N`), not the bucket position; the card keeps showing the bucket
-  position as its anchor number.
+- Header progress bar and the `Review` label track the **queue** position
+  (`x/N`), not the bucket position; the card keeps showing the bucket position
+  as its anchor number.
 - The queue is snapshotted on entry. Unflagging during the session updates the
-  word immediately but the word stays in this pass; newly flagged words join
-  the next pass. Flags inherited from earlier rounds are part of the live set.
+  word and the current round immediately, but the queue keeps the word until
+  the next pass, and historical rounds are never rewritten.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
   time spent counts as studying. Swiping past the end card leaves the session.
 
 ## Feed (the core)
 
 - Fullscreen, no tab bar. One card per page, swipe up / down.
-- Card layout: position number (large), the word, a fixed-height slot for the
-  meaning in the top half; word forms in the bottom half; bookmark at the
-  bottom. Slots are fixed so toggling never shifts the layout.
+- Card layout: position number (large), the word, its ipa, and a fixed-height
+  slot for the meaning in the top half; word forms in the bottom half; the
+  bookmark at the bottom. Slots are fixed so toggling never shifts the layout.
 - Tap the word → replay pronunciation. Tap anywhere else → toggle meaning and
   forms. Bookmark → flag the word as unfamiliar.
 - **Counting**: studying counts a card when you swipe **past** it — landing on
@@ -53,8 +61,8 @@ rules is a product change, not a refactor.
 
 - Bucket tabs for **all** buckets (browsing only — switching tabs here does
   not change the bucket being studied; the tab defaults to the active bucket).
-- Bucket order, four columns (position, word, meaning, forms), red dots on
-  flagged words, jump bar for quick positioning.
+- Bucket order, three columns (position, word, meaning), red dots on flagged
+  words, jump bar for quick positioning.
 - Tapping a row opens the word page pinned to that row's bucket and position.
 
 ## Search & word page
