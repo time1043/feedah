@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import type { MeaningMode } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -12,8 +13,8 @@ type WordCardProps = {
   forms: string[];
   ipa?: string;
   flagged: boolean;
-  /** Cards start with the meaning revealed when the user opted in. */
-  defaultMeaningVisible?: boolean;
+  /** hidden: tap to show · shown: tap to hide · always: pinned visible. */
+  meaningMode?: MeaningMode;
   onReplay: () => void;
   onToggleFlagged: () => void;
 };
@@ -33,13 +34,17 @@ export function WordCard({
   forms,
   ipa,
   flagged,
-  defaultMeaningVisible = false,
+  meaningMode = 'hidden',
   onReplay,
   onToggleFlagged,
 }: WordCardProps) {
   const { colors } = useTheme();
-  const [meaningVisible, setMeaningVisible] = useState(defaultMeaningVisible);
-  const toggleMeaning = () => setMeaningVisible((v) => !v);
+  const [revealed, setRevealed] = useState(meaningMode === 'shown');
+  const meaningVisible = meaningMode === 'always' || revealed;
+  const toggleMeaning = () => {
+    if (meaningMode === 'always') return;
+    setRevealed((v) => !v);
+  };
 
   return (
     <View style={styles.root}>

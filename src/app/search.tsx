@@ -42,12 +42,17 @@ export default function SearchScreen() {
     }
     const timer = setTimeout(() => {
       void (async () => {
-        const lists = await Promise.all(scopes.map((bucket) => searchWords(bucket, trimmed)));
+        // Home search (no pinned bucket) spans every bucket and matches
+        // meanings too; feed search stays English-only in one bucket.
+        const matchMeaning = pinnedBucket === '';
+        const lists = await Promise.all(
+          scopes.map((bucket) => searchWords(bucket, trimmed, { matchMeaning })),
+        );
         setResults(lists.flat());
       })();
     }, 150);
     return () => clearTimeout(timer);
-  }, [query, scopes]);
+  }, [query, scopes, pinnedBucket]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>

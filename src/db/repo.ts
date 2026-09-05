@@ -111,13 +111,25 @@ export async function getWords(bucketId: string): Promise<WordRow[]> {
   return rows.map(toWord);
 }
 
-export async function searchWords(bucketId: string, query: string, limit = 100): Promise<WordRow[]> {
+export async function searchWords(
+  bucketId: string,
+  query: string,
+  options: { matchMeaning?: boolean; limit?: number } = {},
+): Promise<WordRow[]> {
+  const { matchMeaning = false, limit = 100 } = options;
   const db = await getDb();
+  const needle = query.trim();
+  const condition = matchMeaning
+    ? 'instr(lower(text), lower(?)) > 0 OR instr(lower(meaning), lower(?)) > 0'
+    : 'instr(lower(text), lower(?)) > 0';
+  const params = matchMeaning
+    ? [bucketId, needle, needle, limit]
+    : [bucketId, needle, limit];
   const rows = await db.getAllAsync<WordDbRow>(
     `SELECT * FROM word
-     WHERE bucket_id = ? AND instr(lower(text), lower(?)) > 0
+     WHERE bucket_id = ? AND (${condition})
      ORDER BY position LIMIT ?`,
-    [bucketId, query, limit],
+    params,
   );
   return rows.map(toWord);
 }

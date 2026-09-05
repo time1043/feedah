@@ -5,12 +5,15 @@ import { getDb } from './index';
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type SpeechRate = 'slow' | 'normal' | 'fast';
 
+/** How cards treat the meaning: hidden until tapped, shown until tapped, or always shown. */
+export type MeaningMode = 'hidden' | 'shown' | 'always';
+
 export type Settings = {
   activeBucketId: string;
   theme: ThemeMode;
   autoPronounce: boolean;
   speechRate: SpeechRate;
-  showMeaning: boolean;
+  meaningMode: MeaningMode;
   progressBar: boolean;
   progressBarDrag: boolean;
   wordProgressBar: boolean;
@@ -29,7 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   autoPronounce: true,
   speechRate: 'normal',
-  showMeaning: false,
+  meaningMode: 'hidden',
   progressBar: false,
   progressBarDrag: true,
   wordProgressBar: true,

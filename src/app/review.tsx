@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
+import { Confetti } from '@/components/confetti';
 import { getFlaggedWords, getRoundFlaggedWords, getWordsCompletedOn, setFlag, type WordRow } from '@/db/repo';
 import { formatDayLabel } from '@/lib/format';
 import { useSettings } from '@/db/settings';
@@ -206,13 +207,14 @@ export default function ReviewScreen() {
                     forms={item.word.forms}
                     ipa={item.word.ipa}
                     flagged={item.word.flagged}
-                    defaultMeaningVisible={settings.showMeaning}
+                    meaningMode={settings.meaningMode}
                     onReplay={() => speakWord(item.word.text, settings.speechRate)}
                     onToggleFlagged={() => void toggleFlagged(index)}
                   />
                 </View>
               ) : (
                 <View style={[styles.end, { height: viewport }]}>
+                  <Confetti />
                   <Text style={[styles.endTitle, { color: colors.text }]}>Review complete</Text>
                   <Text style={[styles.endHint, { color: colors.textTertiary }]}>
                     Swipe up to finish

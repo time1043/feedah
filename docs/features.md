@@ -33,8 +33,10 @@ All behave identically:
 - The queue is snapshotted on entry. Unflagging during the session updates the
   word and the current round immediately, but the queue keeps the word until
   the next pass, and historical rounds are never rewritten.
+- The end card lingers for two seconds with a confetti burst, then leaves the
+  session.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
-  time spent counts as studying. Swiping past the end card leaves the session.
+  time spent counts as studying.
 
 ## Feed (the core)
 
@@ -55,7 +57,8 @@ All behave identically:
   returns to the first unlearned card and re-enables recording. The bar
   defaults to hidden.
 - **Rounds**: walking off the last card shows a round-complete page; it
-  lingers for two seconds and then opens the new round automatically.
+  lingers for two seconds (with a confetti burst) and then opens the new
+  round automatically.
 - Header is fixed: progress bar row, then back/browse/search row; the card
   area is measured below it so spacing never shifts.
 
@@ -69,10 +72,11 @@ All behave identically:
 
 ## Search & word page
 
-- **Scope**: home search spans **every bucket** — each bucket is searched
-  separately and results are never deduped, on purpose: a word living in two
-  buckets is worth seeing, and a duplicate inside one bucket surfaces a data
-  problem instead of hiding it. Feed search is pinned to that feed's bucket.
+- **Scope**: home search spans **every bucket** and matches English words and
+  Chinese meanings — each bucket is searched separately and results are never
+  deduped, on purpose: a word living in two buckets is worth seeing, and a
+  duplicate inside one bucket surfaces a data problem instead of hiding it.
+  Feed search is pinned to that feed's bucket and matches words only.
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
@@ -97,11 +101,24 @@ All behave identically:
 
 ## Settings
 
-- Feed: auto pronunciation, speech rate (dropdown), show meaning by default,
-  progress bar in feed (default off), progress bar dragging, progress bar in
-  word page (default on), search entry in feed.
+- Feed: auto pronunciation, speech rate (dropdown), meaning display (tap to
+  show / tap to hide / always shown), progress bar in feed (default off),
+  progress bar dragging, progress bar in word page (default on), search entry
+  in feed.
 - Appearance: theme (system / light / dark).
 - General: today time readout.
 - About: version, sound hint (replays the iOS silent-switch notice), clear all
   data (danger-styled, double-confirmed; wipes progress, flags, stats and
   settings, then re-seeds the buckets — currently a dev/debug utility).
+
+## Meal reminders
+
+- Settings → Reminders: a master switch plus three daily times (defaults
+  8:30 / 12:30 / 18:30 — right after a meal works best). Each time can be
+  edited (lenient input: `8:30`, `0830`) and switched off individually; the
+  master switch disables the whole feature.
+- Turning the feature on asks for notification permission once; without it the
+  switch stays off with a hint.
+- Local daily notifications are scheduled through expo-notifications (one
+  request per enabled time, rescheduled on every change and on app launch).
+- Nothing about reminders touches study statistics.
