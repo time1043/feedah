@@ -50,5 +50,8 @@ export const fontSize = {
   body: 17,
   title: 28,
   metric: 56,
-  word: 72,
+  // Base for feed words. Sized so words up to ~11 characters ("adolescence")
+  // all render identically; `adjustsFontSizeToFit` only shrinks beyond that,
+  // which keeps mid-length words uniform instead of shrinking every word.
+  word: 48,
 } as const;
