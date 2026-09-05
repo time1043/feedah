@@ -1,8 +1,12 @@
 # Data model
 
-Single SQLite database (`feedah.db`, WAL mode). Migrations run on first open
-tracked by `PRAGMA user_version`; bundled buckets are then seeded from
-`data/*.json` (idempotent, re-seeded when a bucket's word count changes).
+Single SQLite database (`feedah.db`, WAL mode). The schema is declared with
+drizzle-orm in `src/db/schema.ts`; migrations are generated with `pnpm
+db:generate` into `drizzle/` and applied by the drizzle migrator on first
+open. Databases created before drizzle are detected once (app tables present
+but no `__drizzle_migrations`) and deleted — local state is disposable.
+Bundled buckets are then seeded from `data/*.json` (idempotent, re-seeded
+when a bucket's word count changes).
 
 ## Tables
 
@@ -25,8 +29,8 @@ never on review, never on jumps. Global position is
 
 **round_word** — `reached = 1` means the card was settled by hand in that
 round; jump targets never count. `reached_at` records when it was completed
-(migration v2; rows from before it are 0 and cannot be attributed to a day —
-this powers the day review). `flagged = 1` means the bookmark was on at
+(0 means it cannot be attributed to a day — this powers the day review).
+`flagged = 1` means the bookmark was on at
 some point during the round; the row may exist with `reached = 0` when a word
 was flagged without being reached (e.g. from search). Unflagging only rewrites
 the current round's rows — finished rounds are never rewritten.

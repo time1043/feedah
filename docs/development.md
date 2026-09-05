@@ -10,6 +10,26 @@ npx expo start        # open in Expo Go on a real device
 Pronunciation requires a real device. On iPhone, sound is muted while the
 ring/silent switch is on — the app shows a one-time hint.
 
+## Database
+
+The schema is declared with drizzle-orm in `src/db/schema.ts`. After editing
+it, generate migrations and commit the `drizzle/` folder together with the
+schema change (`metro.config.js` + `babel.config.js` inline the `.sql`
+migration files into the bundle):
+
+```bash
+pnpm db:generate
+```
+
+Migrations apply automatically on first app open. Databases created before
+drizzle are wiped once on open (no legacy data migration; the planned cloud
+account layer supersedes local-only history).
+
+To browse the on-device database: run a debug dev build (`pnpm start` plus
+`npx expo run:android`), press `shift + m` in the Expo CLI terminal, and pick
+`expo-drizzle-studio-plugin` — Drizzle Studio opens in the browser (device or
+emulator only; web is not supported).
+
 ## Word buckets
 
 Buckets live in `data/*.json` (gitignored, never committed) with the shape

@@ -37,6 +37,9 @@ on the integration branch.
       every word completed that day across buckets (`round_word.reached_at`)
 - [x] Reminders: daily local notifications with a dynamic reminder list
       (rename / add / delete, native time picker, per-item switches)
+- [x] DB layer: port hand-written SQL strings to drizzle-orm (schema-first
+      tables, generated migrations, one-time reset of pre-drizzle databases,
+      Drizzle Studio in dev builds)
 - [ ] Quiz mode: English word with four Chinese options, plus example
       sentences to support guessing (planned after the review passes)
 - [ ] User-created buckets: let users import their own word lists (later)
