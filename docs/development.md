@@ -50,7 +50,9 @@ prebuild: `npx expo prebuild --clean`.
     branch (`mvp/260930`) from the previous one.
   - `mvp/feat/<module>/<date>` — one branch per module within a phase.
   - `mvp/fix/<topic>/<date>` — same shape, for bug fixes.
-  - Merge with `--no-ff`, keep the branch after merging, push all branches.
+  - `<date>` is the phase start (一期 = `260830`), not the day of work.
+  - Merging is the user's call: agents must ask for and receive explicit
+    approval before merging. When merged, use `--no-ff` and keep the branch.
 - **Parallel AI sessions**: when several sessions work at once, give each its
   own checkout with `git worktree add <path> <branch>`; never share one
   working tree between concurrent sessions.
@@ -66,7 +68,7 @@ prebuild: `npx expo prebuild --clean`.
   before committing: re-read it end to end and hunt for edge cases, stale
   closures, and unhandled errors.
 - **Language**: code, comments, docs, and UI text in English, concise.
-- **Push** after every merged unit as soon as the network allows.
+- **Push** is handled by the user; agents never push.
 - **Data**: `data/` is user-provided and never committed.
 - **Docs**: keep `docs/plan.md` marks current; record new product rules in
   `docs/features.md` in the same change that implements them.
