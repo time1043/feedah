@@ -235,6 +235,19 @@ export async function getFlaggedWords(bucketId: string): Promise<WordRow[]> {
   return rows.map(toWord);
 }
 
+/** Words that were flagged during a specific round (historical snapshot). */
+export async function getRoundFlaggedWords(bucketId: string, round: number): Promise<WordRow[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<WordDbRow>(
+    `SELECT w.* FROM word w
+     JOIN round_word rw ON rw.bucket_id = w.bucket_id AND rw.position = w.position
+     WHERE w.bucket_id = ? AND rw.round = ? AND rw.flagged = 1
+     ORDER BY w.position`,
+    [bucketId, round],
+  );
+  return rows.map(toWord);
+}
+
 export async function countFlaggedWords(bucketId: string): Promise<number> {
   const db = await getDb();
   const row = await db.getFirstAsync<{ n: number }>(

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
-import { getFlaggedWords, setFlag, type WordRow } from '@/db/repo';
+import { getFlaggedWords, getRoundFlaggedWords, setFlag, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
 import { speakWord } from '@/lib/speech';
@@ -27,11 +27,15 @@ export default function ReviewScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady } = useSettings();
   const isFocused = useIsFocused();
-  const params = useLocalSearchParams<{ bucket?: string }>();
+  const params = useLocalSearchParams<{ bucket?: string; round?: string }>();
   const bucketId =
     typeof params.bucket === 'string' && params.bucket.length > 0
       ? params.bucket
       : settings.activeBucketId;
+  // A round param targets the words flagged during that round (snapshot);
+  // without it the session reviews the bucket's current flag set.
+  const round = Number(params.round);
+  const hasRound = Number.isInteger(round) && round > 0;
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
@@ -45,7 +49,9 @@ export default function ReviewScreen() {
     if (!settingsReady) return;
     let cancelled = false;
     void (async () => {
-      const list = await getFlaggedWords(bucketId);
+      const list = hasRound
+        ? await getRoundFlaggedWords(bucketId, round)
+        : await getFlaggedWords(bucketId);
       if (cancelled) return;
       setQueue(list);
       setReady(true);
@@ -56,7 +62,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [settingsReady, bucketId]);
+  }, [settingsReady, bucketId, hasRound, round]);
 
   // Review time counts as studying: same tracking as the feed screen.
   const focusedRef = useRef(isFocused);
@@ -145,7 +151,9 @@ export default function ReviewScreen() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close review">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.textSecondary }]}>Review</Text>
+          <Text style={[styles.title, { color: colors.textSecondary }]}>
+            {hasRound ? `Review · Round ${round}` : 'Review'}
+          </Text>
           <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
             <Ionicons name="search" size={22} color={colors.textTertiary} />
           </Pressable>
