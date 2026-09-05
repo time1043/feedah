@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-n
 
 const COLORS = ['#208AEF', '#3D9A50', '#E5484D', '#F5B83D'];
 const GRAVITY = 2600; // px/s², tuned for phone-scale parabolas
-const FLIGHT_MS = 2200; // matches the end-page linger
+const FLIGHT_MS = 2000; // matches the end-page linger
 const KEYFRAMES = 14; // samples along each piece's parabola
 
 type Piece = {
