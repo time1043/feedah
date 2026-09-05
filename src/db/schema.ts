@@ -70,6 +70,9 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX IF NOT EXISTS idx_word_flag ON word (bucket_id, flagged);
   `,
+  `
+  ALTER TABLE round_word ADD COLUMN reached_at INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
