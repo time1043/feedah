@@ -62,7 +62,9 @@ prebuild: `npx expo prebuild --clean`.
 - **Commits**: commit after every complete unit of work, and keep every commit
   as small as it can be while still building and running. Write clear
   messages; stage only the files that belong to your change (check
-  `git status` first) — never sweep in unrelated work.
+  `git status` first) — never sweep in unrelated work. Self-review the diff
+  before committing: re-read it end to end and hunt for edge cases, stale
+  closures, and unhandled errors.
 - **Language**: code, comments, docs, and UI text in English, concise.
 - **Push** after every merged unit as soon as the network allows.
 - **Data**: `data/` is user-provided and never committed.
