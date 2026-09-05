@@ -11,7 +11,7 @@ tracked by `PRAGMA user_version`; bundled buckets are then seeded from
 | `bucket` | id (`2050` / `700` / `370`) and word count |
 | `word` | bucket, position (1-based), text, ipa, meaning, forms (JSON), flagged |
 | `bucket_progress` | per bucket: current `round`, `pointer`, round `started_at` |
-| `round_word` | per (bucket, round, position): `reached`, `flagged` |
+| `round_word` | per (bucket, round, position): `reached`, `flagged`, `reached_at` |
 | `round_history` | finished rounds: started_at, finished_at |
 | `daily_stat` | per day: `feed_seconds`, `app_seconds` |
 | `daily_pointer` | per (day, bucket): end-of-day global position snapshot |
@@ -24,7 +24,9 @@ never on review, never on jumps. Global position is
 `(round - 1) * word_count + pointer`.
 
 **round_word** — `reached = 1` means the card was settled by hand in that
-round; jump targets never count. `flagged = 1` means the bookmark was on at
+round; jump targets never count. `reached_at` records when it was completed
+(migration v2; rows from before it are 0 and cannot be attributed to a day —
+this powers the day review). `flagged = 1` means the bookmark was on at
 some point during the round; the row may exist with `reached = 0` when a word
 was flagged without being reached (e.g. from search). Unflagging only rewrites
 the current round's rows — finished rounds are never rewritten.

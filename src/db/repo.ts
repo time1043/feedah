@@ -1,6 +1,6 @@
 import { getDb } from './index';
 import { DEFAULT_BUCKET_ID } from './seed';
-import { todayLocalDate } from '@/lib/date';
+import { dayBounds, todayLocalDate } from '@/lib/date';
 
 export type Bucket = { id: string; wordCount: number };
 
@@ -141,10 +141,10 @@ export async function advancePointer(bucketId: string, position: number): Promis
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `INSERT INTO round_word (bucket_id, round, position, reached, flagged)
-       VALUES (?, ?, ?, 1, ?)
-       ON CONFLICT(bucket_id, round, position) DO UPDATE SET reached = 1`,
-      [bucketId, before.round, position, flagged?.flagged === 1 ? 1 : 0],
+      `INSERT INTO round_word (bucket_id, round, position, reached, flagged, reached_at)
+       VALUES (?, ?, ?, 1, ?, ?)
+       ON CONFLICT(bucket_id, round, position) DO UPDATE SET reached = 1, reached_at = excluded.reached_at`,
+      [bucketId, before.round, position, flagged?.flagged === 1 ? 1 : 0, Date.now()],
     );
     await db.runAsync(
       'UPDATE bucket_progress SET pointer = ? WHERE bucket_id = ?',
@@ -244,6 +244,20 @@ export async function getRoundFlaggedWords(bucketId: string, round: number): Pro
      WHERE w.bucket_id = ? AND rw.round = ? AND rw.flagged = 1
      ORDER BY w.position`,
     [bucketId, round],
+  );
+  return rows.map(toWord);
+}
+
+/** Distinct words completed on a local day, across all buckets. */
+export async function getWordsCompletedOn(day: string): Promise<WordRow[]> {
+  const db = await getDb();
+  const { start, end } = dayBounds(day);
+  const rows = await db.getAllAsync<WordDbRow>(
+    `SELECT DISTINCT w.* FROM word w
+     JOIN round_word rw ON rw.bucket_id = w.bucket_id AND rw.position = w.position
+     WHERE rw.reached_at >= ? AND rw.reached_at < ?
+     ORDER BY w.bucket_id, w.position`,
+    [start, end],
   );
   return rows.map(toWord);
 }

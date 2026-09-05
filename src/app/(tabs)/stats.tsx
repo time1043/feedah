@@ -153,7 +153,15 @@ export default function StatsScreen() {
             {isToday ? ' · today' : ''}
           </Text>
           <View style={styles.today}>
-            <StatBlock label="Words" value={`${dayUsage?.words ?? 0}`} />
+            <StatBlock
+              label="Words"
+              value={`${dayUsage?.words ?? 0}`}
+              onPress={
+                dayUsage && dayUsage.words > 0
+                  ? () => router.push(`/review?day=${selectedDay}`)
+                  : undefined
+              }
+            />
             <StatBlock label="Studying" value={formatMinutes(dayUsage?.feedSeconds ?? 0)} />
             <StatBlock label="In app" value={formatMinutes(dayUsage?.appSeconds ?? 0)} />
           </View>
@@ -226,14 +234,33 @@ export default function StatsScreen() {
   );
 }
 
-function StatBlock({ label, value }: { label: string; value: string }) {
+function StatBlock({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
   const { colors } = useTheme();
-  return (
-    <View style={styles.statBlock}>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+  const content = (
+    <>
+      <View style={styles.statValueRow}>
+        <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />}
+      </View>
       <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{label}</Text>
-    </View>
+    </>
   );
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={styles.statBlock}>
+        {content}
+      </Pressable>
+    );
+  }
+  return <View style={styles.statBlock}>{content}</View>;
 }
 
 function MetricPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
@@ -273,6 +300,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.title,
     fontVariant: ['tabular-nums'],
     fontWeight: '800',
+  },
+  statValueRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 2,
   },
   statLabel: {
     fontSize: fontSize.caption,

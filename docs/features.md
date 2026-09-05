@@ -13,15 +13,17 @@ rules is a product change, not a refactor.
 
 ## Review pass
 
-Two review flavors share one screen:
+Three review flavors share one screen:
 
 - **Live set** (default, `Review · N` on home): the bucket's currently flagged
   words — the set that round inheritance carries forward.
 - **Round review** (red count entries): the words flagged during one specific
   round (a historical snapshot). Entered by tapping a red count — the current
   round's on home, or any round's in the stats list.
+- **Day review** (stats, tap the words number): the distinct words completed
+  on the selected local day, across all buckets. Great as a daily wrap-up.
 
-Both behave identically:
+All behave identically:
 
 - Same card and gestures as the feed: swipe up/down, tap the word to replay,
   tap elsewhere to reveal, bookmark to flag/unflag.
