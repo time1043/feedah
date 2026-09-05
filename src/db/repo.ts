@@ -111,6 +111,32 @@ export async function getWords(bucketId: string): Promise<WordRow[]> {
   return rows.map(toWord);
 }
 
+/**
+ * Translates user input into a SQL LIKE pattern: `*` matches any run of
+ * characters, `_` exactly one, everything else is literal. Without wildcards
+ * the pattern stays a contains-match.
+ */
+function toLikePattern(query: string): string {
+  let wildcard = false;
+  let out = '';
+  for (const ch of query) {
+    if (ch === '*') {
+      out += '%';
+      wildcard = true;
+    } else if (ch === '_') {
+      out += '_';
+      wildcard = true;
+    } else if (ch === '\\') {
+      out += '\\\\';
+    } else if (ch === '%') {
+      out += '\\%';
+    } else {
+      out += ch;
+    }
+  }
+  return wildcard ? out : `%${out}%`;
+}
+
 export async function searchWords(
   bucketId: string,
   query: string,
@@ -118,13 +144,13 @@ export async function searchWords(
 ): Promise<WordRow[]> {
   const { matchMeaning = false, limit = 100 } = options;
   const db = await getDb();
-  const needle = query.trim();
+  const pattern = toLikePattern(query.trim());
   const condition = matchMeaning
-    ? 'instr(lower(text), lower(?)) > 0 OR instr(lower(meaning), lower(?)) > 0'
-    : 'instr(lower(text), lower(?)) > 0';
+    ? "lower(text) LIKE lower(?) ESCAPE '\\' OR lower(meaning) LIKE lower(?) ESCAPE '\\'"
+    : "lower(text) LIKE lower(?) ESCAPE '\\'";
   const params = matchMeaning
-    ? [bucketId, needle, needle, limit]
-    : [bucketId, needle, limit];
+    ? [bucketId, pattern, pattern, limit]
+    : [bucketId, pattern, limit];
   const rows = await db.getAllAsync<WordDbRow>(
     `SELECT * FROM word
      WHERE bucket_id = ? AND (${condition})

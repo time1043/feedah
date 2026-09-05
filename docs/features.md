@@ -77,6 +77,9 @@ All behave identically:
   deduped, on purpose: a word living in two buckets is worth seeing, and a
   duplicate inside one bucket surfaces a data problem instead of hiding it.
   Feed search is pinned to that feed's bucket and matches words only.
+- **Wildcards**: both search bars accept `*` (any run of characters) and `_`
+  (exactly one character), matching the whole word — `m*p` finds map / mop.
+  Without wildcards the query is a contains-match.
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
