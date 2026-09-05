@@ -153,11 +153,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...partial }));
     void (async () => {
       const db = await getDb();
+      const now = Date.now();
       for (const [key, value] of Object.entries(partial)) {
         await db
           .insert(meta)
-          .values({ key, value: JSON.stringify(value) })
-          .onConflictDoUpdate({ target: meta.key, set: { value: JSON.stringify(value) } });
+          .values({ key, value: JSON.stringify(value), updatedAt: now })
+          .onConflictDoUpdate({
+            target: meta.key,
+            set: { value: JSON.stringify(value), updatedAt: now },
+          });
       }
     })();
   };
