@@ -12,7 +12,7 @@ on the integration branch.
       tap-to-reveal meaning, bookmark flag, round-complete page
 - [x] Progress bar in feed: draggable, browse mode on drag, resume control
 - [x] Home: bucket chips, round + pointer readout, start button, search entry
-- [x] Word list: bucket tabs, four columns, jump bar, flag dots, rows open the
+- [x] Word list: bucket tabs, three columns, jump bar, flag dots, rows open the
       word browser
 - [x] Search + word browser page: swipe to switch, progress bar, zero recording
 - [x] Stats: selected-day numbers, yearly heatmap (month/weekday labels,
@@ -31,8 +31,12 @@ on the integration branch.
 - [x] Flagged-words review pass: study only the words marked unfamiliar in the
       current bucket (first item after the MVP; the data model already
       supports it)
+- [x] Round review: tap a red count (home / stats) to review the words flagged
+      during that specific round
+- [x] Day review: from stats, tap the words number of a selected day to review
+      every word completed that day across buckets (`round_word.reached_at`)
 - [ ] Quiz mode: English word with four Chinese options, plus example
-      sentences to support guessing (planned after the review pass)
+      sentences to support guessing (planned after the review passes)
 - [ ] User-created buckets: let users import their own word lists (later)
 
 ## Open questions
