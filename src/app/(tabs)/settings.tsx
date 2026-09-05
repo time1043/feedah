@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -18,12 +19,12 @@ import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/screen';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
-import { useSettings, type MeaningMode, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
+import { useSettings, type MeaningMode, type Reminder, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
 import { getLiveUsage, resetUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
 import { formatClock } from '@/lib/format';
 import {
-  enabledMealTimes,
+  activeReminderTimes,
   formatTimeOfDay,
   parseMealTimeSetting,
   parseTimeOfDay,
@@ -84,14 +85,21 @@ export default function SettingsScreen() {
 
   const syncFrom = (next: Settings) => {
     void syncMealReminders(
-      next.mealReminders ? enabledMealTimes(next.mealTimes, next.mealEnabled) : [],
+      next.remindersEnabled ? activeReminderTimes(next.reminders) : [],
     ).catch(() => {});
   };
 
-  const toggleMealReminders = async (v: boolean) => {
+  const toggleReminders = async (v: boolean) => {
     if (v) {
-      const granted = await requestReminderPermission();
-      if (!granted) {
+      const result = await requestReminderPermission();
+      if (result === 'unavailable') {
+        Alert.alert(
+          'Not available here',
+          'Reminders need a development build or a standalone APK — they do not work in Expo Go on Android.',
+        );
+        return;
+      }
+      if (result === 'denied') {
         Alert.alert(
           'Notifications disabled',
           'Allow notifications for feedah in system settings, then try again.',
@@ -99,24 +107,33 @@ export default function SettingsScreen() {
         return;
       }
     }
-    const next = { ...settings, mealReminders: v };
-    update({ mealReminders: v });
+    const next = { ...settings, remindersEnabled: v };
+    update({ remindersEnabled: v });
     syncFrom(next);
   };
 
-  const changeMealTime = (index: number, time: string) => {
-    const times = [...settings.mealTimes];
-    times[index] = time;
-    const next = { ...settings, mealTimes: times };
-    update({ mealTimes: times });
+  const updateReminder = (id: string, patch: Partial<Reminder>) => {
+    const reminders = settings.reminders.map((r) => (r.id === id ? { ...r, ...patch } : r));
+    const next = { ...settings, reminders };
+    update({ reminders });
     syncFrom(next);
   };
 
-  const toggleMealEnabled = (index: number, v: boolean) => {
-    const enabled = [...settings.mealEnabled];
-    enabled[index] = v;
-    const next = { ...settings, mealEnabled: enabled };
-    update({ mealEnabled: enabled });
+  const addReminder = () => {
+    const reminder: Reminder = {
+      id: `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      label: `Reminder ${settings.reminders.length + 1}`,
+      time: '08:30',
+      enabled: true,
+    };
+    const next = { ...settings, reminders: [...settings.reminders, reminder] };
+    update({ reminders: next.reminders });
+    syncFrom(next);
+  };
+
+  const deleteReminder = (id: string) => {
+    const next = { ...settings, reminders: settings.reminders.filter((r) => r.id !== id) };
+    update({ reminders: next.reminders });
     syncFrom(next);
   };
 
@@ -193,22 +210,26 @@ export default function SettingsScreen() {
 
         <Group title="Reminders">
           <SwitchRow
-            label="Meal reminders"
-            value={settings.mealReminders}
-            onValueChange={(v) => void toggleMealReminders(v)}
+            label="Reminders"
+            value={settings.remindersEnabled}
+            onValueChange={(v) => void toggleReminders(v)}
           />
-          {settings.mealReminders && (
+          {settings.remindersEnabled && (
             <>
-              {MEAL_LABELS.map((label, index) => (
-                <MealTimeRow
-                  key={label}
-                  label={label}
-                  time={settings.mealTimes[index] ?? '08:30'}
-                  enabled={settings.mealEnabled[index] ?? true}
-                  onToggle={(v) => toggleMealEnabled(index, v)}
-                  onTimeChange={(time) => changeMealTime(index, time)}
+              {settings.reminders.map((reminder) => (
+                <ReminderRow
+                  key={reminder.id}
+                  reminder={reminder}
+                  onToggle={(v) => updateReminder(reminder.id, { enabled: v })}
+                  onTimeChange={(time) => updateReminder(reminder.id, { time })}
+                  onRename={(label) => updateReminder(reminder.id, { label })}
+                  onDelete={() => deleteReminder(reminder.id)}
                 />
               ))}
+              <Pressable style={styles.addRow} onPress={addReminder}>
+                <Ionicons name="add" size={18} color={colors.accent} />
+                <Text style={[styles.addRowText, { color: colors.accent }]}>Add reminder</Text>
+              </Pressable>
               <Text style={[styles.groupCaption, { color: colors.textTertiary }]}>
                 A notification is sent at each enabled time — right after a meal works best.
               </Text>
@@ -393,73 +414,131 @@ function SelectRow<T extends string>({
   );
 }
 
-/** Row with a per-meal switch and a tappable time that opens an editor. */
-function MealTimeRow({
-  label,
-  time,
-  enabled,
+/** One reminder row: tap the label to rename/delete, the time for the native
+ * picker, and the switch to enable it. */
+function ReminderRow({
+  reminder,
   onToggle,
   onTimeChange,
+  onRename,
+  onDelete,
 }: {
-  label: string;
-  time: string;
-  enabled: boolean;
+  reminder: Reminder;
   onToggle: (value: boolean) => void;
   onTimeChange: (time: string) => void;
+  onRename: (label: string) => void;
+  onDelete: () => void;
 }) {
   const { colors } = useTheme();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(time);
+  const [renaming, setRenaming] = useState(false);
+  const [labelDraft, setLabelDraft] = useState(reminder.label);
+  const [picking, setPicking] = useState(false);
+  const [iosDraft, setIosDraft] = useState<Date | null>(null);
 
-  const openEdit = () => {
-    setDraft(time);
-    setEditing(true);
+  const pickerValue = (() => {
+    const t = parseMealTimeSetting(reminder.time);
+    return new Date(2000, 0, 1, t.hour, t.minute);
+  })();
+
+  const onPickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    // Android closes its dialog itself; iOS commits on Done below.
+    if (Platform.OS === 'android') setPicking(false);
+    if (event.type === 'set' && date) {
+      onTimeChange(formatTimeOfDay({ hour: date.getHours(), minute: date.getMinutes() }));
+    }
   };
 
-  const save = () => {
-    const parsed = parseTimeOfDay(draft);
-    if (parsed) onTimeChange(formatTimeOfDay(parsed));
-    setEditing(false);
+  const saveRename = () => {
+    const label = labelDraft.trim();
+    if (label) onRename(label);
+    setRenaming(false);
   };
 
   return (
     <>
       <View style={styles.row}>
-        <Text style={[styles.label, { color: enabled ? colors.text : colors.textTertiary }]}>
-          {label}
-        </Text>
+        <Pressable
+          onPress={() => {
+            setLabelDraft(reminder.label);
+            setRenaming(true);
+          }}
+          hitSlop={6}>
+          <Text style={[styles.label, { color: colors.text }]}>{reminder.label}</Text>
+        </Pressable>
         <View style={styles.mealControls}>
-          <Pressable onPress={openEdit} disabled={!enabled} hitSlop={8}>
-            <Text
-              style={[
-                styles.value,
-                { color: enabled ? colors.accent : colors.textTertiary },
-              ]}>
-              {formatTimeOfDay(parseMealTimeSetting(time))}
+          <Pressable onPress={() => setPicking(true)} hitSlop={8}>
+            <Text style={[styles.value, { color: colors.accent }]}>
+              {formatTimeOfDay(parseMealTimeSetting(reminder.time))}
             </Text>
           </Pressable>
-          <Switch value={enabled} onValueChange={onToggle} />
+          <Switch value={reminder.enabled} onValueChange={onToggle} />
         </View>
       </View>
 
-      <Modal transparent visible={editing} animationType="fade" onRequestClose={() => setEditing(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setEditing(false)}>
+      {picking && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={pickerValue}
+          mode="time"
+          is24Hour
+          onChange={onPickerChange}
+        />
+      )}
+      {picking && Platform.OS === 'ios' && (
+        <Modal transparent visible animationType="fade" onRequestClose={() => setPicking(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setPicking(false)}>
+            <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+              <DateTimePicker
+                value={pickerValue}
+                mode="time"
+                is24Hour
+                style={styles.iosPicker}
+                onChange={(event, date) => setIosDraft(date ?? iosDraft)}
+              />
+              <View style={styles.modalActions}>
+                <Pressable onPress={() => setPicking(false)} hitSlop={8}>
+                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (iosDraft) {
+                      onTimeChange(
+                        formatTimeOfDay({ hour: iosDraft.getHours(), minute: iosDraft.getMinutes() }),
+                      );
+                    }
+                    setPicking(false);
+                  }}
+                  hitSlop={8}>
+                  <Text style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: '600' }}>
+                    Done
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
+      <Modal transparent visible={renaming} animationType="fade" onRequestClose={() => setRenaming(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setRenaming(false)}>
           <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{label} time</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Rename reminder</Text>
             <TextInput
               autoFocus
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="8:30"
+              value={labelDraft}
+              onChangeText={setLabelDraft}
+              placeholder="Label"
               placeholderTextColor={colors.textTertiary}
-              keyboardType="numbers-and-punctuation"
               style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
             />
             <View style={styles.modalActions}>
-              <Pressable onPress={() => setEditing(false)} hitSlop={8}>
+              <Pressable onPress={onDelete} hitSlop={8}>
+                <Text style={{ color: colors.danger, fontSize: fontSize.body }}>Delete</Text>
+              </Pressable>
+              <View style={{ flex: 1 }} />
+              <Pressable onPress={() => setRenaming(false)} hitSlop={8}>
                 <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={save} hitSlop={8}>
+              <Pressable onPress={saveRename} hitSlop={8}>
                 <Text style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: '600' }}>
                   Save
                 </Text>
@@ -576,5 +655,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 48,
     paddingHorizontal: spacing.m,
+  },
+  iosPicker: {
+    height: 180,
+    width: 280,
+  },
+  addRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.s,
+    minHeight: 48,
+    paddingHorizontal: spacing.m,
+  },
+  addRowText: {
+    fontSize: fontSize.body,
+    fontWeight: '600',
   },
 });

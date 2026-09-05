@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
 import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage';
-import { enabledMealTimes, syncMealReminders } from '@/lib/reminders';
+import { activeReminderTimes, syncMealReminders } from '@/lib/reminders';
 import { ThemeProvider, useTheme } from '@/theme/context';
 
 function RootNavigator() {
@@ -49,11 +49,9 @@ function ThemedShell() {
   // Runs on launch and after any change; a disabled feature cancels all.
   useEffect(() => {
     if (!settingsReady) return;
-    const times = settings.mealReminders
-      ? enabledMealTimes(settings.mealTimes, settings.mealEnabled)
-      : [];
+    const times = settings.remindersEnabled ? activeReminderTimes(settings.reminders) : [];
     syncMealReminders(times).catch(() => {});
-  }, [settingsReady, settings.mealReminders, settings.mealTimes, settings.mealEnabled]);
+  }, [settingsReady, settings.remindersEnabled, settings.reminders]);
 
   return (
     <ThemeProvider mode={settings.theme}>
