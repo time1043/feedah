@@ -17,6 +17,11 @@ export type Settings = {
   feedSearch: boolean;
   todayReadout: boolean;
   silentHintShown: boolean;
+  mealReminders: boolean;
+  /** Three "HH:MM" times: breakfast, lunch, dinner. */
+  mealTimes: string[];
+  /** Which of the three reminders are switched on. */
+  mealEnabled: boolean[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,6 +36,9 @@ export const DEFAULT_SETTINGS: Settings = {
   feedSearch: true,
   todayReadout: true,
   silentHintShown: false,
+  mealReminders: false,
+  mealTimes: ['08:30', '12:30', '18:30'],
+  mealEnabled: [true, true, true],
 };
 
 /** Speech rate multiplier for expo-speech, 1.0 is the system default. */
@@ -66,6 +74,19 @@ async function loadSettings(): Promise<Partial<Settings>> {
     if (key in stored) {
       (merged as Record<string, unknown>)[key] = stored[key];
     }
+  }
+  // Array settings must keep their shape, whatever is in the database.
+  const times = merged.mealTimes;
+  if (!Array.isArray(times) || times.length !== 3 || times.some((t) => typeof t !== 'string')) {
+    merged.mealTimes = DEFAULT_SETTINGS.mealTimes;
+  }
+  const enabled = merged.mealEnabled;
+  if (
+    !Array.isArray(enabled) ||
+    enabled.length !== 3 ||
+    enabled.some((v) => typeof v !== 'boolean')
+  ) {
+    merged.mealEnabled = DEFAULT_SETTINGS.mealEnabled;
   }
   return merged;
 }
