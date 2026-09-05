@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 const CHANNEL_ID = 'meals';
@@ -7,14 +8,15 @@ export type MealTime = { hour: number; minute: number };
 type NotificationsModule = typeof import('expo-notifications');
 
 /**
- * expo-notifications must be loaded lazily: in Expo Go on Android the module
- * throws at import time (remote-notification APIs were removed there), which
- * would crash the whole app. Returns null when unavailable — reminders are a
- * development-build / standalone-APK feature.
+ * expo-notifications must be loaded lazily AND guarded: in Expo Go on Android
+ * the module throws when required (remote-notification APIs were removed
+ * there), and the module system logs that error even when it is caught. So
+ * detect Expo Go first and skip the require entirely. Reminders are a
+ * development-build / standalone-APK feature on Android.
  */
 function notifications(): NotificationsModule | null {
+  if (Platform.OS === 'android' && Constants.appOwnership === 'expo') return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('expo-notifications');
   } catch {
     return null;
