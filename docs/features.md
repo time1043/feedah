@@ -127,6 +127,9 @@ All behave identically:
 - Expo Go on Android cannot run these reminders (its notification APIs were
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
+- Android 14+ requires the "Alarms & reminders" special permission for on-time
+  delivery (the app points this out when reminders are enabled). Aggressive
+  OEM ROMs may also need autostart / battery-optimization exemptions.
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled reminder, rescheduled on every change and on app launch).
 - Nothing about reminders touches study statistics.
