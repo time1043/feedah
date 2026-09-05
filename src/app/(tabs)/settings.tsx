@@ -18,7 +18,7 @@ import { useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/screen';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
-import { useSettings, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
+import { useSettings, type MeaningMode, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
 import { getLiveUsage, resetUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
 import { formatClock } from '@/lib/format';
@@ -45,6 +45,12 @@ const RATE_OPTIONS: { value: SpeechRate; label: string }[] = [
   { value: 'slow', label: 'Slow' },
   { value: 'normal', label: 'Normal' },
   { value: 'fast', label: 'Fast' },
+];
+
+const MEANING_OPTIONS: { value: MeaningMode; label: string }[] = [
+  { value: 'hidden', label: 'Tap to show' },
+  { value: 'shown', label: 'Tap to hide' },
+  { value: 'always', label: 'Always shown' },
 ];
 
 export default function SettingsScreen() {
@@ -157,10 +163,11 @@ export default function SettingsScreen() {
             value={settings.speechRate}
             onChange={(v) => update({ speechRate: v as SpeechRate })}
           />
-          <SwitchRow
-            label="Show meaning by default"
-            value={settings.showMeaning}
-            onValueChange={(v) => update({ showMeaning: v })}
+          <SelectRow
+            label="Meaning display"
+            options={MEANING_OPTIONS}
+            value={settings.meaningMode}
+            onChange={(v) => update({ meaningMode: v as MeaningMode })}
           />
           <SwitchRow
             label="Progress bar in feed"
