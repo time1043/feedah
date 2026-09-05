@@ -98,10 +98,23 @@ export default function ReviewScreen() {
     return () => subscription.remove();
   }, []);
 
+  // The end card lingers for two seconds before leaving the session.
+  const endTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (endTimer.current) clearTimeout(endTimer.current);
+    },
+    [],
+  );
+
   const handleSettle = (index: number) => {
+    if (endTimer.current) return;
     if (index >= queue.length) {
-      // End-of-review card: leave the session.
-      router.back();
+      endTimer.current = setTimeout(() => {
+        endTimer.current = null;
+        router.back();
+      }, 2000);
       return;
     }
     setCurrent(index);
@@ -142,6 +155,9 @@ export default function ReviewScreen() {
     );
   }
 
+  // A day review may span several buckets; show them all in the title.
+  const queueBuckets = [...new Set(queue.map((word) => word.bucketId))];
+
   const items: ReviewItem[] = [...queue.map((word) => ({ kind: 'word' as const, word })), FOOTER];
 
   return (
@@ -161,6 +177,7 @@ export default function ReviewScreen() {
           </Pressable>
           <Text style={[styles.title, { color: colors.textSecondary }]}>
             {hasRound ? `Review · Round ${round}` : day !== '' ? `Review · ${formatDayLabel(day)}` : 'Review'}
+            {queueBuckets.length > 0 ? ` · ${queueBuckets.join('+')}` : ''}
           </Text>
           <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
             <Ionicons name="search" size={22} color={colors.textTertiary} />
@@ -189,6 +206,7 @@ export default function ReviewScreen() {
                     forms={item.word.forms}
                     ipa={item.word.ipa}
                     flagged={item.word.flagged}
+                    defaultMeaningVisible={settings.showMeaning}
                     onReplay={() => speakWord(item.word.text, settings.speechRate)}
                     onToggleFlagged={() => void toggleFlagged(index)}
                   />
