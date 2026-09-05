@@ -4,7 +4,8 @@
 
 - Expo SDK 57, React Native 0.86, TypeScript (strict)
 - expo-router with typed routes; React Compiler enabled
-- expo-sqlite (WAL) for all persistence, expo-speech for pronunciation
+- expo-sqlite (WAL) for all persistence, expo-speech for pronunciation,
+  expo-notifications for daily meal reminders
 - @shopify/react-native-skia for round timelines
 - Styling: plain StyleSheet with theme tokens (no UI framework)
 

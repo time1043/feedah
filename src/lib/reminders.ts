@@ -1,42 +1,53 @@
-import {
-  AndroidImportance,
-  SchedulableTriggerInputTypes,
-  cancelAllScheduledNotificationsAsync,
-  getPermissionsAsync,
-  requestPermissionsAsync,
-  scheduleNotificationAsync,
-  setNotificationChannelAsync,
-} from 'expo-notifications';
 import { Platform } from 'react-native';
 
 const CHANNEL_ID = 'meals';
 
 export type MealTime = { hour: number; minute: number };
 
+type NotificationsModule = typeof import('expo-notifications');
+
+/**
+ * expo-notifications must be loaded lazily: in Expo Go on Android the module
+ * throws at import time (remote-notification APIs were removed there), which
+ * would crash the whole app. Returns null when unavailable — reminders are a
+ * development-build / standalone-APK feature.
+ */
+function notifications(): NotificationsModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The app has no other notifications, so a blanket cancel before every sync
  * is a safe way to keep the schedule in step with the settings.
  */
 export async function syncMealReminders(times: MealTime[]): Promise<void> {
-  await cancelAllScheduledNotificationsAsync();
+  const Notifications = notifications();
+  if (!Notifications) return; // not available (e.g. Expo Go on Android)
+
+  await Notifications.cancelAllScheduledNotificationsAsync();
   if (times.length === 0) return;
 
   // Android 13 only shows the permission prompt once a channel exists.
   if (Platform.OS === 'android') {
-    await setNotificationChannelAsync(CHANNEL_ID, {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Study reminders',
-      importance: AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
 
   for (const time of times) {
-    await scheduleNotificationAsync({
+    await Notifications.scheduleNotificationAsync({
       content: {
         title: 'feedah',
         body: 'Time to study your words — right after a meal works best.',
       },
       trigger: {
-        type: SchedulableTriggerInputTypes.DAILY,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: time.hour,
         minute: time.minute,
         channelId: CHANNEL_ID,
@@ -46,11 +57,15 @@ export async function syncMealReminders(times: MealTime[]): Promise<void> {
 }
 
 /** Asks for notification permission; call from a user gesture. */
-export async function requestReminderPermission(): Promise<boolean> {
-  const current = await getPermissionsAsync();
-  if (current.granted) return true;
-  const asked = await requestPermissionsAsync();
-  return asked.granted;
+export async function requestReminderPermission(): Promise<
+  'granted' | 'denied' | 'unavailable'
+> {
+  const Notifications = notifications();
+  if (!Notifications) return 'unavailable';
+  const current = await Notifications.getPermissionsAsync();
+  if (current.granted) return 'granted';
+  const asked = await Notifications.requestPermissionsAsync();
+  return asked.granted ? 'granted' : 'denied';
 }
 
 /** Parses lenient user input ("8:30", "0830", "830") or returns null. */

@@ -2,3 +2,5 @@ nodeLinker: hoisted
 shamefullyHoist: true
 allowBuilds:
   "@shopify/react-native-skia": true
+minimumReleaseAgeExclude:
+  - expo-notifications@57.0.17

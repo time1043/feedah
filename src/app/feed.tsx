@@ -273,7 +273,7 @@ export default function FeedScreen() {
                 </View>
               ) : (
                 <View style={[styles.roundEnd, { height: viewport }]}>
-                  <Confetti />
+                  <Confetti active={current === items.length - 1} />
                   <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
                   <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
                     Round {round + 1} starts in a moment
