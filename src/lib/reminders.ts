@@ -28,8 +28,23 @@ function notifications(): NotificationsModule | null {
 /**
  * The app has no other notifications, so a blanket cancel before every sync
  * is a safe way to keep the schedule in step with the settings.
+ *
+ * Syncs are serialized through a promise chain: concurrent callers (the
+ * launch effect and settings changes) would otherwise interleave cancel and
+ * schedule steps and pile up duplicate notifications. The last sync wins.
  */
-export async function syncMealReminders(times: MealTime[]): Promise<void> {
+let syncChain: Promise<void> = Promise.resolve();
+
+export function syncMealReminders(times: MealTime[]): Promise<void> {
+  const run = syncChain.then(() => doSyncMealReminders(times));
+  syncChain = run.then(
+    () => {},
+    () => {},
+  );
+  return run;
+}
+
+async function doSyncMealReminders(times: MealTime[]): Promise<void> {
   const Notifications = notifications();
   if (!Notifications) return; // not available (e.g. Expo Go on Android)
 
@@ -45,10 +60,14 @@ export async function syncMealReminders(times: MealTime[]): Promise<void> {
     });
   }
 
-  // Bodies rotate through the text pool: stable within a day, different per
-  // reminder, moving on every sync (which runs at least once per launch).
-  const day = Math.floor(Date.now() / 86_400_000);
-  for (const [slot, time] of times.entries()) {
+  // One notification per unique time of day: two reminders sharing a time
+  // would fire twice with nothing to tell them apart.
+  const unique = new Map<string, MealTime>();
+  for (const time of times) {
+    unique.set(`${time.hour}:${time.minute}`, time);
+  }
+
+  for (const time of unique.values()) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'feedah',
