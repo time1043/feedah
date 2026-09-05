@@ -43,6 +43,8 @@ on the integration branch.
 
 - [x] `data/370.json` contains 369 words — confirm whether a row is missing or
       the bucket should be renamed
+- [ ] Keep the "Clear all data" row in the shipped settings (currently a
+      dev/debug utility), or hide it before release
 
 ## Decided against
 
