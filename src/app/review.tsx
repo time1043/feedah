@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
-import { getFlaggedWords, getRoundFlaggedWords, setFlag, type WordRow } from '@/db/repo';
+import { getFlaggedWords, getRoundFlaggedWords, getWordsCompletedOn, setFlag, type WordRow } from '@/db/repo';
+import { formatDayLabel } from '@/lib/format';
 import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
 import { speakWord } from '@/lib/speech';
@@ -27,15 +28,18 @@ export default function ReviewScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady } = useSettings();
   const isFocused = useIsFocused();
-  const params = useLocalSearchParams<{ bucket?: string; round?: string }>();
+  const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>();
   const bucketId =
     typeof params.bucket === 'string' && params.bucket.length > 0
       ? params.bucket
       : settings.activeBucketId;
-  // A round param targets the words flagged during that round (snapshot);
-  // without it the session reviews the bucket's current flag set.
+  // Flavor of the session: a round param targets the words flagged during
+  // that round (snapshot); a day param targets the words completed on that
+  // local day across buckets; without either it reviews the bucket's current
+  // flag set.
   const round = Number(params.round);
   const hasRound = Number.isInteger(round) && round > 0;
+  const day = typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : '';
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
@@ -51,7 +55,9 @@ export default function ReviewScreen() {
     void (async () => {
       const list = hasRound
         ? await getRoundFlaggedWords(bucketId, round)
-        : await getFlaggedWords(bucketId);
+        : day !== ''
+          ? await getWordsCompletedOn(day)
+          : await getFlaggedWords(bucketId);
       if (cancelled) return;
       setQueue(list);
       setReady(true);
@@ -62,7 +68,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [settingsReady, bucketId, hasRound, round]);
+  }, [settingsReady, bucketId, hasRound, round, day]);
 
   // Review time counts as studying: same tracking as the feed screen.
   const focusedRef = useRef(isFocused);
@@ -109,7 +115,7 @@ export default function ReviewScreen() {
     const word = queue[index];
     if (!word) return;
     const next = !word.flagged;
-    await setFlag(bucketId, word.position, next);
+    await setFlag(word.bucketId, word.position, next);
     setQueue((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
@@ -128,7 +134,9 @@ export default function ReviewScreen() {
           </Pressable>
         </View>
         <View style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>Nothing flagged yet</Text>
+          <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
+            {day !== '' ? 'Nothing completed that day' : 'Nothing flagged yet'}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -152,7 +160,7 @@ export default function ReviewScreen() {
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
           <Text style={[styles.title, { color: colors.textSecondary }]}>
-            {hasRound ? `Review · Round ${round}` : 'Review'}
+            {hasRound ? `Review · Round ${round}` : day !== '' ? `Review · ${formatDayLabel(day)}` : 'Review'}
           </Text>
           <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
             <Ionicons name="search" size={22} color={colors.textTertiary} />
