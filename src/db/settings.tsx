@@ -42,6 +42,8 @@ type SettingsContextValue = {
   settings: Settings;
   ready: boolean;
   update: (partial: Partial<Settings>) => void;
+  /** Re-reads settings from the database (after a full data wipe). */
+  reload: () => Promise<void>;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -100,8 +102,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     })();
   };
 
+  const reload = async () => {
+    setSettings(DEFAULT_SETTINGS);
+    try {
+      const stored = await loadSettings();
+      setSettings({ ...DEFAULT_SETTINGS, ...stored });
+    } catch {
+      setSettings(DEFAULT_SETTINGS);
+    }
+    setReady(true);
+  };
+
   return (
-    <SettingsContext.Provider value={{ settings, ready, update }}>
+    <SettingsContext.Provider value={{ settings, ready, update, reload }}>
       {children}
     </SettingsContext.Provider>
   );
