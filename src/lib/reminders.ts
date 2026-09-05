@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { pickNotificationText } from './notification-texts';
+
 const CHANNEL_ID = 'meals';
 
 export type MealTime = { hour: number; minute: number };
@@ -43,11 +45,14 @@ export async function syncMealReminders(times: MealTime[]): Promise<void> {
     });
   }
 
-  for (const time of times) {
+  // Bodies rotate through the text pool: stable within a day, different per
+  // reminder, moving on every sync (which runs at least once per launch).
+  const day = Math.floor(Date.now() / 86_400_000);
+  for (const [slot, time] of times.entries()) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'feedah',
-        body: 'Time to study your words — right after a meal works best.',
+        body: pickNotificationText(),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
