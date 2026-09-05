@@ -30,6 +30,19 @@ To browse the on-device database: run a debug dev build (`pnpm start` plus
 `expo-drizzle-studio-plugin` — Drizzle Studio opens in the browser (device or
 emulator only; web is not supported).
 
+## Cloud sync
+
+Optional Convex-backed alignment; the app is fully functional without it.
+Setup, merge rules, and limitations: [cloud-sync.md](cloud-sync.md).
+
+```bash
+npx convex dev        # first run links a project, generates convex/_generated,
+                      # pushes functions; prints the deployment URL
+```
+
+Put the URL in `.env.local` as `EXPO_PUBLIC_CONVEX_URL` (see
+`.env.example`). Without it no cloud code mounts at all.
+
 ## Word buckets
 
 Buckets live in `data/*.json` (gitignored, never committed) with the shape

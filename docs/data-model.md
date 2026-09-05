@@ -8,6 +8,10 @@ but no `__drizzle_migrations`) and deleted — local state is disposable.
 Bundled buckets are then seeded from `data/*.json` (idempotent, re-seeded
 when a bucket's word count changes).
 
+User-state rows carry sync timestamps (`updated_at`, `flagged_at`,
+`progress_updated_at`) used only by the optional cloud sync — local behavior
+never reads them (see docs/cloud-sync.md for the mirror and merge rules).
+
 ## Tables
 
 | Table | Purpose |
