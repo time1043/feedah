@@ -60,6 +60,8 @@ export default function HomeScreen() {
     void (async () => {
       setProgress(await getProgress(id));
       setWordCount(await getWordCount(id));
+      setFlagCounts(await getRoundFlagCounts(id));
+      setFlaggedTotal(await countFlaggedWords(id));
     })();
   };
 
