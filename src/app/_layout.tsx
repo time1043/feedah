@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
+import { DrizzleStudio } from '@/db/studio';
 import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage';
 import { activeReminderTimes, syncReminders } from '@/lib/reminders';
 import { ThemeProvider, useTheme } from '@/theme/context';
@@ -56,6 +57,7 @@ function ThemedShell() {
   return (
     <ThemeProvider mode={settings.theme}>
       <RootNavigator />
+      {__DEV__ && <DrizzleStudio />}
     </ThemeProvider>
   );
 }
