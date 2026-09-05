@@ -7,7 +7,6 @@ import { Screen } from '@/components/screen';
 import { BucketTabs } from '@/components/bucket-tabs';
 import {
   countFlaggedWords,
-  getActiveBucketId,
   getProgress,
   getRoundFlagCounts,
   getWordCount,
@@ -21,9 +20,11 @@ import { fontSize, radius, spacing } from '@/theme/tokens';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { update } = useSettings();
+  const { settings, ready: settingsReady, update } = useSettings();
+  // Single source of truth: the same value feed, search and the word page
+  // read. Home must never derive its own copy from the database.
+  const activeId = settings.activeBucketId;
   const [buckets, setBuckets] = useState<Bucket[]>([]);
-  const [activeId, setActiveId] = useState<string>('');
   const [progress, setProgress] = useState<Progress | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [flagCounts, setFlagCounts] = useState({ green: 0, red: 0 });
@@ -32,20 +33,24 @@ export default function HomeScreen() {
   const load = async () => {
     const list = await listBuckets();
     if (list.length === 0) return; // DB not ready yet; the next focus retries
-    // A stale/unknown meta value falls back to the first bucket (2050).
-    const meta = await getActiveBucketId();
-    const active = list.some((bucket) => bucket.id === meta) ? meta : list[0].id;
     setBuckets(list);
-    setActiveId(active);
-    setProgress(await getProgress(active));
-    setWordCount(await getWordCount(active));
-    setFlagCounts(await getRoundFlagCounts(active));
-    setFlaggedTotal(await countFlaggedWords(active));
+    // The stored active bucket must be a real bucket; otherwise fall back to
+    // the first one (2050) and persist the correction.
+    const valid = list.some((bucket) => bucket.id === activeId) ? activeId : list[0].id;
+    if (valid !== activeId) {
+      update({ activeBucketId: valid });
+    }
+    setProgress(await getProgress(valid));
+    setWordCount(await getWordCount(valid));
+    setFlagCounts(await getRoundFlagCounts(valid));
+    setFlaggedTotal(await countFlaggedWords(valid));
   };
 
   useEffect(() => {
+    // Runs on mount, whenever the active bucket changes, and once the
+    // settings store finishes loading its persisted value.
     load().catch(() => {});
-  }, []);
+  }, [activeId, settingsReady]);
 
   useFocusEffect(() => {
     load().catch(() => {});
@@ -53,16 +58,8 @@ export default function HomeScreen() {
 
   const selectBucket = (id: string) => {
     if (id === activeId) return;
-    // The settings store is the single source of truth for the active bucket:
-    // writing here keeps feed, search and the word page in sync immediately.
+    // Persisted here; the activeId change re-runs the load above.
     update({ activeBucketId: id });
-    setActiveId(id);
-    void (async () => {
-      setProgress(await getProgress(id));
-      setWordCount(await getWordCount(id));
-      setFlagCounts(await getRoundFlagCounts(id));
-      setFlaggedTotal(await countFlaggedWords(id));
-    })();
   };
 
   const round = progress?.round ?? 1;

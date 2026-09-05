@@ -12,6 +12,8 @@ type WordCardProps = {
   forms: string[];
   ipa?: string;
   flagged: boolean;
+  /** Cards start with the meaning revealed when the user opted in. */
+  defaultMeaningVisible?: boolean;
   onReplay: () => void;
   onToggleFlagged: () => void;
 };
@@ -24,9 +26,19 @@ type WordCardProps = {
  * Tap the word to replay it; tap anywhere else to reveal/hide the meaning;
  * tap the bookmark to flag the word as unfamiliar.
  */
-export function WordCard({ position, text, meaning, forms, ipa, flagged, onReplay, onToggleFlagged }: WordCardProps) {
+export function WordCard({
+  position,
+  text,
+  meaning,
+  forms,
+  ipa,
+  flagged,
+  defaultMeaningVisible = false,
+  onReplay,
+  onToggleFlagged,
+}: WordCardProps) {
   const { colors } = useTheme();
-  const [meaningVisible, setMeaningVisible] = useState(false);
+  const [meaningVisible, setMeaningVisible] = useState(defaultMeaningVisible);
   const toggleMeaning = () => setMeaningVisible((v) => !v);
 
   return (

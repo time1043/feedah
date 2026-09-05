@@ -54,8 +54,8 @@ All behave identically:
   directions, nothing recorded. A `Resume studying` control in the header
   returns to the first unlearned card and re-enables recording. The bar
   defaults to hidden.
-- **Rounds**: walking off the last card shows a round-complete page; the next
-  swipe starts the following round (idempotent, pointer resets to 0).
+- **Rounds**: walking off the last card shows a round-complete page; it
+  lingers for two seconds and then opens the new round automatically.
 - Header is fixed: progress bar row, then back/browse/search row; the card
   area is measured below it so spacing never shifts.
 
@@ -69,8 +69,12 @@ All behave identically:
 
 ## Search & word page
 
-- Search: contains-match over the active bucket; rows show position and a red
-  dot when flagged.
+- **Scope**: home search spans **every bucket** — each bucket is searched
+  separately and results are never deduped, on purpose: a word living in two
+  buckets is worth seeing, and a duplicate inside one bucket surfaces a data
+  problem instead of hiding it. Feed search is pinned to that feed's bucket.
+- Every result row shows which bucket it came from; tapping a result opens the
+  word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
   move through words, scrub the progress bar (default on) to any position,
   replay, reveal, and flag all work.
@@ -87,14 +91,15 @@ All behave identically:
   toggle, five color levels, tappable cells.
 - Rounds: one tab per bucket that has been started (defaults to the active
   bucket; never-started buckets do not appear). Each round shows its position
-  progress, green/red word counts, and a pixel-column timeline — red =
-  flagged, green = hand-settled, gray = skipped or not reached.
+  progress, the completion date for finished rounds, green/red word counts,
+  and a pixel-column timeline — red = flagged, green = hand-settled, gray =
+  skipped or not reached.
 
 ## Settings
 
-- Feed: auto pronunciation, speech rate (dropdown), progress bar in feed
-  (default off), progress bar dragging, progress bar in word page (default
-  on), search entry in feed.
+- Feed: auto pronunciation, speech rate (dropdown), show meaning by default,
+  progress bar in feed (default off), progress bar dragging, progress bar in
+  word page (default on), search entry in feed.
 - Appearance: theme (system / light / dark).
 - General: today time readout.
 - About: version, sound hint (replays the iOS silent-switch notice), clear all

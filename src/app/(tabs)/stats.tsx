@@ -31,6 +31,7 @@ type RoundDisplay = {
   done: boolean;
   pointer: number;
   wordCount: number;
+  finishedAt: number;
   green: number;
   red: number;
 };
@@ -60,6 +61,7 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
       done: true,
       pointer: wordCount,
       wordCount,
+      finishedAt: row.finishedAt,
       green: countOf(statuses, 'green'),
       red: countOf(statuses, 'red'),
     });
@@ -73,10 +75,21 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
     done: progress.pointer >= wordCount,
     pointer: progress.pointer,
     wordCount,
+    finishedAt: 0,
     green: countOf(currentStatuses, 'green'),
     red: countOf(currentStatuses, 'red'),
   });
   return displays;
+}
+
+function formatRoundLabel(round: RoundDisplay): string {
+  const progress = `Round ${round.round} · ${
+    round.done ? `${round.days}d` : `day ${round.days || 1}`
+  } · ${round.pointer}/${round.wordCount}`;
+  if (!round.done) return progress;
+  // The day the round was completed, next to the frozen timeline.
+  const finishedDay = todayLocalDate(new Date(round.finishedAt));
+  return `${progress} · ${formatDayLabel(finishedDay)}`;
 }
 
 function toStatuses(
@@ -207,7 +220,7 @@ export default function StatsScreen() {
                 <View key={round.round} style={styles.roundItem}>
                   <View style={styles.roundHead}>
                     <Text style={[styles.roundLabel, { color: colors.textTertiary }]}>
-                      {`Round ${round.round} · ${round.done ? `${round.days}d` : `day ${round.days || 1}`} · ${round.pointer}/${round.wordCount}`}
+                      {formatRoundLabel(round)}
                     </Text>
                   <View style={styles.roundCounts}>
                     <View style={styles.countGroup}>
