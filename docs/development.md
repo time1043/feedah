@@ -10,6 +10,26 @@ npx expo start        # open in Expo Go on a real device
 Pronunciation requires a real device. On iPhone, sound is muted while the
 ring/silent switch is on — the app shows a one-time hint.
 
+## Database
+
+The schema is declared with drizzle-orm in `src/db/schema.ts`. After editing
+it, generate migrations and commit the `drizzle/` folder together with the
+schema change (`metro.config.js` + `babel.config.js` inline the `.sql`
+migration files into the bundle):
+
+```bash
+pnpm db:generate
+```
+
+Migrations apply automatically on first app open. Databases created before
+drizzle are wiped once on open (no legacy data migration; the planned cloud
+account layer supersedes local-only history).
+
+To browse the on-device database: run a debug dev build (`pnpm start` plus
+`npx expo run:android`), press `shift + m` in the Expo CLI terminal, and pick
+`expo-drizzle-studio-plugin` — Drizzle Studio opens in the browser (device or
+emulator only; web is not supported).
+
 ## Word buckets
 
 Buckets live in `data/*.json` (gitignored, never committed) with the shape
@@ -50,7 +70,9 @@ prebuild: `npx expo prebuild --clean`.
     branch (`mvp/260930`) from the previous one.
   - `mvp/feat/<module>/<date>` — one branch per module within a phase.
   - `mvp/fix/<topic>/<date>` — same shape, for bug fixes.
-  - Merge with `--no-ff`, keep the branch after merging, push all branches.
+  - `<date>` is the phase start (一期 = `260830`), not the day of work.
+  - Merging is the user's call: agents must ask for and receive explicit
+    approval before merging. When merged, use `--no-ff` and keep the branch.
 - **Parallel AI sessions**: when several sessions work at once, give each its
   own checkout with `git worktree add <path> <branch>`; never share one
   working tree between concurrent sessions.
@@ -66,7 +88,7 @@ prebuild: `npx expo prebuild --clean`.
   before committing: re-read it end to end and hunt for edge cases, stale
   closures, and unhandled errors.
 - **Language**: code, comments, docs, and UI text in English, concise.
-- **Push** after every merged unit as soon as the network allows.
+- **Push** is handled by the user; agents never push.
 - **Data**: `data/` is user-provided and never committed.
 - **Docs**: keep `docs/plan.md` marks current; record new product rules in
   `docs/features.md` in the same change that implements them.

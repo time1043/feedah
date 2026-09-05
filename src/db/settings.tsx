@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { getDb } from './index';
+import { meta } from './schema';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type SpeechRate = 'slow' | 'normal' | 'fast';
@@ -72,7 +73,7 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 async function loadSettings(): Promise<Partial<Settings>> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM meta');
+  const rows = await db.select().from(meta);
   const stored: Record<string, unknown> = {};
   for (const row of rows) {
     try {
@@ -153,10 +154,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const db = await getDb();
       for (const [key, value] of Object.entries(partial)) {
-        await db.runAsync(
-          'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-          [key, JSON.stringify(value)],
-        );
+        await db
+          .insert(meta)
+          .values({ key, value: JSON.stringify(value) })
+          .onConflictDoUpdate({ target: meta.key, set: { value: JSON.stringify(value) } });
       }
     })();
   };

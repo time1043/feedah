@@ -1,90 +1,107 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+} from 'drizzle-orm/sqlite-core';
 
-/** Sequential schema migrations; index + 1 becomes PRAGMA user_version. */
-const MIGRATIONS: string[] = [
-  `
-  CREATE TABLE IF NOT EXISTS bucket (
-    id TEXT PRIMARY KEY,
-    word_count INTEGER NOT NULL
-  );
+export const bucket = sqliteTable('bucket', {
+  id: text('id').primaryKey(),
+  wordCount: integer('word_count').notNull(),
+});
 
-  CREATE TABLE IF NOT EXISTS word (
-    bucket_id TEXT NOT NULL REFERENCES bucket(id),
-    position INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    ipa TEXT NOT NULL DEFAULT '',
-    meaning TEXT NOT NULL DEFAULT '',
-    forms TEXT NOT NULL DEFAULT '[]',
-    flagged INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (bucket_id, position)
-  );
+export const word = sqliteTable(
+  'word',
+  {
+    bucketId: text('bucket_id')
+      .notNull()
+      .references(() => bucket.id),
+    position: integer('position').notNull(),
+    text: text('text').notNull(),
+    ipa: text('ipa').notNull().default(''),
+    meaning: text('meaning').notNull().default(''),
+    // JSON-encoded string[]; mode:'json' (de)serializes transparently.
+    forms: text('forms', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    flagged: integer('flagged', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucketId, t.position] }),
+    index('idx_word_flag').on(t.bucketId, t.flagged),
+  ],
+);
 
-  CREATE TABLE IF NOT EXISTS bucket_progress (
-    bucket_id TEXT PRIMARY KEY REFERENCES bucket(id),
-    round INTEGER NOT NULL DEFAULT 1,
-    pointer INTEGER NOT NULL DEFAULT 0,
-    started_at INTEGER NOT NULL DEFAULT 0
-  );
+export const bucketProgress = sqliteTable('bucket_progress', {
+  bucketId: text('bucket_id')
+    .primaryKey()
+    .references(() => bucket.id),
+  round: integer('round').notNull().default(1),
+  pointer: integer('pointer').notNull().default(0),
+  startedAt: integer('started_at').notNull().default(0),
+});
 
-  -- Per-round per-word state. reached=1 means the card was settled by hand
-  -- in that round (jump targets never count). flagged=1 marks the flag was
-  -- on at some point during the round; rows may exist with reached=0 when
-  -- the word was flagged without being reached (e.g. from search).
-  CREATE TABLE IF NOT EXISTS round_word (
-    bucket_id TEXT NOT NULL,
-    round INTEGER NOT NULL,
-    position INTEGER NOT NULL,
-    reached INTEGER NOT NULL DEFAULT 0,
-    flagged INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (bucket_id, round, position)
-  );
+// Per-round per-word state. reached=true means the card was settled by hand
+// in that round (jump targets never count). flagged=true marks the flag was
+// on at some point during the round; rows may exist with reached=false when
+// the word was flagged without being reached (e.g. from search). reachedAt
+// records the settle time; 0 means it cannot be attributed to a day.
+export const roundWord = sqliteTable(
+  'round_word',
+  {
+    bucketId: text('bucket_id').notNull(),
+    round: integer('round').notNull(),
+    position: integer('position').notNull(),
+    reached: integer('reached', { mode: 'boolean' }).notNull().default(false),
+    flagged: integer('flagged', { mode: 'boolean' }).notNull().default(false),
+    reachedAt: integer('reached_at').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.bucketId, t.round, t.position] })],
+);
 
-  CREATE TABLE IF NOT EXISTS round_history (
-    bucket_id TEXT NOT NULL,
-    round INTEGER NOT NULL,
-    started_at INTEGER NOT NULL,
-    finished_at INTEGER NOT NULL,
-    PRIMARY KEY (bucket_id, round)
-  );
+export const roundHistory = sqliteTable(
+  'round_history',
+  {
+    bucketId: text('bucket_id').notNull(),
+    round: integer('round').notNull(),
+    startedAt: integer('started_at').notNull(),
+    finishedAt: integer('finished_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.bucketId, t.round] })],
+);
 
-  CREATE TABLE IF NOT EXISTS daily_stat (
-    day TEXT PRIMARY KEY,
-    feed_seconds INTEGER NOT NULL DEFAULT 0,
-    app_seconds INTEGER NOT NULL DEFAULT 0
-  );
+export const dailyStat = sqliteTable('daily_stat', {
+  day: text('day').primaryKey(),
+  feedSeconds: integer('feed_seconds').notNull().default(0),
+  appSeconds: integer('app_seconds').notNull().default(0),
+});
 
-  -- Latest high-water global position ((round-1)*word_count + pointer) per
-  -- bucket per active day; daily word count is the difference of consecutive
-  -- snapshots. Rows are written only when the pointer advances.
-  CREATE TABLE IF NOT EXISTS daily_pointer (
-    day TEXT NOT NULL,
-    bucket_id TEXT NOT NULL,
-    global_position INTEGER NOT NULL,
-    PRIMARY KEY (day, bucket_id)
-  );
+// Latest high-water global position ((round-1)*word_count + pointer) per
+// bucket per active day; daily word count is the difference of consecutive
+// snapshots. Rows are written only when the pointer advances.
+export const dailyPointer = sqliteTable(
+  'daily_pointer',
+  {
+    day: text('day').notNull(),
+    bucketId: text('bucket_id').notNull(),
+    globalPosition: integer('global_position').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.bucketId] })],
+);
 
-  CREATE TABLE IF NOT EXISTS meta (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
+export const meta = sqliteTable('meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
 
-  CREATE INDEX IF NOT EXISTS idx_word_flag ON word (bucket_id, flagged);
-  `,
-  `
-  ALTER TABLE round_word ADD COLUMN reached_at INTEGER NOT NULL DEFAULT 0;
-  `,
-];
-
-export async function migrate(db: SQLiteDatabase): Promise<void> {
-  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  let version = row?.user_version ?? 0;
-
-  while (version < MIGRATIONS.length) {
-    const migration = MIGRATIONS[version];
-    await db.withTransactionAsync(async () => {
-      await db.execAsync(migration);
-    });
-    version += 1;
-    await db.execAsync(`PRAGMA user_version = ${version}`);
-  }
-}
+export type BucketRow = typeof bucket.$inferSelect;
+export type WordSelect = typeof word.$inferSelect;
+export type BucketProgressSelect = typeof bucketProgress.$inferSelect;
+export type RoundWordSelect = typeof roundWord.$inferSelect;
+export type RoundHistorySelect = typeof roundHistory.$inferSelect;
+export type DailyStatSelect = typeof dailyStat.$inferSelect;
+export type DailyPointerSelect = typeof dailyPointer.$inferSelect;
+export type MetaSelect = typeof meta.$inferSelect;
