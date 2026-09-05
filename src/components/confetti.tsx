@@ -17,7 +17,7 @@ type Piece = {
  * with the native driver — no extra dependency. Sits on top of an end page
  * with `pointerEvents="none"`.
  */
-export function Confetti({ pieceCount = 60 }: { pieceCount?: number }) {
+export function Confetti({ pieceCount = 60, active = true }: { pieceCount?: number; active?: boolean }) {
   const progress = useRef(new Animated.Value(0)).current;
   const pieces = useRef<Piece[]>(
     Array.from({ length: pieceCount }, () => ({
@@ -36,7 +36,7 @@ export function Confetti({ pieceCount = 60 }: { pieceCount?: number }) {
       easing: Easing.in(Easing.quad),
       useNativeDriver: true,
     }).start();
-  }, [progress]);
+  }, [active, progress]);
 
   return (
     <View pointerEvents="none" style={styles.root}>

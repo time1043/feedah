@@ -214,7 +214,7 @@ export default function ReviewScreen() {
                 </View>
               ) : (
                 <View style={[styles.end, { height: viewport }]}>
-                  <Confetti />
+                  <Confetti active={current >= queue.length} />
                   <Text style={[styles.endTitle, { color: colors.text }]}>Review complete</Text>
                   <Text style={[styles.endHint, { color: colors.textTertiary }]}>
                     Swipe up to finish

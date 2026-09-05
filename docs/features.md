@@ -119,6 +119,9 @@ All behave identically:
   master switch disables the whole feature.
 - Turning the feature on asks for notification permission once; without it the
   switch stays off with a hint.
+- Expo Go on Android cannot run these reminders (its notification APIs were
+  removed in SDK 53) — the app detects this, keeps the switch off, and asks
+  for a development build or standalone APK. iOS Expo Go works.
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled time, rescheduled on every change and on app launch).
 - Nothing about reminders touches study statistics.
