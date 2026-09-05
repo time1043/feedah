@@ -35,10 +35,11 @@ export async function syncMealReminders(times: MealTime[]): Promise<void> {
   if (times.length === 0) return;
 
   // Android 13 only shows the permission prompt once a channel exists.
+  // HIGH importance = heads-up banner + lockscreen entry, like a chat message.
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Study reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
     });
   }
 

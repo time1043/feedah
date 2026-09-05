@@ -106,14 +106,6 @@ export default function SettingsScreen() {
         );
         return;
       }
-      // Android 14+: exact alarms are a separate special permission that has
-      // no in-app request API. Without it reminders can be delayed or dropped.
-      if (Platform.OS === 'android') {
-        Alert.alert(
-          'For on-time reminders',
-          'In system settings, allow "Alarms & reminders" for feedah and turn off battery optimization. Aggressive Chinese ROMs may also require autostart.',
-        );
-      }
     }
     const next = { ...settings, remindersEnabled: v };
     update({ remindersEnabled: v });

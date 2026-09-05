@@ -124,6 +124,10 @@ All behave identically:
   master switch disables the whole feature.
 - Turning the feature on asks for notification permission once; without it the
   switch stays off with a hint.
+- Delivered as a light notification: heads-up banner plus a lockscreen
+  entry (HIGH-importance channel) — not a ringing alarm. The system's
+  optional 'Alarms & reminders' permission only sharpens timing (a few
+  minutes of drift at most) and is not required.
 - Expo Go on Android cannot run these reminders (its notification APIs were
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
