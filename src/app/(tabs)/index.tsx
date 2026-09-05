@@ -85,10 +85,23 @@ export default function HomeScreen() {
           <Text style={[styles.metricTotal, { color: colors.textTertiary }]}> / {wordCount}</Text>
         </View>
         <View style={styles.flagRow}>
-          <View style={[styles.flagDot, { backgroundColor: colors.success }]} />
-          <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.green}</Text>
-          <View style={[styles.flagDot, { backgroundColor: colors.danger }]} />
-          <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.red}</Text>
+          <View style={styles.flagGroup}>
+            <View style={[styles.flagDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.green}</Text>
+          </View>
+          <Pressable
+            disabled={flagCounts.red === 0}
+            onPress={() => router.push(`/review?bucket=${activeId}&round=${round}`)}
+            style={styles.flagGroup}>
+            <View style={[styles.flagDot, { backgroundColor: colors.danger }]} />
+            <Text
+              style={[
+                styles.flagCount,
+                { color: flagCounts.red > 0 ? colors.danger : colors.textSecondary },
+              ]}>
+              {flagCounts.red}
+            </Text>
+          </Pressable>
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -150,6 +163,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   flagRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.s,
+  },
+  flagGroup: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.s,
