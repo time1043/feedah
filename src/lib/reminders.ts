@@ -5,7 +5,7 @@ import { pickNotificationText } from './notification-texts';
 
 const CHANNEL_ID = 'meals';
 
-export type MealTime = { hour: number; minute: number };
+export type TimeOfDay = { hour: number; minute: number };
 
 type NotificationsModule = typeof import('expo-notifications');
 
@@ -35,8 +35,8 @@ function notifications(): NotificationsModule | null {
  */
 let syncChain: Promise<void> = Promise.resolve();
 
-export function syncMealReminders(times: MealTime[]): Promise<void> {
-  const run = syncChain.then(() => doSyncMealReminders(times));
+export function syncReminders(times: TimeOfDay[]): Promise<void> {
+  const run = syncChain.then(() => doSyncReminders(times));
   syncChain = run.then(
     () => {},
     () => {},
@@ -44,7 +44,7 @@ export function syncMealReminders(times: MealTime[]): Promise<void> {
   return run;
 }
 
-async function doSyncMealReminders(times: MealTime[]): Promise<void> {
+async function doSyncReminders(times: TimeOfDay[]): Promise<void> {
   const Notifications = notifications();
   if (!Notifications) return; // not available (e.g. Expo Go on Android)
 
@@ -62,7 +62,7 @@ async function doSyncMealReminders(times: MealTime[]): Promise<void> {
 
   // One notification per unique time of day: two reminders sharing a time
   // would fire twice with nothing to tell them apart.
-  const unique = new Map<string, MealTime>();
+  const unique = new Map<string, TimeOfDay>();
   for (const time of times) {
     unique.set(`${time.hour}:${time.minute}`, time);
   }
@@ -96,7 +96,7 @@ export async function requestReminderPermission(): Promise<
 }
 
 /** Parses lenient user input ("8:30", "0830", "830") or returns null. */
-export function parseTimeOfDay(input: string): MealTime | null {
+export function parseTimeOfDay(input: string): TimeOfDay | null {
   const digits = input.replace(/\D/g, '');
   if (digits.length === 0 || digits.length > 4) return null;
   let hour: number;
@@ -118,15 +118,15 @@ export function parseTimeOfDay(input: string): MealTime | null {
 }
 
 /** Renders a meal time as "8:30" / "18:05". */
-export function formatTimeOfDay(time: MealTime): string {
+export function formatTimeOfDay(time: TimeOfDay): string {
   return `${time.hour}:${String(time.minute).padStart(2, '0')}`;
 }
 
-export function parseMealTimeSetting(value: string): MealTime {
+export function parseTimeOfDaySetting(value: string): TimeOfDay {
   return parseTimeOfDay(value) ?? { hour: 8, minute: 30 };
 }
 
 /** The enabled reminder times for scheduling, parsed and in list order. */
-export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): MealTime[] {
-  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseMealTimeSetting(reminder.time));
+export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): TimeOfDay[] {
+  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseTimeOfDaySetting(reminder.time));
 }

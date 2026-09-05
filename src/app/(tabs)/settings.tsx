@@ -26,10 +26,10 @@ import { formatClock } from '@/lib/format';
 import {
   activeReminderTimes,
   formatTimeOfDay,
-  parseMealTimeSetting,
+  parseTimeOfDaySetting,
   parseTimeOfDay,
   requestReminderPermission,
-  syncMealReminders,
+  syncReminders,
 } from '@/lib/reminders';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -84,7 +84,7 @@ export default function SettingsScreen() {
   };
 
   const syncFrom = (next: Settings) => {
-    void syncMealReminders(
+    void syncReminders(
       next.remindersEnabled ? activeReminderTimes(next.reminders) : [],
     ).catch(() => {});
   };
@@ -436,7 +436,7 @@ function ReminderRow({
   const [iosDraft, setIosDraft] = useState<Date | null>(null);
 
   const pickerValue = (() => {
-    const t = parseMealTimeSetting(reminder.time);
+    const t = parseTimeOfDaySetting(reminder.time);
     return new Date(2000, 0, 1, t.hour, t.minute);
   })();
 
@@ -465,10 +465,10 @@ function ReminderRow({
           hitSlop={6}>
           <Text style={[styles.label, { color: colors.text }]}>{reminder.label}</Text>
         </Pressable>
-        <View style={styles.mealControls}>
+        <View style={styles.reminderControls}>
           <Pressable onPress={() => setPicking(true)} hitSlop={8}>
             <Text style={[styles.value, { color: colors.accent }]}>
-              {formatTimeOfDay(parseMealTimeSetting(reminder.time))}
+              {formatTimeOfDay(parseTimeOfDaySetting(reminder.time))}
             </Text>
           </Pressable>
           <Switch value={reminder.enabled} onValueChange={onToggle} />
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
   },
-  mealControls: {
+  reminderControls: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.m,

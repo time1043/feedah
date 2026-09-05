@@ -26,7 +26,7 @@ on the integration branch.
 - [x] Developer docs: architecture, data model, feature spec, development,
       plan
 
-## Agreed, not started
+## Post-MVP additions
 
 - [x] Flagged-words review pass: study only the words marked unfamiliar in the
       current bucket (first item after the MVP; the data model already
@@ -35,6 +35,8 @@ on the integration branch.
       during that specific round
 - [x] Day review: from stats, tap the words number of a selected day to review
       every word completed that day across buckets (`round_word.reached_at`)
+- [x] Reminders: daily local notifications with a dynamic reminder list
+      (rename / add / delete, native time picker, per-item switches)
 - [ ] Quiz mode: English word with four Chinese options, plus example
       sentences to support guessing (planned after the review passes)
 - [ ] User-created buckets: let users import their own word lists (later)

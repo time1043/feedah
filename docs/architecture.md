@@ -64,5 +64,9 @@ data/               local word buckets (gitignored, bundled at build)
 - Skia's `Canvas` does not support `onLayout` on the new architecture
   (Fabric — the default in Expo Go). Measure a wrapping `View` and pass the
   size to `Canvas` as an explicit style instead.
+- `expo-notifications` must be lazy-required and guarded: in Expo Go on
+  Android the module throws when imported (remote-notification APIs were
+  removed there). Reminders degrade to a no-op when the module is
+  unavailable; they need a development build or standalone APK on Android.
 - Consult the docs for the exact SDK version before adding APIs:
   https://docs.expo.dev/versions/v57.0.0/
