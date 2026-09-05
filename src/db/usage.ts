@@ -74,3 +74,9 @@ export function getLiveUsage(): { appMs: number; feedMs: number } {
     feedMs: pendingFeedMs + (feedStartedAt !== null ? now - feedStartedAt : 0),
   };
 }
+
+/** Drops in-memory pending time (used after a full data wipe). */
+export function resetUsage(): void {
+  pendingAppMs = 0;
+  pendingFeedMs = 0;
+}

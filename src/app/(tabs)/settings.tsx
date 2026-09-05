@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
+import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
 import { useSettings, type SpeechRate, type ThemeMode } from '@/db/settings';
-import { getLiveUsage } from '@/db/usage';
+import { getLiveUsage, resetUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
 import { formatClock } from '@/lib/format';
 import { useTheme } from '@/theme/context';
@@ -27,7 +28,7 @@ const RATE_OPTIONS: { value: SpeechRate; label: string }[] = [
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { settings, update } = useSettings();
+  const { settings, ready: settingsReady, update, reload } = useSettings();
   const [today, setToday] = useState<DailyStatRow | null>(null);
   // Live samples held in state: reading module-level timers during render
   // returns memoized values under React Compiler, so the clock would freeze.
@@ -52,6 +53,26 @@ export default function SettingsScreen() {
   const showSoundHint = () => {
     update({ silentHintShown: true });
     alertSoundHint();
+  };
+
+  const confirmClearData = () => {
+    Alert.alert(
+      'Clear all data?',
+      'Progress, flags, stats and settings are erased. Word buckets are kept and re-seeded.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () =>
+            void (async () => {
+              await resetDatabase();
+              resetUsage();
+              await reload();
+            })(),
+        },
+      ],
+    );
   };
 
   return (
@@ -121,6 +142,10 @@ export default function SettingsScreen() {
           <Pressable style={styles.row} onPress={showSoundHint}>
             <Text style={[styles.label, { color: colors.text }]}>Sound hint</Text>
             <Text style={[styles.value, { color: colors.textTertiary }]}>Show again</Text>
+          </Pressable>
+          <Pressable style={styles.row} onPress={confirmClearData}>
+            <Text style={[styles.dangerLabel, { color: colors.danger }]}>Clear all data</Text>
+            <Text style={[styles.value, { color: colors.textTertiary }]}>Erase</Text>
           </Pressable>
         </Group>
       </ScrollView>
@@ -307,6 +332,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.body,
+  },
+  dangerLabel: {
+    fontSize: fontSize.body,
+    fontWeight: '600',
   },
   value: {
     fontSize: fontSize.body,

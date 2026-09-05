@@ -97,4 +97,6 @@ All behave identically:
   on), search entry in feed.
 - Appearance: theme (system / light / dark).
 - General: today time readout.
-- About: version, sound hint (replays the iOS silent-switch notice).
+- About: version, sound hint (replays the iOS silent-switch notice), clear all
+  data (danger-styled, double-confirmed; wipes progress, flags, stats and
+  settings, then re-seeds the buckets — currently a dev/debug utility).

@@ -23,3 +23,13 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
   }
   return instance;
 }
+
+/** Erases everything (progress, flags, stats, settings) and re-seeds buckets. */
+export async function resetDatabase(): Promise<void> {
+  if (instance) {
+    const db = await instance;
+    await db.closeAsync();
+  }
+  instance = null;
+  await SQLite.deleteDatabaseAsync('feedah.db');
+}
