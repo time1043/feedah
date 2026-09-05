@@ -74,7 +74,7 @@ export function getDb(): Promise<Db> {
       await raw.execAsync('PRAGMA journal_mode = WAL');
       raw = await resetLegacyDatabase(raw);
       await migrate(db, migrations);
-      await seedBuckets(raw);
+      await seedBuckets(db);
       return db;
     })().catch((error) => {
       // A failed open must not poison the singleton: clear it so the next
