@@ -1,32 +1,53 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { searchWords, type WordRow } from '@/db/repo';
-import { useSettings } from '@/db/settings';
+import { listBuckets, searchWords, type WordRow } from '@/db/repo';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
-/** Word lookup over the active bucket; results open a single card. */
+/**
+ * Word lookup. From home it spans every bucket — results are not deduped, on
+ * purpose: the same word in two buckets is worth seeing (and a duplicate
+ * inside one bucket exposes a data problem instead of hiding it). From the
+ * feed it is pinned to that feed's bucket. Results open the word page pinned
+ * to the result's bucket.
+ */
 export default function SearchScreen() {
   const { colors } = useTheme();
-  const { settings } = useSettings();
+  const params = useLocalSearchParams<{ bucket?: string }>();
+  const pinnedBucket =
+    typeof params.bucket === 'string' && params.bucket.length > 0 ? params.bucket : '';
+  const [scopes, setScopes] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WordRow[]>([]);
 
   useEffect(() => {
+    void (async () => {
+      if (pinnedBucket !== '') {
+        setScopes([pinnedBucket]);
+        return;
+      }
+      setScopes((await listBuckets()).map((bucket) => bucket.id));
+    })();
+  }, [pinnedBucket]);
+
+  useEffect(() => {
     const trimmed = query.trim();
-    if (settings.activeBucketId === '' || trimmed.length === 0) {
+    if (scopes.length === 0 || trimmed.length === 0) {
       setResults([]);
       return;
     }
     const timer = setTimeout(() => {
-      void searchWords(settings.activeBucketId, trimmed).then(setResults);
+      void (async () => {
+        const lists = await Promise.all(scopes.map((bucket) => searchWords(bucket, trimmed)));
+        setResults(lists.flat());
+      })();
     }, 150);
     return () => clearTimeout(timer);
-  }, [query, settings.activeBucketId]);
+  }, [query, scopes]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
@@ -48,17 +69,18 @@ export default function SearchScreen() {
 
       <FlatList
         data={results}
-        keyExtractor={(word) => `${word.position}`}
+        keyExtractor={(word, i) => `${word.bucketId}-${word.position}-${i}`}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-            onPress={() => router.push(`/word/${item.position}`)}>
+            onPress={() => router.push(`/word/${item.position}?bucket=${item.bucketId}`)}>
             <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
             {item.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}
             <Text style={[styles.word, { color: colors.text }]} numberOfLines={1}>
               {item.text}
             </Text>
+            <Text style={[styles.bucket, { color: colors.textTertiary }]}>{item.bucketId}</Text>
           </Pressable>
         )}
       />
@@ -104,5 +126,10 @@ const styles = StyleSheet.create({
   word: {
     flex: 1,
     fontSize: fontSize.body,
+  },
+  bucket: {
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
+    marginLeft: spacing.s,
   },
 });
