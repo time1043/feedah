@@ -10,6 +10,7 @@ export type Settings = {
   theme: ThemeMode;
   autoPronounce: boolean;
   speechRate: SpeechRate;
+  showMeaning: boolean;
   progressBar: boolean;
   progressBarDrag: boolean;
   wordProgressBar: boolean;
@@ -23,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   autoPronounce: true,
   speechRate: 'normal',
+  showMeaning: false,
   progressBar: false,
   progressBarDrag: true,
   wordProgressBar: true,

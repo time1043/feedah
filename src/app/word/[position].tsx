@@ -128,6 +128,7 @@ export default function WordPage() {
                   forms={item.forms}
                   ipa={item.ipa}
                   flagged={item.flagged}
+                  defaultMeaningVisible={settings.showMeaning}
                   onReplay={() => speakWord(item.text, settings.speechRate)}
                   onToggleFlagged={() => void toggleFlagged(index)}
                 />

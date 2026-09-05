@@ -99,6 +99,11 @@ export default function SettingsScreen() {
             onChange={(v) => update({ speechRate: v as SpeechRate })}
           />
           <SwitchRow
+            label="Show meaning by default"
+            value={settings.showMeaning}
+            onValueChange={(v) => update({ showMeaning: v })}
+          />
+          <SwitchRow
             label="Progress bar in feed"
             value={settings.progressBar}
             onValueChange={(v) => update({ progressBar: v })}
