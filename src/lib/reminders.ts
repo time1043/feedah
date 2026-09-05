@@ -1,9 +1,11 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { pickNotificationText } from './notification-texts';
+
 const CHANNEL_ID = 'meals';
 
-export type MealTime = { hour: number; minute: number };
+export type TimeOfDay = { hour: number; minute: number };
 
 type NotificationsModule = typeof import('expo-notifications');
 
@@ -26,8 +28,23 @@ function notifications(): NotificationsModule | null {
 /**
  * The app has no other notifications, so a blanket cancel before every sync
  * is a safe way to keep the schedule in step with the settings.
+ *
+ * Syncs are serialized through a promise chain: concurrent callers (the
+ * launch effect and settings changes) would otherwise interleave cancel and
+ * schedule steps and pile up duplicate notifications. The last sync wins.
  */
-export async function syncMealReminders(times: MealTime[]): Promise<void> {
+let syncChain: Promise<void> = Promise.resolve();
+
+export function syncReminders(times: TimeOfDay[]): Promise<void> {
+  const run = syncChain.then(() => doSyncReminders(times));
+  syncChain = run.then(
+    () => {},
+    () => {},
+  );
+  return run;
+}
+
+async function doSyncReminders(times: TimeOfDay[]): Promise<void> {
   const Notifications = notifications();
   if (!Notifications) return; // not available (e.g. Expo Go on Android)
 
@@ -35,18 +52,26 @@ export async function syncMealReminders(times: MealTime[]): Promise<void> {
   if (times.length === 0) return;
 
   // Android 13 only shows the permission prompt once a channel exists.
+  // HIGH importance = heads-up banner + lockscreen entry, like a chat message.
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Study reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
     });
   }
 
+  // One notification per unique time of day: two reminders sharing a time
+  // would fire twice with nothing to tell them apart.
+  const unique = new Map<string, TimeOfDay>();
   for (const time of times) {
+    unique.set(`${time.hour}:${time.minute}`, time);
+  }
+
+  for (const time of unique.values()) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'feedah',
-        body: 'Time to study your words — right after a meal works best.',
+        body: pickNotificationText(),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -71,7 +96,7 @@ export async function requestReminderPermission(): Promise<
 }
 
 /** Parses lenient user input ("8:30", "0830", "830") or returns null. */
-export function parseTimeOfDay(input: string): MealTime | null {
+export function parseTimeOfDay(input: string): TimeOfDay | null {
   const digits = input.replace(/\D/g, '');
   if (digits.length === 0 || digits.length > 4) return null;
   let hour: number;
@@ -93,15 +118,15 @@ export function parseTimeOfDay(input: string): MealTime | null {
 }
 
 /** Renders a meal time as "8:30" / "18:05". */
-export function formatTimeOfDay(time: MealTime): string {
+export function formatTimeOfDay(time: TimeOfDay): string {
   return `${time.hour}:${String(time.minute).padStart(2, '0')}`;
 }
 
-export function parseMealTimeSetting(value: string): MealTime {
+export function parseTimeOfDaySetting(value: string): TimeOfDay {
   return parseTimeOfDay(value) ?? { hour: 8, minute: 30 };
 }
 
 /** The enabled reminder times for scheduling, parsed and in list order. */
-export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): MealTime[] {
-  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseMealTimeSetting(reminder.time));
+export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): TimeOfDay[] {
+  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseTimeOfDaySetting(reminder.time));
 }

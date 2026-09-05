@@ -33,8 +33,7 @@ All behave identically:
 - The queue is snapshotted on entry. Unflagging during the session updates the
   word and the current round immediately, but the queue keeps the word until
   the next pass, and historical rounds are never rewritten.
-- The end card lingers for two seconds with a confetti burst, then leaves the
-  session.
+- The end card lingers for two seconds, then leaves the session.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
   time spent counts as studying.
 
@@ -57,8 +56,7 @@ All behave identically:
   returns to the first unlearned card and re-enables recording. The bar
   defaults to hidden.
 - **Rounds**: walking off the last card shows a round-complete page; it
-  lingers for two seconds (with a confetti burst) and then opens the new
-  round automatically.
+  lingers for two seconds and then opens the new round automatically.
 - Header is fixed: progress bar row, then back/browse/search row; the card
   area is measured below it so spacing never shifts.
 
@@ -124,11 +122,14 @@ All behave identically:
   master switch disables the whole feature.
 - Turning the feature on asks for notification permission once; without it the
   switch stays off with a hint.
+- Delivered as a light notification: heads-up banner plus a lockscreen
+  entry (HIGH-importance channel) — not a ringing alarm.
 - Expo Go on Android cannot run these reminders (its notification APIs were
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
-- Android 14+ requires the "Alarms & reminders" special permission for on-time
-  delivery (the app points this out when reminders are enabled). Aggressive
+- Android timing: exact delivery on Android 14+ wants the system's
+  "Alarms & reminders" permission for feedah (the app points this out when
+  reminders are enabled; without it delivery can drift by minutes). Aggressive
   OEM ROMs may also need autostart / battery-optimization exemptions.
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled reminder, rescheduled on every change and on app launch).

@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
-import { Confetti } from '@/components/confetti';
 import { getFlaggedWords, getRoundFlaggedWords, getWordsCompletedOn, setFlag, type WordRow } from '@/db/repo';
 import { formatDayLabel } from '@/lib/format';
 import { useSettings } from '@/db/settings';
@@ -112,6 +111,7 @@ export default function ReviewScreen() {
   const handleSettle = (index: number) => {
     if (endTimer.current) return;
     if (index >= queue.length) {
+      setCurrent(index);
       endTimer.current = setTimeout(() => {
         endTimer.current = null;
         router.back();
@@ -214,7 +214,6 @@ export default function ReviewScreen() {
                 </View>
               ) : (
                 <View style={[styles.end, { height: viewport }]}>
-                  <Confetti active={current >= queue.length} />
                   <Text style={[styles.endTitle, { color: colors.text }]}>Review complete</Text>
                   <Text style={[styles.endHint, { color: colors.textTertiary }]}>
                     Swipe up to finish
