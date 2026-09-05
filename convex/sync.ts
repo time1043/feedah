@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { GenericId } from 'convex/values';
-import { internalMutation, mutation, MutationCtx, query } from './_generated/server';
+import { internalMutation, mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 import { auth } from './auth';
 
 // Cloud-side half of the sync engine. The client pulls the user's full state,
@@ -33,13 +33,13 @@ export const pull = query({
         ctx.db.query('cloudMeta').withIndex('by_user_key', (q) => q.eq('userId', userId)).collect(),
       ]);
     return {
-      progress: progress.map(({ userId: _u, ...row }) => row),
-      roundWords: roundWords.map(({ userId: _u, ...row }) => row),
-      roundHistory: roundHistory.map(({ userId: _u, ...row }) => row),
-      dailyStats: dailyStats.map(({ userId: _u, ...row }) => row),
-      dailyPointers: dailyPointers.map(({ userId: _u, ...row }) => row),
-      wordFlags: wordFlags.map(({ userId: _u, ...row }) => row),
-      meta: meta.map(({ userId: _u, ...row }) => row),
+      progress: progress.map(({ userId: _userId, ...row }) => row),
+      roundWords: roundWords.map(({ userId: _userId, ...row }) => row),
+      roundHistory: roundHistory.map(({ userId: _userId, ...row }) => row),
+      dailyStats: dailyStats.map(({ userId: _userId, ...row }) => row),
+      dailyPointers: dailyPointers.map(({ userId: _userId, ...row }) => row),
+      wordFlags: wordFlags.map(({ userId: _userId, ...row }) => row),
+      meta: meta.map(({ userId: _userId, ...row }) => row),
       pulledAt: Date.now(),
     };
   },
@@ -222,7 +222,9 @@ export const wipe = internalMutation({
   },
 });
 
-async function requireUser(ctx: MutationCtx): Promise<GenericId<'users'>> {
+async function requireUser(
+  ctx: MutationCtx | QueryCtx,
+): Promise<GenericId<'users'>> {
   const user = await auth.getUserId(ctx);
   if (!user) throw new Error('unauthenticated: sign in before syncing');
   return user;

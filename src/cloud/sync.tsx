@@ -87,6 +87,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     }
   }, [reload]);
 
+  // Triggers sample the callback through a ref: `reload` gets a fresh identity
+  // on every settings render, and the triggers must not re-arm each time.
+  const runSyncRef = useRef(runSync);
+  useEffect(() => {
+    runSyncRef.current = runSync;
+  }, [runSync]);
+  const trigger = useCallback(() => {
+    void runSyncRef.current();
+  }, []);
+
   // Anonymous identity keeps the app account-less while still giving cloud
   // rows an owner. Offline it fails quietly and is retried by the triggers.
   useEffect(() => {
@@ -97,27 +107,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
-    void runSync();
-  }, [isLoading, isAuthenticated, runSync]);
+    trigger();
+  }, [isLoading, isAuthenticated, trigger]);
 
   // Network regain and app foreground both trigger a catch-up sync.
   useEffect(() => {
     if (!CONVEX_URL) return;
     const unsubNet = NetInfo.addEventListener((state) => {
-      if (state.isConnected) void runSync();
+      if (state.isConnected) trigger();
     });
     const appSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void runSync();
+      if (state === 'active') trigger();
     });
     return () => {
       unsubNet();
       appSub.remove();
     };
-  }, [runSync]);
+  }, [trigger]);
 
-  const syncNow = useCallback(() => {
-    void runSync();
-  }, [runSync]);
+  const syncNow = trigger;
 
   return (
     <SyncContext.Provider value={{ status, lastSyncedAt, lastError, version, syncNow }}>
