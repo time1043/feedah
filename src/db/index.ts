@@ -71,8 +71,10 @@ export function getDb(): Promise<Db> {
   if (!instance) {
     instance = (async () => {
       let { raw, db } = open();
-      await raw.execAsync('PRAGMA journal_mode = WAL');
       raw = await resetLegacyDatabase(raw);
+      // A legacy reset reopens the file; pick up the rebuilt instance.
+      db = currentDb ?? db;
+      await raw.execAsync('PRAGMA journal_mode = WAL');
       await migrate(db, migrations);
       await seedBuckets(db);
       return db;
