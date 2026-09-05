@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { Heatmap } from '@/components/heatmap';
 import { RoundBar, type RoundWordStatus } from '@/components/round-bar';
@@ -201,12 +201,19 @@ export default function StatsScreen() {
                     <Text style={[styles.roundLabel, { color: colors.textTertiary }]}>
                       {`Round ${round.round} · ${round.done ? `${round.days}d` : `day ${round.days || 1}`} · ${round.pointer}/${round.wordCount}`}
                     </Text>
-                    <View style={styles.roundCounts}>
+                  <View style={styles.roundCounts}>
+                    <View style={styles.countGroup}>
                       <View style={[styles.countDot, { backgroundColor: colors.success }]} />
                       <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.green}</Text>
+                    </View>
+                    <Pressable
+                      disabled={round.red === 0}
+                      onPress={() => router.push(`/review?bucket=${roundTab}&round=${round.round}`)}
+                      style={styles.countGroup}>
                       <View style={[styles.countDot, { backgroundColor: colors.danger }]} />
                       <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.red}</Text>
-                    </View>
+                    </Pressable>
+                  </View>
                   </View>
                   <RoundBar statuses={round.statuses} />
                 </View>
@@ -327,7 +334,12 @@ const styles = StyleSheet.create({
   roundCounts: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.s,
+  },
+  countGroup: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
   },
   countDot: {
     borderRadius: 3,
