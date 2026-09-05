@@ -51,6 +51,15 @@ export default function FeedScreen() {
 
   const listRef = useRef<FlatList<FeedItem> | null>(null);
   const suppressSettle = useRef(false);
+  // While the round-complete page lingers, gestures record nothing.
+  const roundAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (roundAdvanceTimer.current) clearTimeout(roundAdvanceTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     // Wait for settings: before the meta table loads, activeBucketId is a
@@ -135,6 +144,9 @@ export default function FeedScreen() {
   const items: FeedItem[] = [...words.map((word) => ({ kind: 'word' as const, word })), FOOTER];
 
   const handleSettle = async (index: number) => {
+    // The round-complete page lingers for two seconds; gestures in that
+    // window record nothing.
+    if (roundAdvanceTimer.current) return;
     // Studying counts the card you just LEFT BEHIND: landing on a card
     // completes the previous one, so the card on screen is still in progress
     // and exiting there loses nothing.
@@ -147,9 +159,13 @@ export default function FeedScreen() {
           const progress = await startNextRound(bucketId);
           setRound(progress.round);
           setPointer(progress.pointer);
-          setCurrent(0);
-          suppressSettle.current = true;
-          listRef.current?.scrollToIndex({ index: 0, animated: false });
+          // Let the completion page linger, then open the new round.
+          roundAdvanceTimer.current = setTimeout(() => {
+            roundAdvanceTimer.current = null;
+            suppressSettle.current = true;
+            listRef.current?.scrollToIndex({ index: 0, animated: false });
+            setCurrent(0);
+          }, 2000);
         }
       }
       return;
@@ -219,7 +235,7 @@ export default function FeedScreen() {
             </Pressable>
           )}
           {settings.feedSearch && (
-            <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
+            <Pressable onPress={() => router.push(`/search?bucket=${bucketId}`)} hitSlop={12} accessibilityLabel="Search words">
               <Ionicons name="search" size={22} color={colors.textTertiary} />
             </Pressable>
           )}
@@ -249,6 +265,7 @@ export default function FeedScreen() {
                     forms={item.word.forms}
                     ipa={item.word.ipa}
                     flagged={item.word.flagged}
+                    defaultMeaningVisible={settings.showMeaning}
                     onReplay={() => speakWord(item.word.text, settings.speechRate)}
                     onToggleFlagged={() => void toggleFlagged(index)}
                   />
@@ -257,7 +274,7 @@ export default function FeedScreen() {
                 <View style={[styles.roundEnd, { height: viewport }]}>
                   <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
                   <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
-                    Swipe up to start round {round + 1}
+                    Round {round + 1} starts in a moment
                   </Text>
                 </View>
               )
