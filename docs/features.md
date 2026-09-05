@@ -127,9 +127,10 @@ All behave identically:
 - Expo Go on Android cannot run these reminders (its notification APIs were
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
-- Android timing: exact delivery on Android 14+ wants the system's
-  "Alarms & reminders" permission for feedah (the app points this out when
-  reminders are enabled; without it delivery can drift by minutes). Aggressive
+- Android timing: the manifest declares `SCHEDULE_EXACT_ALARM` (app.json →
+  android.permissions), so after granting the "Alarms & reminders" permission
+  for feedah in system settings, reminders fire on time even with the screen
+  off. Without that grant delivery can drift by minutes or more. Aggressive
   OEM ROMs may also need autostart / battery-optimization exemptions.
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled reminder, rescheduled on every change and on app launch).

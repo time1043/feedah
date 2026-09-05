@@ -19,6 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "package": "com.time1043.feedah",
+      "permissions": ["SCHEDULE_EXACT_ALARM"],
       "predictiveBackGestureEnabled": false
     },
     "web": {
