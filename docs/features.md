@@ -93,7 +93,10 @@ All behave identically:
 - Selected day row: words, studying time, in-app time for the day tapped on
   the heatmap (defaults to today; the title shows its date).
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
-  toggle, five color levels, tappable cells.
+  toggle, five color levels, tappable cells. Under the grid, one subordinate
+  summary line for the displayed year: its cumulative words, studying time,
+  and in-app time (follows the year switcher; the selected day readout stays
+  the visually dominant one).
 - Rounds: one tab per bucket that has been started (defaults to the active
   bucket; never-started buckets do not appear). Each round shows its position
   progress, the completion date for finished rounds, green/red word counts,

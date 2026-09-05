@@ -157,6 +157,18 @@ export default function StatsScreen() {
     heatValues.set(day, metric === 'words' ? value.words : Math.round(value.feedSeconds / 60));
   }
 
+  // Year totals for the year the heatmap is showing, subordinate to the
+  // selected day readout above.
+  const yearPrefix = `${year}-`;
+  const yearTotals = { words: 0, feedSeconds: 0, appSeconds: 0 };
+  for (const [day, value] of usage) {
+    if (day.startsWith(yearPrefix)) {
+      yearTotals.words += value.words;
+      yearTotals.feedSeconds += value.feedSeconds;
+      yearTotals.appSeconds += value.appSeconds;
+    }
+  }
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -203,6 +215,14 @@ export default function StatsScreen() {
             selectedDay={selectedDay}
             onSelectDay={setSelectedDay}
           />
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.yearSummary, { color: colors.textTertiary }]}>
+            {`${year} · ${yearTotals.words} words · ${formatMinutes(yearTotals.feedSeconds)} studying · ${formatMinutes(
+              yearTotals.appSeconds,
+            )} in app`}
+          </Text>
         </View>
 
         <View style={styles.rounds}>
@@ -352,6 +372,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 48,
     textAlign: 'center',
+  },
+  yearSummary: {
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
   },
   rounds: {
     gap: spacing.m,
