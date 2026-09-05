@@ -111,11 +111,13 @@ All behave identically:
   data (danger-styled, double-confirmed; wipes progress, flags, stats and
   settings, then re-seeds the buckets — currently a dev/debug utility).
 
-## Meal reminders
+## Reminders
 
-- Settings → Reminders: a master switch plus three daily times (defaults
-  8:30 / 12:30 / 18:30 — right after a meal works best). Each time can be
-  edited (lenient input: `8:30`, `0830`) and switched off individually; the
+- Settings → Reminders: a master switch plus a **dynamic reminder list**. The
+  defaults are three daily times (8:30 / 12:30 / 18:30 — right after a meal
+  works best); every reminder can be renamed (tap its label; the rename sheet
+  also deletes it), re-timed via the native time picker (tap its time), and
+  switched off individually. `Add reminder` appends as many as needed; the
   master switch disables the whole feature.
 - Turning the feature on asks for notification permission once; without it the
   switch stays off with a hint.
@@ -123,5 +125,5 @@ All behave identically:
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
 - Local daily notifications are scheduled through expo-notifications (one
-  request per enabled time, rescheduled on every change and on app launch).
+  request per enabled reminder, rescheduled on every change and on app launch).
 - Nothing about reminders touches study statistics.

@@ -101,10 +101,7 @@ export function parseMealTimeSetting(value: string): MealTime {
   return parseTimeOfDay(value) ?? { hour: 8, minute: 30 };
 }
 
-/** The enabled meal times for scheduling, parsed and in meal order. */
-export function enabledMealTimes(times: string[], enabled: boolean[]): MealTime[] {
-  return times
-    .map((value, index) => ({ value, on: enabled[index] ?? true }))
-    .filter(({ on }) => on)
-    .map(({ value }) => parseMealTimeSetting(value));
+/** The enabled reminder times for scheduling, parsed and in list order. */
+export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): MealTime[] {
+  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseMealTimeSetting(reminder.time));
 }

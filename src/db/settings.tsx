@@ -8,6 +8,15 @@ export type SpeechRate = 'slow' | 'normal' | 'fast';
 /** How cards treat the meaning: hidden until tapped, shown until tapped, or always shown. */
 export type MeaningMode = 'hidden' | 'shown' | 'always';
 
+/** One user-configurable reminder. */
+export type Reminder = {
+  id: string;
+  label: string;
+  /** "HH:MM" in 24-hour form. */
+  time: string;
+  enabled: boolean;
+};
+
 export type Settings = {
   activeBucketId: string;
   theme: ThemeMode;
@@ -20,11 +29,8 @@ export type Settings = {
   feedSearch: boolean;
   todayReadout: boolean;
   silentHintShown: boolean;
-  mealReminders: boolean;
-  /** Three "HH:MM" times: breakfast, lunch, dinner. */
-  mealTimes: string[];
-  /** Which of the three reminders are switched on. */
-  mealEnabled: boolean[];
+  remindersEnabled: boolean;
+  reminders: Reminder[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,9 +45,12 @@ export const DEFAULT_SETTINGS: Settings = {
   feedSearch: true,
   todayReadout: true,
   silentHintShown: false,
-  mealReminders: false,
-  mealTimes: ['08:30', '12:30', '18:30'],
-  mealEnabled: [true, true, true],
+  remindersEnabled: false,
+  reminders: [
+    { id: 'breakfast', label: 'Breakfast', time: '08:30', enabled: true },
+    { id: 'lunch', label: 'Lunch', time: '12:30', enabled: true },
+    { id: 'dinner', label: 'Dinner', time: '18:30', enabled: true },
+  ],
 };
 
 /** Speech rate multiplier for expo-speech, 1.0 is the system default. */
@@ -79,19 +88,43 @@ async function loadSettings(): Promise<Partial<Settings>> {
     }
   }
   // Array settings must keep their shape, whatever is in the database.
-  const times = merged.mealTimes;
-  if (!Array.isArray(times) || times.length !== 3 || times.some((t) => typeof t !== 'string')) {
-    merged.mealTimes = DEFAULT_SETTINGS.mealTimes;
-  }
-  const enabled = merged.mealEnabled;
-  if (
-    !Array.isArray(enabled) ||
-    enabled.length !== 3 ||
-    enabled.some((v) => typeof v !== 'boolean')
-  ) {
-    merged.mealEnabled = DEFAULT_SETTINGS.mealEnabled;
+  if (!isValidReminders(merged.reminders)) {
+    // Migrate the previous fixed-meal settings (mealTimes / mealEnabled).
+    const times = stored.mealTimes;
+    const enabled = stored.mealEnabled;
+    const names = ['Breakfast', 'Lunch', 'Dinner'];
+    if (
+      Array.isArray(times) &&
+      Array.isArray(enabled) &&
+      times.length > 0 &&
+      times.length === enabled.length
+    ) {
+      merged.reminders = times.map((time, index) => ({
+        id: `meal-${index}`,
+        label: names[index] ?? `Reminder ${index + 1}`,
+        time: typeof time === 'string' ? time : '08:30',
+        enabled: enabled[index] === true,
+      }));
+    } else {
+      merged.reminders = DEFAULT_SETTINGS.reminders;
+    }
   }
   return merged;
+}
+
+function isValidReminders(value: unknown): value is Reminder[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (reminder): reminder is Reminder =>
+        !!reminder &&
+        typeof reminder === 'object' &&
+        typeof reminder.id === 'string' &&
+        typeof reminder.label === 'string' &&
+        typeof reminder.time === 'string' &&
+        typeof reminder.enabled === 'boolean',
+    )
+  );
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
