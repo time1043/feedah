@@ -32,6 +32,8 @@ export type Settings = {
   silentHintShown: boolean;
   remindersEnabled: boolean;
   reminders: Reminder[];
+  /** Bound email after the optional Password upgrade; '' means anonymous. */
+  accountEmail: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,13 +48,14 @@ export const DEFAULT_SETTINGS: Settings = {
   feedSearch: true,
   todayReadout: true,
   silentHintShown: false,
-  remindersEnabled: false,
-  reminders: [
-    { id: 'breakfast', label: 'Breakfast', time: '08:30', enabled: true },
-    { id: 'lunch', label: 'Lunch', time: '12:30', enabled: true },
-    { id: 'dinner', label: 'Dinner', time: '18:30', enabled: true },
-  ],
-};
+    remindersEnabled: false,
+    reminders: [
+      { id: 'breakfast', label: 'Breakfast', time: '08:30', enabled: true },
+      { id: 'lunch', label: 'Lunch', time: '12:30', enabled: true },
+      { id: 'dinner', label: 'Dinner', time: '18:30', enabled: true },
+    ],
+    accountEmail: '',
+  };
 
 /** Speech rate multiplier for expo-speech, 1.0 is the system default. */
 export const SPEECH_RATE_VALUE: Record<SpeechRate, number> = {

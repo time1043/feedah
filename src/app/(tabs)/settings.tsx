@@ -12,11 +12,14 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
+import { CONVEX_URL } from '@/cloud/convex';
+import { useSync } from '@/cloud/sync';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
 import { useSettings, type MeaningMode, type Reminder, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
@@ -57,6 +60,14 @@ const MEANING_OPTIONS: { value: MeaningMode; label: string }[] = [
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady, update, reload } = useSettings();
+  const { status, lastSyncedAt, lastError, syncNow } = useSync();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { signIn, signOut } = useAuthActions();
+  const [accountModal, setAccountModal] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [passwordDraft, setPasswordDraft] = useState('');
+  const [signUpMode, setSignUpMode] = useState(true);
+  const [accountBusy, setAccountBusy] = useState(false);
   const [today, setToday] = useState<DailyStatRow | null>(null);
   // Live samples held in state: reading module-level timers during render
   // returns memoized values under React Compiler, so the clock would freeze.
@@ -157,6 +168,41 @@ export default function SettingsScreen() {
     );
   };
 
+  const syncStatusText = () => {
+    if (status === 'syncing') return 'Syncing…';
+    if (status === 'offline') return 'Offline';
+    if (status === 'error') return lastError ?? 'Error';
+    if (lastSyncedAt) return `Synced ${new Date(lastSyncedAt).toLocaleTimeString()}`;
+    return 'Ready';
+  };
+
+  const submitAccount = () => {
+    const email = emailDraft.trim();
+    if (!email || !passwordDraft) return;
+    setAccountBusy(true);
+    signIn('Password', { flow: signUpMode ? 'signUp' : 'signIn', email, password: passwordDraft })
+      .then(() => {
+        update({ accountEmail: email });
+        setAccountModal(false);
+        syncNow();
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        Alert.alert(signUpMode ? 'Sign up failed' : 'Sign in failed', message);
+      })
+      .finally(() => setAccountBusy(false));
+  };
+
+  const signOutAccount = () => {
+    signOut()
+      .then(() => {
+        // The next sync signs in anonymously under a fresh user; drop the
+        // bound email so the account row reads Anonymous again.
+        update({ accountEmail: '' });
+      })
+      .catch(() => {});
+  };
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -254,6 +300,49 @@ export default function SettingsScreen() {
           />
         </Group>
 
+        <Group title="Account">
+          {!CONVEX_URL ? (
+            <ValueRow label="Cloud sync" value="Not configured" />
+          ) : (
+            <>
+              <ValueRow label="Cloud sync" value={syncStatusText()} />
+              <Pressable style={styles.row} onPress={syncNow}>
+                <Text style={[styles.label, { color: colors.text }]}>Sync now</Text>
+                <Text style={[styles.value, { color: colors.accent }]}>Run</Text>
+              </Pressable>
+              {settings.accountEmail ? (
+                <>
+                  <ValueRow label="Signed in as" value={settings.accountEmail} />
+                  <Pressable style={styles.row} onPress={signOutAccount}>
+                    <Text style={[styles.label, { color: colors.text }]}>Sign out</Text>
+                    <Text style={[styles.value, { color: colors.textTertiary }]}>This device</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Pressable
+                    style={styles.row}
+                    onPress={() => {
+                      setSignUpMode(true);
+                      setEmailDraft('');
+                      setPasswordDraft('');
+                      setAccountModal(true);
+                    }}>
+                    <Text style={[styles.label, { color: colors.text }]}>Add email & password</Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                  </Pressable>
+                  {!authLoading && (
+                    <Text style={[styles.groupCaption, { color: colors.textTertiary }]}>
+                      Progress currently rides an anonymous identity on this device. An email
+                      keeps it across devices — signing up is optional.
+                    </Text>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </Group>
+
         <Group title="About">
           <ValueRow label="Version" value={Constants.expoConfig?.version ?? 'dev'} />
           <Pressable style={styles.row} onPress={showSoundHint}>
@@ -265,6 +354,58 @@ export default function SettingsScreen() {
             <Text style={[styles.value, { color: colors.textTertiary }]}>Erase</Text>
           </Pressable>
         </Group>
+
+        <Modal transparent visible={accountModal} animationType="fade" onRequestClose={() => setAccountModal(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setAccountModal(false)}>
+            <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {signUpMode ? 'Create account' : 'Sign in'}
+              </Text>
+              <TextInput
+                autoFocus
+                value={emailDraft}
+                onChangeText={setEmailDraft}
+                autoCapitalize="none"
+                autoCorrect={false}
+                inputMode="email"
+                placeholder="Email"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+              />
+              <TextInput
+                value={passwordDraft}
+                onChangeText={setPasswordDraft}
+                secureTextEntry
+                placeholder="Password"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+              />
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={() => setSignUpMode((v) => !v)}
+                  hitSlop={8}>
+                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
+                    {signUpMode ? 'Have an account' : 'New here'}
+                  </Text>
+                </Pressable>
+                <View style={{ flex: 1 }} />
+                <Pressable onPress={() => setAccountModal(false)} hitSlop={8}>
+                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={submitAccount} hitSlop={8} disabled={accountBusy}>
+                  <Text
+                    style={{
+                      color: accountBusy ? colors.textTertiary : colors.accent,
+                      fontSize: fontSize.body,
+                      fontWeight: '600',
+                    }}>
+                    {signUpMode ? 'Sign up' : 'Sign in'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </ScrollView>
     </Screen>
   );
