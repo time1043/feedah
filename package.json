@@ -54,6 +54,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "apk": "node scripts/build-apk.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "private": true
