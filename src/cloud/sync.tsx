@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
-import { anyApi } from 'convex/server';
+// The convex/ directory sits at the repo root, outside the @/* (src) mapping.
+import { api } from '../../convex/_generated/api';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
 
@@ -70,10 +71,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     syncing = true;
     setStatus('syncing');
     try {
-      const cloud = await convex.query(anyApi.sync.pull, {});
+      const cloud = await convex.query(api.sync.pull, {});
       const { metaChanged } = await applyCloudState(cloud);
       const snapshot = await readLocalSnapshot();
-      await convex.mutation(anyApi.sync.push, snapshot);
+      await convex.mutation(api.sync.push, snapshot);
       if (metaChanged) await reload();
       setLastSyncedAt(Date.now());
       setLastError(null);
