@@ -215,6 +215,44 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable
+          style={[styles.profileCard, { backgroundColor: colors.surface }]}
+          onPress={
+            !CONVEX_URL
+              ? undefined
+              : settings.accountEmail
+                ? () => setActionModal(true)
+                : () => openAccountModal(true)
+          }
+          disabled={!CONVEX_URL}>
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: settings.accountEmail ? colors.accent : colors.background },
+            ]}>
+            <Text
+              style={[
+                styles.avatarText,
+                { color: settings.accountEmail ? '#FFFFFF' : colors.textSecondary },
+              ]}>
+              {settings.accountEmail ? settings.accountEmail.charAt(0).toUpperCase() : 'G'}
+            </Text>
+          </View>
+          <View style={styles.profileTexts}>
+            <Text style={[styles.profileName, { color: colors.text }]} numberOfLines={1}>
+              {settings.accountEmail || 'Guest'}
+            </Text>
+            <Text style={[styles.profileSubtitle, { color: colors.textTertiary }]} numberOfLines={1}>
+              {!CONVEX_URL
+                ? 'Cloud sync not configured'
+                : settings.accountEmail
+                  ? syncStatusText()
+                  : 'Tap to keep progress across devices — optional'}
+            </Text>
+          </View>
+          {CONVEX_URL && <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />}
+        </Pressable>
+
         {settings.todayReadout && (
           <View style={[styles.readout, { backgroundColor: colors.surface }]}>
             <Text style={[styles.readoutText, { color: colors.textSecondary }]}>
@@ -309,49 +347,6 @@ export default function SettingsScreen() {
           />
         </Group>
 
-        <Group title="Account">
-          {!CONVEX_URL ? (
-            <ValueRow label="Cloud sync" value="Not configured" />
-          ) : (
-            <>
-              <ValueRow label="Cloud sync" value={syncStatusText()} />
-              <Pressable style={styles.row} onPress={syncNow}>
-                <Text style={[styles.label, { color: colors.text }]}>Sync now</Text>
-                <Text style={[styles.value, { color: colors.accent }]}>Run</Text>
-              </Pressable>
-              {settings.accountEmail ? (
-                <>
-                  <ValueRow label="Signed in as" value={settings.accountEmail} />
-                  <Pressable style={styles.row} onPress={signOutAccount}>
-                    <Text style={[styles.label, { color: colors.text }]}>Sign out</Text>
-                    <Text style={[styles.value, { color: colors.textTertiary }]}>This device</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Pressable
-                    style={styles.row}
-                    onPress={() => {
-                      setSignUpMode(true);
-                      setEmailDraft('');
-                      setPasswordDraft('');
-                      setAccountModal(true);
-                    }}>
-                    <Text style={[styles.label, { color: colors.text }]}>Add email & password</Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                  </Pressable>
-                  {!authLoading && (
-                    <Text style={[styles.groupCaption, { color: colors.textTertiary }]}>
-                      Progress currently rides an anonymous identity on this device. An email
-                      keeps it across devices — signing up is optional.
-                    </Text>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </Group>
-
         <Group title="About">
           <ValueRow label="Version" value={Constants.expoConfig?.version ?? 'dev'} />
           <Pressable style={styles.row} onPress={showSoundHint}>
@@ -412,6 +407,32 @@ export default function SettingsScreen() {
                   </Text>
                 </Pressable>
               </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal transparent visible={actionModal} animationType="fade" onRequestClose={() => setActionModal(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setActionModal(false)}>
+            <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
+                {settings.accountEmail}
+              </Text>
+              <Pressable
+                style={styles.modalOption}
+                onPress={() => {
+                  setActionModal(false);
+                  openAccountModal(false);
+                }}>
+                <Text style={{ color: colors.text, fontSize: fontSize.body }}>Switch account</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalOption}
+                onPress={() => {
+                  setActionModal(false);
+                  signOutAccount();
+                }}>
+                <Text style={{ color: colors.danger, fontSize: fontSize.body }}>Sign out</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>
@@ -705,6 +726,35 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.l,
     padding: spacing.m,
+  },
+  profileCard: {
+    alignItems: 'center',
+    borderRadius: radius.m,
+    flexDirection: 'row',
+    gap: spacing.m,
+    padding: spacing.m,
+  },
+  avatar: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  avatarText: {
+    fontSize: fontSize.title,
+    fontWeight: '700',
+  },
+  profileTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  profileName: {
+    fontSize: fontSize.body,
+    fontWeight: '600',
+  },
+  profileSubtitle: {
+    fontSize: fontSize.caption,
   },
   readout: {
     borderRadius: radius.m,
