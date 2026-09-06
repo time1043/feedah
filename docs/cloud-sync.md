@@ -58,9 +58,16 @@ exist solely for these rules; local behavior never reads them.
 ## Setup
 
 ```bash
-npx convex dev        # first run: creates/links a project, generates
-                      # convex/_generated, pushes functions
+npx convex dev                  # first run: creates/links a project, generates
+                                # convex/_generated, pushes functions
+node scripts/set-auth-keys.mjs  # writes the JWT signing keys to the linked
+                                # deployment (add --prod for production)
 ```
+
+The key step is mandatory: without `JWT_PRIVATE_KEY`/`JWKS` on the
+deployment every sign-in fails with "Missing environment variable
+JWT_PRIVATE_KEY". Neither step is needed to run or build the app itself —
+only to change backend code or set up a new deployment.
 
 Then put the printed deployment URL in `.env.local`:
 
