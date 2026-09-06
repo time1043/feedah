@@ -64,6 +64,7 @@ export default function SettingsScreen() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { signIn, signOut } = useAuthActions();
   const [accountModal, setAccountModal] = useState(false);
+  const [actionModal, setActionModal] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [passwordDraft, setPasswordDraft] = useState('');
   const [signUpMode, setSignUpMode] = useState(true);
@@ -170,17 +171,25 @@ export default function SettingsScreen() {
 
   const syncStatusText = () => {
     if (status === 'syncing') return 'Syncing…';
-    if (status === 'offline') return 'Offline';
-    if (status === 'error') return lastError ?? 'Error';
+    if (status === 'offline') return 'Offline · syncs when online';
+    if (status === 'error') return lastError ?? 'Sync error';
     if (lastSyncedAt) return `Synced ${new Date(lastSyncedAt).toLocaleTimeString()}`;
     return 'Ready';
+  };
+
+  const openAccountModal = (signUp: boolean) => {
+    setSignUpMode(signUp);
+    setEmailDraft('');
+    setPasswordDraft('');
+    setAccountModal(true);
   };
 
   const submitAccount = () => {
     const email = emailDraft.trim();
     if (!email || !passwordDraft) return;
     setAccountBusy(true);
-    signIn('Password', { flow: signUpMode ? 'signUp' : 'signIn', email, password: passwordDraft })
+    // Provider ids are lowercase — the server config registers "password".
+    signIn('password', { flow: signUpMode ? 'signUp' : 'signIn', email, password: passwordDraft })
       .then(() => {
         update({ accountEmail: email });
         setAccountModal(false);

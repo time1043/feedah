@@ -99,9 +99,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   // Anonymous identity keeps the app account-less while still giving cloud
   // rows an owner. Offline it fails quietly and is retried by the triggers.
+  // Provider ids are lowercase — the server config registers "anonymous".
   useEffect(() => {
     if (!isLoading && !isAuthenticated && CONVEX_URL) {
-      signIn('Anonymous').catch(() => {});
+      signIn('anonymous').catch(() => {});
     }
   }, [isLoading, isAuthenticated, signIn]);
 
