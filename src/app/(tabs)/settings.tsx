@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -184,6 +185,9 @@ export default function SettingsScreen() {
     setAccountModal(true);
   };
 
+  // Matches the Password provider's minimum length (8).
+  const canSubmit = !!emailDraft.trim() && passwordDraft.length >= 8;
+
   const submitAccount = () => {
     const email = emailDraft.trim();
     if (!email || !passwordDraft) return;
@@ -196,7 +200,10 @@ export default function SettingsScreen() {
         syncNow();
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
+        // Server errors arrive as "[CONVEX A(...)] [Request ID: ...] Server
+        // Error Uncaught Error: <actual message>"; keep the readable tail.
+        const raw = error instanceof Error ? error.message : String(error);
+        const message = raw.split('Uncaught Error:').pop()?.trim() || raw;
         Alert.alert(signUpMode ? 'Sign up failed' : 'Sign in failed', message);
       })
       .finally(() => setAccountBusy(false));
@@ -359,12 +366,20 @@ export default function SettingsScreen() {
           </Pressable>
         </Group>
 
-        <Modal transparent visible={accountModal} animationType="fade" onRequestClose={() => setAccountModal(false)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setAccountModal(false)}>
-            <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {signUpMode ? 'Create account' : 'Sign in'}
+        <Modal transparent visible={accountModal} animationType="slide" onRequestClose={() => setAccountModal(false)}>
+          <KeyboardAvoidingView
+            style={styles.sheetOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <Pressable style={styles.sheetBackdrop} onPress={() => setAccountModal(false)} />
+            <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+              <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>
+                {signUpMode ? 'Create account' : 'Welcome back'}
               </Text>
+              <Text style={[styles.sheetCaption, { color: colors.textTertiary }]}>
+                Sign up is optional — your progress already lives on this device.
+              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Email</Text>
               <TextInput
                 autoFocus
                 value={emailDraft}
@@ -372,69 +387,69 @@ export default function SettingsScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 inputMode="email"
-                placeholder="Email"
+                placeholder="you@example.com"
                 placeholderTextColor={colors.textTertiary}
-                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+                style={[styles.field, { backgroundColor: colors.background, color: colors.text }]}
               />
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Password</Text>
               <TextInput
                 value={passwordDraft}
                 onChangeText={setPasswordDraft}
                 secureTextEntry
-                placeholder="Password"
+                placeholder="At least 8 characters"
                 placeholderTextColor={colors.textTertiary}
-                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+                style={[styles.field, { backgroundColor: colors.background, color: colors.text }]}
               />
-              <View style={styles.modalActions}>
-                <Pressable
-                  onPress={() => setSignUpMode((v) => !v)}
-                  hitSlop={8}>
-                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
-                    {signUpMode ? 'Have an account' : 'New here'}
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: colors.accent, opacity: canSubmit ? 1 : 0.4 },
+                ]}
+                disabled={!canSubmit || accountBusy}
+                onPress={submitAccount}>
+                <Text style={styles.primaryButtonText}>
+                  {accountBusy ? 'Please wait…' : signUpMode ? 'Create account' : 'Sign in'}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.swapRow} hitSlop={8} onPress={() => setSignUpMode((v) => !v)}>
+                <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
+                  {signUpMode ? 'Already have an account? ' : 'New here? '}
+                  <Text style={{ color: colors.accent, fontWeight: '600' }}>
+                    {signUpMode ? 'Sign in' : 'Create one'}
                   </Text>
-                </Pressable>
-                <View style={{ flex: 1 }} />
-                <Pressable onPress={() => setAccountModal(false)} hitSlop={8}>
-                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
-                </Pressable>
-                <Pressable onPress={submitAccount} hitSlop={8} disabled={accountBusy}>
-                  <Text
-                    style={{
-                      color: accountBusy ? colors.textTertiary : colors.accent,
-                      fontSize: fontSize.body,
-                      fontWeight: '600',
-                    }}>
-                    {signUpMode ? 'Sign up' : 'Sign in'}
-                  </Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          </Pressable>
+                </Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
 
-        <Modal transparent visible={actionModal} animationType="fade" onRequestClose={() => setActionModal(false)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setActionModal(false)}>
-            <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
+        <Modal transparent visible={actionModal} animationType="slide" onRequestClose={() => setActionModal(false)}>
+          <KeyboardAvoidingView style={styles.sheetOverlay}>
+            <Pressable style={styles.sheetBackdrop} onPress={() => setActionModal(false)} />
+            <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+              <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]} numberOfLines={1}>
                 {settings.accountEmail}
               </Text>
               <Pressable
-                style={styles.modalOption}
+                style={styles.sheetAction}
                 onPress={() => {
                   setActionModal(false);
                   openAccountModal(false);
                 }}>
                 <Text style={{ color: colors.text, fontSize: fontSize.body }}>Switch account</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </Pressable>
               <Pressable
-                style={styles.modalOption}
+                style={styles.sheetAction}
                 onPress={() => {
                   setActionModal(false);
                   signOutAccount();
                 }}>
                 <Text style={{ color: colors.danger, fontSize: fontSize.body }}>Sign out</Text>
               </Pressable>
-            </Pressable>
-          </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
     </Screen>
@@ -859,6 +874,74 @@ const styles = StyleSheet.create({
   iosPicker: {
     height: 180,
     width: 280,
+  },
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
+  },
+  sheet: {
+    borderTopLeftRadius: radius.l,
+    borderTopRightRadius: radius.l,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.l,
+    paddingTop: spacing.s,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    borderRadius: 2,
+    height: 4,
+    marginBottom: spacing.m,
+    width: 40,
+  },
+  sheetTitle: {
+    fontSize: fontSize.title,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  sheetCaption: {
+    fontSize: fontSize.caption,
+    marginBottom: spacing.l,
+  },
+  fieldLabel: {
+    fontSize: fontSize.caption,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  field: {
+    borderRadius: radius.m,
+    fontSize: fontSize.body,
+    marginBottom: spacing.m,
+    minHeight: 48,
+    paddingHorizontal: spacing.m,
+  },
+  primaryButton: {
+    alignItems: 'center',
+    borderRadius: radius.m,
+    justifyContent: 'center',
+    minHeight: 50,
+    marginTop: spacing.s,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.body,
+    fontWeight: '600',
+  },
+  swapRow: {
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+    marginTop: spacing.s,
+  },
+  sheetAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    paddingHorizontal: spacing.xs,
   },
   addRow: {
     alignItems: 'center',
