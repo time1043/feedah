@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
+import { useConvexAuth } from '@convex-dev/auth/react';
 // The convex/ directory sits at the repo root, outside the @/* (src) mapping.
 import { api } from '../../convex/_generated/api';
 import NetInfo from '@react-native-community/netinfo';
@@ -37,18 +37,19 @@ const SyncContext = createContext<SyncContextValue | null>(null);
 let syncing = false;
 
 /**
- * Cloud sync engine. Runs only when a deployment URL is configured; otherwise
- * the provider is not mounted at all and the app stays purely local.
+ * Cloud sync engine. Runs only when a deployment URL is configured and a
+ * real account is bound; guests are pure local — an anonymous identity is
+ * device-bound and unclaimable, so mirroring its rows buys no cross-device
+ * value, only orphaned data and a resurrect-after-clear hazard.
  *
  * One sync = pull (merge cloud rows into SQLite) then push (send the local
- * state; the server merges). Triggers: app start after auth resolves, network
- * regain, and app foreground. Offline the app keeps working untouched and the
- * next trigger catches up.
+ * state; the server merges). Triggers: the bound account becoming ready, and
+ * network regain / app foreground while bound. Offline the app keeps working
+ * untouched and the next trigger catches up.
  */
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const { signIn } = useAuthActions();
-  const { reload } = useSettings();
+  const { settings, ready: settingsReady, reload } = useSettings();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -60,9 +61,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     authedRef.current = isAuthenticated;
   }, [isAuthenticated]);
+  const boundRef = useRef(false);
+  useEffect(() => {
+    boundRef.current = settingsReady && !!settings.accountEmail;
+  }, [settingsReady, settings.accountEmail]);
 
   const runSync = useCallback(async () => {
-    if (syncing || !convex || !authedRef.current) return;
+    if (syncing || !convex || !authedRef.current || !boundRef.current) return;
     const net = await NetInfo.fetch();
     if (!net.isConnected) {
       setStatus('offline');
@@ -98,19 +103,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     void runSyncRef.current();
   }, []);
 
-  // Anonymous identity keeps the app account-less while still giving cloud
-  // rows an owner. Offline it fails quietly and is retried by the triggers.
-  // Provider ids are lowercase — the server config registers "anonymous".
+  // The first sync of a session fires once the bound account is known — auth
+  // may resolve before or after settings load, so both edges are triggers.
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && CONVEX_URL) {
-      signIn('anonymous').catch(() => {});
-    }
-  }, [isLoading, isAuthenticated, signIn]);
-
-  useEffect(() => {
-    if (isLoading || !isAuthenticated) return;
+    if (isLoading || !isAuthenticated || !settingsReady || !settings.accountEmail) return;
     trigger();
-  }, [isLoading, isAuthenticated, trigger]);
+  }, [isLoading, isAuthenticated, settingsReady, settings.accountEmail, trigger]);
 
   // Network regain and app foreground both trigger a catch-up sync.
   useEffect(() => {

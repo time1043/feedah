@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,9 +19,12 @@ import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/screen';
-import { CONVEX_URL } from '@/cloud/convex';
+// The convex/ directory sits at the repo root, outside the @/* (src) mapping.
+import { CONVEX_URL, convex } from '@/cloud/convex';
+import { api } from '../../../convex/_generated/api';
 import { useSync } from '@/cloud/sync';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
@@ -58,10 +63,54 @@ const MEANING_OPTIONS: { value: MeaningMode; label: string }[] = [
   { value: 'always', label: 'Always shown' },
 ];
 
+/**
+ * Sign-in panel that drops from the top of the screen and fades away on
+ * close. The keyboard only ever covers the empty bottom half of the screen,
+ * so the panel never has to dodge it — nothing jumps when an input is
+ * focused, and the submit button stays one tap away while typing.
+ */
+function DropDownModal({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const [mounted, setMounted] = useState(open);
+  const drop = useRef(new Animated.Value(0)).current; // 0 hidden, 1 shown
+  const shown = useRef(false);
+
+  useEffect(() => {
+    if (open === shown.current) return;
+    shown.current = open;
+    if (open) setMounted(true);
+    Animated.timing(drop, {
+      toValue: open ? 1 : 0,
+      duration: open ? 260 : 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      if (!open) setMounted(false);
+    });
+  }, [open, drop]);
+
+  if (!mounted) return null;
+  const translateY = drop.interpolate({ inputRange: [0, 1], outputRange: [-420, 0] });
+  return (
+    <Modal transparent visible onRequestClose={onClose}>
+      <Animated.View style={{ transform: [{ translateY }] }}>{children}</Animated.View>
+      <Pressable style={styles.dropBackdrop} onPress={onClose} />
+    </Modal>
+  );
+}
+
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady, update, reload } = useSettings();
   const { status, lastSyncedAt, lastError, syncNow } = useSync();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const { signIn, signOut } = useAuthActions();
   const [accountModal, setAccountModal] = useState(false);
@@ -151,9 +200,12 @@ export default function SettingsScreen() {
   };
 
   const confirmClearData = () => {
+    const bound = !!settings.accountEmail;
     Alert.alert(
       'Clear all data?',
-      'Progress, flags, stats and settings are erased. Word buckets are kept and re-seeded.',
+      bound
+        ? 'Progress, flags, stats, settings and the cloud copy are erased, and you are signed out. Word buckets are kept and re-seeded.'
+        : 'Progress, flags, stats and settings are erased. Word buckets are kept and re-seeded.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -161,6 +213,21 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () =>
             void (async () => {
+              // Erase the cloud copy first: if it survives a local-only reset,
+              // the next sync resurrects everything just cleared. Offline,
+              // abort so state stays consistent.
+              if (bound && convex) {
+                try {
+                  await convex.mutation(api.sync.wipeMyData, {});
+                } catch {
+                  Alert.alert(
+                    'Needs a connection',
+                    'The cloud copy could not be erased — nothing was cleared. Reconnect and try again.',
+                  );
+                  return;
+                }
+                await signOut().catch(() => {});
+              }
               await resetDatabase();
               resetUsage();
               await reload();
@@ -376,13 +443,13 @@ export default function SettingsScreen() {
           </Pressable>
         </Group>
 
-        <Modal transparent visible={accountModal} animationType="slide" onRequestClose={() => setAccountModal(false)}>
-          <KeyboardAvoidingView
-            style={styles.sheetOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <Pressable style={styles.sheetBackdrop} onPress={() => setAccountModal(false)} />
-            <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-              <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
+        <DropDownModal open={accountModal} onClose={() => setAccountModal(false)}>
+          <View
+            style={[
+              styles.topSheet,
+              { backgroundColor: colors.surface, paddingTop: insets.top + spacing.s },
+            ]}>
+            <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
               <Text style={[styles.sheetTitle, { color: colors.text }]}>
                 {signUpMode ? 'Create account' : 'Welcome back'}
               </Text>
@@ -429,9 +496,9 @@ export default function SettingsScreen() {
                   </Text>
                 </Text>
               </Pressable>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+            </ScrollView>
+          </View>
+        </DropDownModal>
 
         <Modal transparent visible={actionModal} animationType="slide" onRequestClose={() => setActionModal(false)}>
           <KeyboardAvoidingView
@@ -890,6 +957,16 @@ const styles = StyleSheet.create({
   sheetOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  topSheet: {
+    borderBottomLeftRadius: radius.l,
+    borderBottomRightRadius: radius.l,
+    paddingBottom: spacing.l,
+    paddingHorizontal: spacing.l,
+  },
+  dropBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
   },
   sheetBackdrop: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

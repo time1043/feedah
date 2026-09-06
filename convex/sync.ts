@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { GenericId } from 'convex/values';
+import { internal } from './_generated/api';
 import { internalMutation, mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 import { auth } from './auth';
 
@@ -202,7 +203,19 @@ export const push = mutation({
   },
 });
 
-/** Dev utility: drops every cloud row of one user (wired to nothing by default). */
+/** Drops every cloud row of the signed-in user. Called by the app's
+ * "clear all data" before the local reset so a later sync cannot resurrect
+ * erased state; unauthenticated callers are a silent no-op. */
+export const wipeMyData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await auth.getUserId(ctx);
+    if (!user) return;
+    await ctx.runMutation(internal.sync.wipe, { userId: user });
+  },
+});
+
+/** Dev utility: drops every cloud row of one user (wired to wipeMyData). */
 export const wipe = internalMutation({
   args: { userId: v.id('users') },
   handler: async (ctx, { userId }) => {
