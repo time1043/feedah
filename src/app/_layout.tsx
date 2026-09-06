@@ -1,9 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { SyncProvider } from '@/cloud/sync';
+import { secureStorage } from '@/cloud/token-storage';
+import { CONVEX_URL, convex } from '@/cloud/convex';
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
 import { DrizzleStudio } from '@/db/studio';
@@ -68,8 +72,24 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <SettingsProvider>
-        <ThemedShell />
+        <CloudLayer>
+          <ThemedShell />
+        </CloudLayer>
       </SettingsProvider>
     </SafeAreaProvider>
+  );
+}
+
+/**
+ * Mounts the Convex auth + sync providers only when a deployment URL is
+ * configured; without one the app is exactly the local-only build it was
+ * before cloud sync existed.
+ */
+function CloudLayer({ children }: { children: ReactNode }) {
+  if (!CONVEX_URL || !convex) return <>{children}</>;
+  return (
+    <ConvexAuthProvider client={convex} storage={secureStorage}>
+      <SyncProvider>{children}</SyncProvider>
+    </ConvexAuthProvider>
   );
 }

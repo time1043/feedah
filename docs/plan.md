@@ -40,6 +40,9 @@ on the integration branch.
 - [x] DB layer: port hand-written SQL strings to drizzle-orm (schema-first
       tables, generated migrations, one-time reset of pre-drizzle databases,
       Drizzle Studio in dev builds)
+- [x] Cloud sync skeleton: Convex backend (Convex Auth anonymous + optional
+      email/password, cloud_* mirrors, field-level merge push/pull) and the
+      client sync engine (offline-first; account never required)
 - [ ] Quiz mode: English word with four Chinese options, plus example
       sentences to support guessing (planned after the review passes)
 - [ ] User-created buckets: let users import their own word lists (later)

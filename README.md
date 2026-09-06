@@ -6,7 +6,8 @@ a word on first sight.
 
 Built with Expo SDK 57, React Native, expo-router, expo-sqlite, expo-speech,
 and @shopify/react-native-skia. React Compiler is enabled; no manual memo
-hooks are used. Local-only data (SQLite), no accounts.
+hooks are used. Data lives in local SQLite; optional cloud alignment via
+Convex (accounts never required — see [Cloud sync](docs/cloud-sync.md)).
 
 ## Get started
 

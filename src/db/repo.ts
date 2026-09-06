@@ -158,18 +158,18 @@ export async function advancePointer(bucketId: string, position: number): Promis
       })
       .onConflictDoUpdate({
         target: [roundWord.bucketId, roundWord.round, roundWord.position],
-        set: { reached: true, reachedAt: settledAt },
+        set: { reached: true, reachedAt: settledAt, updatedAt: settledAt },
       });
     await tx
       .update(bucketProgress)
-      .set({ pointer: position })
+      .set({ pointer: position, progressUpdatedAt: settledAt })
       .where(eq(bucketProgress.bucketId, bucketId));
     await tx
       .insert(dailyPointer)
-      .values({ day: todayLocalDate(), bucketId, globalPosition })
+      .values({ day: todayLocalDate(), bucketId, globalPosition, updatedAt: settledAt })
       .onConflictDoUpdate({
         target: [dailyPointer.day, dailyPointer.bucketId],
-        set: { globalPosition },
+        set: { globalPosition, updatedAt: settledAt },
       });
   });
 
@@ -197,11 +197,11 @@ export async function startNextRound(bucketId: string): Promise<Progress> {
       })
       .onConflictDoUpdate({
         target: [roundHistory.bucketId, roundHistory.round],
-        set: { startedAt: before.startedAt > 0 ? before.startedAt : now, finishedAt: now },
+        set: { startedAt: before.startedAt > 0 ? before.startedAt : now, finishedAt: now, updatedAt: now },
       });
     await tx
       .update(bucketProgress)
-      .set({ round: before.round + 1, pointer: 0, startedAt: now })
+      .set({ round: before.round + 1, pointer: 0, startedAt: now, progressUpdatedAt: now })
       .where(eq(bucketProgress.bucketId, bucketId));
   });
 
@@ -216,19 +216,20 @@ export async function setFlag(
 ): Promise<void> {
   const db = await getDb();
   const { round } = await getProgress(bucketId);
+  const now = Date.now();
 
   await withTransaction(async (tx) => {
     await tx
       .update(word)
-      .set({ flagged })
+      .set({ flagged, flaggedAt: now })
       .where(and(eq(word.bucketId, bucketId), eq(word.position, position)));
     if (flagged) {
       await tx
         .insert(roundWord)
-        .values({ bucketId, round, position, reached: false, flagged: true })
+        .values({ bucketId, round, position, reached: false, flagged: true, updatedAt: now })
         .onConflictDoUpdate({
           target: [roundWord.bucketId, roundWord.round, roundWord.position],
-          set: { flagged: true },
+          set: { flagged: true, updatedAt: now },
         });
     } else {
       const row = await tx
@@ -255,7 +256,7 @@ export async function setFlag(
       } else if (row) {
         await tx
           .update(roundWord)
-          .set({ flagged: false })
+          .set({ flagged: false, updatedAt: now })
           .where(
             and(
               eq(roundWord.bucketId, bucketId),
@@ -289,6 +290,7 @@ export async function getRoundFlaggedWords(bucketId: string, round: number): Pro
       meaning: word.meaning,
       forms: word.forms,
       flagged: word.flagged,
+      flaggedAt: word.flaggedAt,
     })
     .from(word)
     .innerJoin(
@@ -312,6 +314,7 @@ export async function getWordsCompletedOn(day: string): Promise<WordRow[]> {
       meaning: word.meaning,
       forms: word.forms,
       flagged: word.flagged,
+      flaggedAt: word.flaggedAt,
     })
     .from(word)
     .innerJoin(
@@ -369,14 +372,16 @@ export async function getRoundWords(bucketId: string, round: number): Promise<Ro
 
 export async function addDailyTime(day: string, feedSeconds: number, appSeconds: number): Promise<void> {
   const db = await getDb();
+  const now = Date.now();
   await db
     .insert(dailyStat)
-    .values({ day, feedSeconds, appSeconds })
+    .values({ day, feedSeconds, appSeconds, updatedAt: now })
     .onConflictDoUpdate({
       target: dailyStat.day,
       set: {
         feedSeconds: sql`${dailyStat.feedSeconds} + excluded.feed_seconds`,
         appSeconds: sql`${dailyStat.appSeconds} + excluded.app_seconds`,
+        updatedAt: now,
       },
     });
 }

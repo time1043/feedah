@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -12,11 +13,14 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
+import { CONVEX_URL } from '@/cloud/convex';
+import { useSync } from '@/cloud/sync';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
 import { useSettings, type MeaningMode, type Reminder, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
@@ -57,6 +61,15 @@ const MEANING_OPTIONS: { value: MeaningMode; label: string }[] = [
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady, update, reload } = useSettings();
+  const { status, lastSyncedAt, lastError, syncNow } = useSync();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const { signIn, signOut } = useAuthActions();
+  const [accountModal, setAccountModal] = useState(false);
+  const [actionModal, setActionModal] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [passwordDraft, setPasswordDraft] = useState('');
+  const [signUpMode, setSignUpMode] = useState(true);
+  const [accountBusy, setAccountBusy] = useState(false);
   const [today, setToday] = useState<DailyStatRow | null>(null);
   // Live samples held in state: reading module-level timers during render
   // returns memoized values under React Compiler, so the clock would freeze.
@@ -157,9 +170,106 @@ export default function SettingsScreen() {
     );
   };
 
+  const syncStatusText = () => {
+    if (status === 'syncing') return 'Syncing…';
+    if (status === 'offline') return 'Offline · syncs when online';
+    if (status === 'error') return lastError ?? 'Sync error';
+    if (lastSyncedAt) return `Synced ${new Date(lastSyncedAt).toLocaleTimeString()}`;
+    return 'Ready';
+  };
+
+  const openAccountModal = (signUp: boolean) => {
+    setSignUpMode(signUp);
+    setEmailDraft('');
+    setPasswordDraft('');
+    setAccountModal(true);
+  };
+
+  // Matches the Password provider's minimum length (8).
+  const canSubmit = !!emailDraft.trim() && passwordDraft.length >= 8;
+
+  const submitAccount = () => {
+    const email = emailDraft.trim();
+    if (!email || !passwordDraft) return;
+    setAccountBusy(true);
+    // Provider ids are lowercase — the server config registers "password".
+    signIn('password', { flow: signUpMode ? 'signUp' : 'signIn', email, password: passwordDraft })
+      .then(() => {
+        update({ accountEmail: email });
+        setAccountModal(false);
+        syncNow();
+      })
+      .catch((error: unknown) => {
+        const raw = error instanceof Error ? error.message : String(error);
+        // Transport-level failures ("Connection lost while action was in
+        // flight", fetch failures) mean the WebSocket dropped client-side;
+        // surface a retry hint instead of the jargon.
+        if (/connection lost|network request failed|failed to fetch/i.test(raw)) {
+          Alert.alert(
+            signUpMode ? 'Sign up failed' : 'Sign in failed',
+            'Network connection was lost. Check your internet and try again.',
+          );
+          return;
+        }
+        // Server errors arrive as "[CONVEX A(...)] [Request ID: ...] Server
+        // Error Uncaught Error: <actual message>"; keep the readable tail.
+        const message = raw.split('Uncaught Error:').pop()?.trim() || raw;
+        Alert.alert(signUpMode ? 'Sign up failed' : 'Sign in failed', message);
+      })
+      .finally(() => setAccountBusy(false));
+  };
+
+  const signOutAccount = () => {
+    signOut()
+      .then(() => {
+        // The next sync signs in anonymously under a fresh user; drop the
+        // bound email so the account row reads Anonymous again.
+        update({ accountEmail: '' });
+      })
+      .catch(() => {});
+  };
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable
+          style={[styles.profileCard, { backgroundColor: colors.surface }]}
+          onPress={
+            !CONVEX_URL
+              ? undefined
+              : settings.accountEmail
+                ? () => setActionModal(true)
+                : () => openAccountModal(true)
+          }
+          disabled={!CONVEX_URL}>
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: settings.accountEmail ? colors.accent : colors.background },
+            ]}>
+            <Text
+              style={[
+                styles.avatarText,
+                { color: settings.accountEmail ? '#FFFFFF' : colors.textSecondary },
+              ]}>
+              {settings.accountEmail ? settings.accountEmail.charAt(0).toUpperCase() : 'G'}
+            </Text>
+          </View>
+          <View style={styles.profileTexts}>
+            <Text style={[styles.profileName, { color: colors.text }]} numberOfLines={1}>
+              {settings.accountEmail || 'Guest'}
+            </Text>
+            <Text style={[styles.profileSubtitle, { color: colors.textTertiary }]} numberOfLines={1}>
+              {!CONVEX_URL
+                ? 'Cloud sync not configured'
+                : settings.accountEmail
+                  ? syncStatusText()
+                  : 'Tap to keep progress across devices — optional'}
+            </Text>
+          </View>
+          {CONVEX_URL && <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />}
+        </Pressable>
+
         {settings.todayReadout && (
           <View style={[styles.readout, { backgroundColor: colors.surface }]}>
             <Text style={[styles.readoutText, { color: colors.textSecondary }]}>
@@ -265,6 +375,94 @@ export default function SettingsScreen() {
             <Text style={[styles.value, { color: colors.textTertiary }]}>Erase</Text>
           </Pressable>
         </Group>
+
+        <Modal transparent visible={accountModal} animationType="slide" onRequestClose={() => setAccountModal(false)}>
+          <KeyboardAvoidingView
+            style={styles.sheetOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <Pressable style={styles.sheetBackdrop} onPress={() => setAccountModal(false)} />
+            <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+              <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>
+                {signUpMode ? 'Create account' : 'Welcome back'}
+              </Text>
+              <Text style={[styles.sheetCaption, { color: colors.textTertiary }]}>
+                Sign up is optional — your progress already lives on this device.
+              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Email</Text>
+              <TextInput
+                autoFocus
+                value={emailDraft}
+                onChangeText={setEmailDraft}
+                autoCapitalize="none"
+                autoCorrect={false}
+                inputMode="email"
+                placeholder="you@example.com"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.field, { backgroundColor: colors.background, color: colors.text }]}
+              />
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Password</Text>
+              <TextInput
+                value={passwordDraft}
+                onChangeText={setPasswordDraft}
+                secureTextEntry
+                placeholder="At least 8 characters"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.field, { backgroundColor: colors.background, color: colors.text }]}
+              />
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: colors.accent, opacity: canSubmit ? 1 : 0.4 },
+                ]}
+                disabled={!canSubmit || accountBusy}
+                onPress={submitAccount}>
+                <Text style={styles.primaryButtonText}>
+                  {accountBusy ? 'Please wait…' : signUpMode ? 'Create account' : 'Sign in'}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.swapRow} hitSlop={8} onPress={() => setSignUpMode((v) => !v)}>
+                <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
+                  {signUpMode ? 'Already have an account? ' : 'New here? '}
+                  <Text style={{ color: colors.accent, fontWeight: '600' }}>
+                    {signUpMode ? 'Sign in' : 'Create one'}
+                  </Text>
+                </Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        <Modal transparent visible={actionModal} animationType="slide" onRequestClose={() => setActionModal(false)}>
+          <KeyboardAvoidingView
+            style={styles.sheetOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <Pressable style={styles.sheetBackdrop} onPress={() => setActionModal(false)} />
+            <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+              <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]} numberOfLines={1}>
+                {settings.accountEmail}
+              </Text>
+              <Pressable
+                style={styles.sheetAction}
+                onPress={() => {
+                  setActionModal(false);
+                  openAccountModal(false);
+                }}>
+                <Text style={{ color: colors.text, fontSize: fontSize.body }}>Switch account</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </Pressable>
+              <Pressable
+                style={styles.sheetAction}
+                onPress={() => {
+                  setActionModal(false);
+                  signOutAccount();
+                }}>
+                <Text style={{ color: colors.danger, fontSize: fontSize.body }}>Sign out</Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </ScrollView>
     </Screen>
   );
@@ -556,6 +754,35 @@ const styles = StyleSheet.create({
     gap: spacing.l,
     padding: spacing.m,
   },
+  profileCard: {
+    alignItems: 'center',
+    borderRadius: radius.m,
+    flexDirection: 'row',
+    gap: spacing.m,
+    padding: spacing.m,
+  },
+  avatar: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  avatarText: {
+    fontSize: fontSize.title,
+    fontWeight: '700',
+  },
+  profileTexts: {
+    flex: 1,
+    gap: 2,
+  },
+  profileName: {
+    fontSize: fontSize.body,
+    fontWeight: '600',
+  },
+  profileSubtitle: {
+    fontSize: fontSize.caption,
+  },
   readout: {
     borderRadius: radius.m,
     paddingHorizontal: spacing.m,
@@ -659,6 +886,74 @@ const styles = StyleSheet.create({
   iosPicker: {
     height: 180,
     width: 280,
+  },
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
+  },
+  sheet: {
+    borderTopLeftRadius: radius.l,
+    borderTopRightRadius: radius.l,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.l,
+    paddingTop: spacing.s,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    borderRadius: 2,
+    height: 4,
+    marginBottom: spacing.m,
+    width: 40,
+  },
+  sheetTitle: {
+    fontSize: fontSize.title,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  sheetCaption: {
+    fontSize: fontSize.caption,
+    marginBottom: spacing.l,
+  },
+  fieldLabel: {
+    fontSize: fontSize.caption,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  field: {
+    borderRadius: radius.m,
+    fontSize: fontSize.body,
+    marginBottom: spacing.m,
+    minHeight: 48,
+    paddingHorizontal: spacing.m,
+  },
+  primaryButton: {
+    alignItems: 'center',
+    borderRadius: radius.m,
+    justifyContent: 'center',
+    minHeight: 50,
+    marginTop: spacing.s,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.body,
+    fontWeight: '600',
+  },
+  swapRow: {
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+    marginTop: spacing.s,
+  },
+  sheetAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    paddingHorizontal: spacing.xs,
   },
   addRow: {
     alignItems: 'center',

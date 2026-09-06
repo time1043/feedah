@@ -28,6 +28,8 @@ export const word = sqliteTable(
       .notNull()
       .default(sql`'[]'`),
     flagged: integer('flagged', { mode: 'boolean' }).notNull().default(false),
+    // Wall-clock stamp of the last flag/unflag; powers LWW cloud sync.
+    flaggedAt: integer('flagged_at').notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.bucketId, t.position] }),
@@ -42,6 +44,8 @@ export const bucketProgress = sqliteTable('bucket_progress', {
   round: integer('round').notNull().default(1),
   pointer: integer('pointer').notNull().default(0),
   startedAt: integer('started_at').notNull().default(0),
+  // Stamp of the last progress write; powers LWW cloud sync of startedAt.
+  progressUpdatedAt: integer('progress_updated_at').notNull().default(0),
 });
 
 // Per-round per-word state. reached=true means the card was settled by hand
@@ -58,6 +62,7 @@ export const roundWord = sqliteTable(
     reached: integer('reached', { mode: 'boolean' }).notNull().default(false),
     flagged: integer('flagged', { mode: 'boolean' }).notNull().default(false),
     reachedAt: integer('reached_at').notNull().default(0),
+    updatedAt: integer('updated_at').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.bucketId, t.round, t.position] })],
 );
@@ -69,6 +74,7 @@ export const roundHistory = sqliteTable(
     round: integer('round').notNull(),
     startedAt: integer('started_at').notNull(),
     finishedAt: integer('finished_at').notNull(),
+    updatedAt: integer('updated_at').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.bucketId, t.round] })],
 );
@@ -77,6 +83,7 @@ export const dailyStat = sqliteTable('daily_stat', {
   day: text('day').primaryKey(),
   feedSeconds: integer('feed_seconds').notNull().default(0),
   appSeconds: integer('app_seconds').notNull().default(0),
+  updatedAt: integer('updated_at').notNull().default(0),
 });
 
 // Latest high-water global position ((round-1)*word_count + pointer) per
@@ -88,6 +95,7 @@ export const dailyPointer = sqliteTable(
     day: text('day').notNull(),
     bucketId: text('bucket_id').notNull(),
     globalPosition: integer('global_position').notNull(),
+    updatedAt: integer('updated_at').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.day, t.bucketId] })],
 );
@@ -95,6 +103,7 @@ export const dailyPointer = sqliteTable(
 export const meta = sqliteTable('meta', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
+  updatedAt: integer('updated_at').notNull().default(0),
 });
 
 export type BucketRow = typeof bucket.$inferSelect;
