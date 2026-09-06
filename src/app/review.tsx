@@ -156,8 +156,9 @@ export default function ReviewScreen() {
     );
   }
 
-  // A day review may span several buckets; show them all in the title.
-  const queueBuckets = [...new Set(queue.map((word) => word.bucketId))];
+  // A day review may span several buckets; the title follows the bucket of
+  // the word currently on screen (the last word's on the end card).
+  const currentWord = queue[Math.min(current, queue.length - 1)];
 
   const items: ReviewItem[] = [...queue.map((word) => ({ kind: 'word' as const, word })), FOOTER];
 
@@ -178,7 +179,7 @@ export default function ReviewScreen() {
           </Pressable>
           <Text style={[styles.title, { color: colors.textSecondary }]}>
             {hasRound ? `Review · Round ${round}` : day !== '' ? `Review · ${formatDayLabel(day)}` : 'Review'}
-            {queueBuckets.length > 0 ? ` · ${queueBuckets.join('+')}` : ''}
+            {currentWord ? ` · ${currentWord.bucketId}` : ''}
           </Text>
           <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
             <Ionicons name="search" size={22} color={colors.textTertiary} />
@@ -196,7 +197,7 @@ export default function ReviewScreen() {
           <FlatList
             ref={listRef}
             data={items}
-            keyExtractor={(item) => (item.kind === 'word' ? `${item.word.position}` : 'review-end')}
+            keyExtractor={(item) => (item.kind === 'word' ? `${item.word.bucketId}-${item.word.position}` : 'review-end')}
             renderItem={({ item, index }) =>
               item.kind === 'word' ? (
                 <View style={{ height: viewport }}>

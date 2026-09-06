@@ -29,7 +29,9 @@ All behave identically:
   tap elsewhere to reveal, bookmark to flag/unflag.
 - Header progress bar and the `Review` label track the **queue** position
   (`x/N`), not the bucket position; the card keeps showing the bucket position
-  as its anchor number.
+  as its anchor number. The title's bucket suffix is the bucket of the word
+  currently on screen — a day review can span several buckets, and the label
+  switches as the queue crosses into the next bucket.
 - The queue is snapshotted on entry. Unflagging during the session updates the
   word and the current round immediately, but the queue keeps the word until
   the next pass, and historical rounds are never rewritten.
@@ -93,7 +95,10 @@ All behave identically:
 - Selected day row: words, studying time, in-app time for the day tapped on
   the heatmap (defaults to today; the title shows its date).
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
-  toggle, five color levels, tappable cells.
+  toggle, five color levels, tappable cells. Under the grid, one subordinate
+  summary line for the displayed year: its cumulative words, studying time,
+  and in-app time (follows the year switcher; the selected day readout stays
+  the visually dominant one).
 - Rounds: one tab per bucket that has been started (defaults to the active
   bucket; never-started buckets do not appear). Each round shows its position
   progress, the completion date for finished rounds, green/red word counts,
