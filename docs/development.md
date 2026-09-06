@@ -62,7 +62,15 @@ its JSON bucket files map 1:1 to this project's buckets).
 ```bash
 npx expo run:android --variant release   # build & install a release APK
 npx expo run:ios                          # requires macOS + Xcode
+node scripts/build-apk.mjs                # stamped release APK in dist/
 ```
+
+`build-apk.mjs` fingerprints the native layer (`app.json` + `package.json` +
+`pnpm-lock.yaml`, stored in gitignored `android/.prebuild-fingerprint`) and
+skips prebuild when unchanged. When it does prebuild, it passes `--no-clean`
+to sync the existing `android/` while keeping gradle's incremental
+intermediates — plain `expo prebuild` in SDK 57 recreates `android/` from
+scratch, forcing a full native recompile.
 
 App identity lives in `app.json` (`com.time1043.feedah`). Icons, adaptive
 icons, splash, and favicon are generated from the SVG sources in the script:
