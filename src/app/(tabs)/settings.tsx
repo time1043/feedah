@@ -200,9 +200,19 @@ export default function SettingsScreen() {
         syncNow();
       })
       .catch((error: unknown) => {
+        const raw = error instanceof Error ? error.message : String(error);
+        // Transport-level failures ("Connection lost while action was in
+        // flight", fetch failures) mean the WebSocket dropped client-side;
+        // surface a retry hint instead of the jargon.
+        if (/connection lost|network request failed|failed to fetch/i.test(raw)) {
+          Alert.alert(
+            signUpMode ? 'Sign up failed' : 'Sign in failed',
+            'Network connection was lost. Check your internet and try again.',
+          );
+          return;
+        }
         // Server errors arrive as "[CONVEX A(...)] [Request ID: ...] Server
         // Error Uncaught Error: <actual message>"; keep the readable tail.
-        const raw = error instanceof Error ? error.message : String(error);
         const message = raw.split('Uncaught Error:').pop()?.trim() || raw;
         Alert.alert(signUpMode ? 'Sign up failed' : 'Sign in failed', message);
       })
@@ -369,7 +379,7 @@ export default function SettingsScreen() {
         <Modal transparent visible={accountModal} animationType="slide" onRequestClose={() => setAccountModal(false)}>
           <KeyboardAvoidingView
             style={styles.sheetOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <Pressable style={styles.sheetBackdrop} onPress={() => setAccountModal(false)} />
             <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
               <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
@@ -424,7 +434,9 @@ export default function SettingsScreen() {
         </Modal>
 
         <Modal transparent visible={actionModal} animationType="slide" onRequestClose={() => setActionModal(false)}>
-          <KeyboardAvoidingView style={styles.sheetOverlay}>
+          <KeyboardAvoidingView
+            style={styles.sheetOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <Pressable style={styles.sheetBackdrop} onPress={() => setActionModal(false)} />
             <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
               <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
