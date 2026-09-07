@@ -20,6 +20,7 @@
       },
       "package": "com.time1043.feedah",
       "permissions": [
+        "USE_EXACT_ALARM",
         "SCHEDULE_EXACT_ALARM"
       ],
       "predictiveBackGestureEnabled": false

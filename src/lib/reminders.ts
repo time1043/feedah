@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { pickNotificationText } from './notification-texts';
 
@@ -93,6 +93,27 @@ export async function requestReminderPermission(): Promise<
   if (current.granted) return 'granted';
   const asked = await Notifications.requestPermissionsAsync();
   return asked.granted ? 'granted' : 'denied';
+}
+
+/**
+ * Opens the system notification page for this app (the "Allow notifications"
+ * toggle). Android never re-shows the permission dialog once the user has
+ * denied it, so that page is the only way back; some ROMs drop the action,
+ * so fall back to the app's system-settings page.
+ */
+export async function openNotificationSettings(): Promise<void> {
+  const pkg = Constants.expoConfig?.android?.package;
+  if (Platform.OS === 'android' && pkg) {
+    try {
+      await Linking.sendIntent('android.settings.APP_NOTIFICATION_SETTINGS', [
+        { key: 'android.provider.extra.APP_PACKAGE', value: pkg },
+      ]);
+      return;
+    } catch {
+      // ROM does not resolve the action — fall through to the app page.
+    }
+  }
+  Linking.openSettings();
 }
 
 /** Parses lenient user input ("8:30", "0830", "830") or returns null. */

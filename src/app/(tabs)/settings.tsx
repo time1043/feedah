@@ -35,6 +35,7 @@ import { formatClock } from '@/lib/format';
 import {
   activeReminderTimes,
   formatTimeOfDay,
+  openNotificationSettings,
   parseTimeOfDaySetting,
   parseTimeOfDay,
   requestReminderPermission,
@@ -164,7 +165,14 @@ export default function SettingsScreen() {
       if (result === 'denied') {
         Alert.alert(
           'Notifications disabled',
-          'Allow notifications for feedah in system settings, then try again.',
+          'Reminders need notifications. Open system settings, allow them for feedah, then try again.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'Open settings',
+              onPress: () => void openNotificationSettings(),
+            },
+          ],
         );
         return;
       }

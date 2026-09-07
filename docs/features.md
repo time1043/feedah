@@ -126,17 +126,19 @@ All behave identically:
   switched off individually. `Add reminder` appends as many as needed; the
   master switch disables the whole feature.
 - Turning the feature on asks for notification permission once; without it the
-  switch stays off with a hint.
+  switch stays off with a hint. If the user already denied the permission (the
+  system dialog never re-shows), the alert gains an `Open settings` button that
+  jumps straight to feedah's notification page.
 - Delivered as a light notification: heads-up banner plus a lockscreen
   entry (HIGH-importance channel) — not a ringing alarm.
 - Expo Go on Android cannot run these reminders (its notification APIs were
   removed in SDK 53) — the app detects this, keeps the switch off, and asks
   for a development build or standalone APK. iOS Expo Go works.
-- Android timing: the manifest declares `SCHEDULE_EXACT_ALARM` (app.json →
-  android.permissions), so after granting the "Alarms & reminders" permission
-  for feedah in system settings, reminders fire on time even with the screen
-  off. Without that grant delivery can drift by minutes or more. Aggressive
-  OEM ROMs may also need autostart / battery-optimization exemptions.
+- Android timing: the manifest declares `USE_EXACT_ALARM` (auto-granted on
+  Android 13+) plus `SCHEDULE_EXACT_ALARM` (covers Android 12, where it is
+  granted by default), so exact alarms need no user setup and reminders fire
+  on time even with the screen off. Aggressive OEM ROMs may still need
+  autostart / battery-optimization exemptions.
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled reminder, rescheduled on every change and on app launch).
 - Nothing about reminders touches study statistics.
