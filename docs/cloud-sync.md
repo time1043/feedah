@@ -7,13 +7,16 @@ optional — the app runs fully offline, fully local, forever.
 
 ## Identity
 
-- Convex Auth with two providers: **Anonymous** and **Password**
-  (`convex/auth.ts`). A device signs in anonymously on its first online
-  moment; no registration is ever required.
-- **Upgrade, not migration**: binding an email + password (settings →
-  Account) signs the *same* user up with the Password provider, so all cloud
-  rows stay with that user. Signing in on a second device with the same
-  email adopts that user's cloud rows.
+- Convex Auth with two providers configured: **Anonymous** and **Password**
+  (`convex/auth.ts`), but only Password sessions sync. A guest is pure
+  local — no cloud rows are ever created for it, because an anonymous
+  identity is device-bound and unclaimable, so mirroring its rows would buy
+  no cross-device value.
+- **Binding an email + password** (settings → Account) signs up for or signs
+  into the Password account, then pushes the full local snapshot to it — the
+  device's SQLite state is what carries across the upgrade. Signing in on a
+  second device with the same email merges that account's cloud rows into
+  the local state under the rules below.
 - Tokens persist in the device keychain via `expo-secure-store`
   (`src/cloud/token-storage.ts`).
 - Email verification is intentionally skipped; no mail service is involved.
@@ -27,9 +30,10 @@ every build). The cloud mirrors only user state — `cloud_*` tables in
 
 ## One sync cycle
 
-`SyncProvider` (`src/cloud/sync.tsx`) triggers on app start (once auth
-resolves), network regain, and app foreground; the settings screen has a
-manual "Sync now". One cycle is:
+`SyncProvider` (`src/cloud/sync.tsx`) runs only for a bound account. The
+first cycle of a session fires when the bound account becomes ready (auth
+and settings may resolve in either order); network regain and app foreground
+trigger catch-up cycles, and signing in re-syncs immediately. One cycle is:
 
 1. **Pull** — `sync.pull` returns the user's whole cloud state;
    `applyCloudState` (`src/cloud/mirror.ts`) merges it into SQLite.
@@ -82,7 +86,8 @@ on every push.
 
 ## Known limitations
 
-- "Clear all data" wipes only SQLite; the next sync re-pulls the cloud state.
+- "Clear all data" for a bound account wipes the cloud copy first (offline it
+  aborts instead of half-clearing), then resets SQLite and signs out.
 - `daily_stat` merging keeps the max per metric, so the same wall-clock minute
   used on two devices counts once — conservative by design.
 - The engine is single-user by construction; there is no sharing or

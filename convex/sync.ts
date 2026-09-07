@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { GenericId } from 'convex/values';
+import { internal } from './_generated/api';
 import { internalMutation, mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 import { auth } from './auth';
 
@@ -202,7 +203,45 @@ export const push = mutation({
   },
 });
 
-/** Dev utility: drops every cloud row of one user (wired to nothing by default). */
+/** Drops every cloud row of the signed-in user. Called by the app's
+ * "clear all data" before the local reset so a later sync cannot resurrect
+ * erased state; unauthenticated callers are a silent no-op. */
+export const wipeMyData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await auth.getUserId(ctx);
+    if (!user) return;
+    await ctx.runMutation(internal.sync.wipe, { userId: user });
+  },
+});
+
+/** Dev only: erases every auth and cloud row, resetting the deployment to a
+ * clean slate (orphans included). Never call from app code — invoke it from
+ * the CLI: `npx convex run sync:resetAll '{}'`. Devices keep their cached
+ * sessions, so sign out and sign in again after a reset. */
+export const resetAll = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const table of [
+      'cloudBucketProgress',
+      'cloudRoundWord',
+      'cloudRoundHistory',
+      'cloudDailyStat',
+      'cloudDailyPointer',
+      'cloudWordFlag',
+      'cloudMeta',
+      'authSessions',
+      'authAccounts',
+      'users',
+    ] as const) {
+      for (const row of await ctx.db.query(table).collect()) {
+        await ctx.db.delete(row._id);
+      }
+    }
+  },
+});
+
+/** Dev utility: drops every cloud row of one user (wired to wipeMyData). */
 export const wipe = internalMutation({
   args: { userId: v.id('users') },
   handler: async (ctx, { userId }) => {
