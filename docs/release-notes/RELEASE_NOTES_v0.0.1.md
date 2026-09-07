@@ -1,72 +1,72 @@
 # v0.0.1
 
-First MVP release.
+First MVP release of feedah — a calm, offline-first vocabulary app. Study
+word lists as a fullscreen card feed, review what matters, and (optionally)
+keep everything in sync across your devices.
 
-## Word feed
+## Learn with the word feed
 
-- Fullscreen one-card-per-page feed over three bundled buckets
-  (2050 / 700 / 370), swipe up / down, tap the word to replay its
-  pronunciation, tap elsewhere to reveal the meaning and word forms.
-- Bookmark (flag) unfamiliar words right from the card.
-- Studying mode records progress automatically; scrubbing the progress bar
-  switches to browsing — free navigation with nothing recorded — and a
-  `Resume studying` control jumps back to the first unlearned card.
-- Completing a round opens the next one automatically.
+- One word per fullscreen card — swipe up / down at your own pace.
+- Tap the word to hear it again; tap the card to reveal the meaning and word
+  forms. Flag words you want to remember with the bookmark.
+- Studying mode tracks where you are automatically. Want to look around?
+  Scrub the progress bar to browse freely — nothing is recorded — and
+  `Resume studying` brings you straight back to the first unlearned word.
+- Finish a round and the next one starts on its own.
 
-## Review
+## Review the words that matter
 
-Three review flavors share the feed experience (same gestures, bookmarking,
-and end card):
+Three ways to revisit, all with the same simple card experience:
 
-- **Live set** — the bucket's currently flagged words, carried forward by
-  round inheritance.
-- **Round review** — the words flagged during one specific round, from the
-  home red count or any round in the stats list.
-- **Day review** — every word completed on the selected day, across buckets;
-  a daily wrap-up.
+- **Flagged words** — the ones you bookmarked for this list.
+- **Any past round** — what you flagged while working through a specific
+  round.
+- **Today's words** — everything you learned today, as a daily wrap-up.
 
-Reviews record nothing: no pointer movement, no word counts — but the time
-spent counts as studying.
+Reviewing never disturbs your study progress — it is a safe place to loop
+until the words stick.
 
-## Search
+## Find any word fast
 
-- Home search spans **every bucket** and matches both English words and
-  Chinese meanings; feed search is pinned to the current bucket.
-- Wildcards: `*` (any run of characters) and `_` (exactly one character),
-  whole-word matching — `m*p` finds map and mop. Without wildcards it is a
-  contains-match.
-- Every result shows its bucket; tapping opens a full bucket browser (word
-  page) with swipe, scrubbing, replay, reveal, and flagging.
+- Search from home across **all word lists** — in English or in Chinese
+  meanings. Search inside a feed to stay within its list.
+- Not sure of the spelling? Use wildcards: `*` matches any letters, `_`
+  matches exactly one (`m*p` finds map and mop).
+- Tap a result to open that word's list right at its position, and browse
+  from there.
 
-## Word list
+## Browse the word lists
 
-Bucket tabs, position / word / meaning columns, red dots on flagged words,
-and a jump bar for quick positioning.
+Every list can be read word by word — meanings at a glance, flagged words
+marked in red, and a quick jump bar for long lists.
 
-## Stats
+## See your progress
 
-- Calendar-year heatmap with a Words / Minutes toggle and five color
-  levels; tap a day for its words, studying time, and in-app time.
-- Yearly cumulative summary under the grid.
-- Per-round timelines: red = flagged, green = hand-settled, gray = skipped;
-  finished rounds show their completion date.
+- A yearly activity heatmap with a words / minutes toggle — tap any day for
+  its numbers.
+- Cumulative totals for the whole year under the grid.
+- Round timelines that show each pass at a glance: flagged, learned,
+  skipped.
 
-## Reminders
+## Gentle reminders
 
-- Dynamic reminder list: rename, retime via the native picker, add as many
-  as you want, switch each off individually.
-- Exact alarms on Android 12–14 (no extra setup), delivered as heads-up
-  notifications, playful message pool included.
+- As many reminders as you like — rename them, retime them with the native
+  picker, or switch each one off.
+- They fire on time even when the screen is off. No fiddly permission
+  hunting on Android 13+, and if notifications ever get blocked, one tap
+  takes you straight to the right settings page.
+- The nudge text rotates through a pool of friendly messages.
 
-## Cloud sync (optional)
+## Cloud sync — optional, always
 
-- Sign up or sign in with an email + password to keep progress across
-  devices; settings, flags, round history, and stats all follow.
-- Guests are fully local — no account, no cloud rows, and the app works
-  offline forever.
-- "Clear all data" wipes the device and the cloud copy together (it needs a
-  connection so the two cannot drift apart).
+- Create a free account (email + password) and your progress, flags, and
+  settings follow you to any device.
+- No account? Everything stays on your phone, works offline, and the app
+  never nags you to sign in.
+- "Clear all data" wipes your device and the cloud copy together, so erased
+  really means erased.
 
 ## Housekeeping
 
-- System / light / dark theme; version shown in Settings → About.
+- System / light / dark theme.
+- Version shown in Settings → About.
