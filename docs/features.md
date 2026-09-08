@@ -75,11 +75,12 @@ All behave identically:
 
 ## Search & word page
 
-- **Scope**: home search spans **every bucket** and matches English words and
-  Chinese meanings — each bucket is searched separately and results are never
+- **Scope**: home and review search span **every bucket**; feed search is pinned
+  to that feed's bucket. All three match English words AND Chinese meanings —
+  the meaning column is what makes Chinese queries work, so every entry point
+  includes it. Each bucket is searched separately and results are never
   deduped, on purpose: a word living in two buckets is worth seeing, and a
   duplicate inside one bucket surfaces a data problem instead of hiding it.
-  Feed search is pinned to that feed's bucket and matches words only.
 - **Wildcards**: both search bars accept `*` (any run of characters) and `_`
   (exactly one character), matching the whole word — `m*p` finds map / mop.
   Without wildcards the query is a contains-match.

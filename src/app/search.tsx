@@ -42,9 +42,12 @@ export default function SearchScreen() {
     }
     const timer = setTimeout(() => {
       void (async () => {
-        // Home search (no pinned bucket) spans every bucket and matches
-        // meanings too; feed search stays English-only in one bucket.
-        const matchMeaning = pinnedBucket === '';
+        // Scope is the only difference between the two entry points: home and
+        // review pass no bucket and search every bucket, while the feed passes
+        // its bucket and searches only that one. Both match the English word
+        // AND the Chinese meaning — the meaning column is what makes Chinese
+        // queries work, so it must always be included.
+        const matchMeaning = true;
         const lists = await Promise.all(
           scopes.map((bucket) => searchWords(bucket, trimmed, { matchMeaning })),
         );
