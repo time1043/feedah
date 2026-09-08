@@ -219,7 +219,7 @@ export default function StatsScreen() {
             numberOfLines={1}
             adjustsFontSizeToFit
             style={[styles.yearSummary, { color: colors.textTertiary }]}>
-            {`${year} · ${yearTotals.words} words · ${formatMinutes(yearTotals.feedSeconds)} studying · ${formatMinutes(
+            {`${yearTotals.words} words · ${formatMinutes(yearTotals.feedSeconds)} studying · ${formatMinutes(
               yearTotals.appSeconds,
             )} in app`}
           </Text>
