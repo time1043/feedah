@@ -115,11 +115,23 @@ export async function searchWords(
 ): Promise<WordRow[]> {
   const { matchMeaning = false, limit = 100 } = options;
   const db = await getDb();
-  const pattern = toLikePattern(query.trim());
-  const textMatch = sql`lower(${word.text}) LIKE lower(${pattern}) ESCAPE '\\'`;
-  const condition = matchMeaning
-    ? or(textMatch, sql`lower(${word.meaning}) LIKE lower(${pattern}) ESCAPE '\\'`)
-    : textMatch;
+  // `|` splits the query into alternatives whose results are unioned, so two
+  // similar words that a single pattern cannot describe can be looked up at
+  // once (`scene|sense`, `sc_ne|s_nse`). Each alternative keeps the %/_ rules.
+  const trimmed = query.trim();
+  const alternatives = trimmed
+    .split('|')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+  const parts = alternatives.length > 0 ? alternatives : [trimmed];
+  const conditions = parts.map((part) => {
+    const pattern = toLikePattern(part);
+    const textMatch = sql`lower(${word.text}) LIKE lower(${pattern}) ESCAPE '\\'`;
+    return matchMeaning
+      ? or(textMatch, sql`lower(${word.meaning}) LIKE lower(${pattern}) ESCAPE '\\'`)
+      : textMatch;
+  });
+  const condition = or(...conditions);
   return db
     .select()
     .from(word)

@@ -114,6 +114,17 @@ All behave identically:
   | `sc%e\|se%e` | `\|` alternatives can use `%` | serve, see, sense, settle, schedule |
   | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery` | sense, scene |
 
+  **Alternatives (`|`)**: separate several patterns with `|` to union their
+  results — the same role `OR` plays in SQL. This covers two similar words that
+  one pattern cannot describe cleanly.
+
+  | Query | Meaning | Example hits |
+  | --- | --- | --- |
+  | `scene\|sense` | matches either word | sense, scene, scenery |
+  | `s%en%e` | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
+  | `sc%e\|se%e` | `\|` alternatives can use `%` | serve, see, sense, settle, schedule |
+  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery` | sense, scene |
+
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
