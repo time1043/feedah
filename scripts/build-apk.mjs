@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Build a release APK and stamp it with the build time and commit, e.g.
-// feedah-260907-0144-8b21.apk. The APK lands in dist/ (gitignored):
-// feedah-<yyMMdd-HHmm>-<short commit>.apk
+// feedah-260907-0144-8b21.apk. With `--abi` the ABI is appended before the
+// extension, e.g. feedah-260907-0144-8b21-arm64-v8a.apk. The APK lands in
+// dist/ (gitignored): feedah-<yyMMdd-HHmm>-<short commit>[-<abi>].apk
 //
 // Prebuild policy (android/ is gitignored, CNG):
 // - android/ missing, or the native fingerprint changed (app.json +
@@ -17,8 +18,10 @@
 //
 // `--abi <abi>` restricts the native libraries to a single architecture so the
 // APK only carries that ABI's .so files (e.g. arm64-v8a for modern phones).
-// It passes -PreactNativeArchitectures=<abi> to gradle; the artifact is still
-// named app-release.apk: node scripts/build-apk.mjs --abi arm64-v8a
+// It passes -PreactNativeArchitectures=<abi> to gradle; gradle still emits
+// app-release.apk, so the ABI is stamped onto the copied artifact instead:
+// node scripts/build-apk.mjs --abi arm64-v8a
+//   -> dist/feedah-260907-0144-8b21-arm64-v8a.apk
 
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
@@ -96,7 +99,11 @@ run(`${gradlew} assembleRelease ${abiFlag} ${daemonFlag}`.trimEnd(), { cwd: path
 const built = path.join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
 if (!existsSync(built)) throw new Error(`APK not found at ${built} — did assembleRelease succeed?`);
 
-const name = `feedah-${buildStamp()}-${shortCommit()}.apk`;
+// The ABI is stamped onto the copied artifact because gradle emits the same
+// app-release.apk no matter what reactNativeArchitectures was set to — without
+// it a single-ABI build would be indistinguishable from a universal one.
+const abiSuffix = abi ? `-${abi}` : '';
+const name = `feedah-${buildStamp()}-${shortCommit()}${abiSuffix}.apk`;
 mkdirSync(path.join(root, 'dist'), { recursive: true });
 copyFileSync(built, path.join(root, 'dist', name));
 console.log(`\nAPK ready: dist/${name}`);

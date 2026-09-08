@@ -34,8 +34,10 @@ pnpm apk
 ```
 
 Produces `dist/feedah-<yyMMdd-HHmm>-<short commit>.apk` (dist/ is
-gitignored). Install it on a real device and smoke-test sign-in, sync, and
-one feed round before publishing.
+gitignored). `pnpm apk:arm64-v8a` builds for arm64-v8a only and appends the
+ABI to the name: `dist/feedah-<yyMMdd-HHmm>-<short commit>-arm64-v8a.apk`.
+Install it on a real device and smoke-test sign-in, sync, and one feed round
+before publishing.
 
 ## 5. Tag
 
