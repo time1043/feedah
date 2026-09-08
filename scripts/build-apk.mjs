@@ -14,6 +14,11 @@
 //   whatever else actually changed.
 // `--clean` forces a from-scratch prebuild (SDK upgrades, inexplicable native
 // build errors): node scripts/build-apk.mjs --clean
+//
+// `--abi <abi>` restricts the native libraries to a single architecture so the
+// APK only carries that ABI's .so files (e.g. arm64-v8a for modern phones).
+// It passes -PreactNativeArchitectures=<abi> to gradle; the artifact is still
+// named app-release.apk: node scripts/build-apk.mjs --abi arm64-v8a
 
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
@@ -22,6 +27,11 @@ import path from 'node:path';
 
 const root = process.cwd();
 const FINGERPRINT_FILE = path.join(root, 'android', '.prebuild-fingerprint');
+
+// `--abi <abi>` (e.g. arm64-v8a) limits the bundled native libs to one
+// architecture via gradle's reactNativeArchitectures property.
+const abiArgIndex = process.argv.indexOf('--abi');
+const abi = abiArgIndex !== -1 ? process.argv[abiArgIndex + 1] : undefined;
 
 const run = (cmd, opts = {}) => {
   console.log(`\n$ ${cmd}`);
@@ -78,7 +88,9 @@ if (!existsSync(FINGERPRINT_FILE) || readFileSync(FINGERPRINT_FILE, 'utf8') !== 
 //    classpath across runs); --no-daemon only in CI so no daemon lingers.
 const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
 const daemonFlag = process.env.CI ? '--no-daemon' : '';
-run(`${gradlew} assembleRelease ${daemonFlag}`.trimEnd(), { cwd: path.join(root, 'android') });
+const abiFlag = abi ? `-PreactNativeArchitectures=${abi}` : '';
+console.log(abi ? `\nBuilding for ABI: ${abi}` : '\nBuilding universal APK (all ABIs)');
+run(`${gradlew} assembleRelease ${abiFlag} ${daemonFlag}`.trimEnd(), { cwd: path.join(root, 'android') });
 
 // 3. Copy the artifact out under the stamped name.
 const built = path.join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
