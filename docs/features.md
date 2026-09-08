@@ -75,6 +75,10 @@ All behave identically:
 
 ## Search & word page
 
+- One search screen serves all three entry points (home, feed, review), so the
+  input — and its clear button — behave identically everywhere. The clear
+  button sits at the right edge of the field, appears only once there is text,
+  and empties the query in one tap (the field keeps focus).
 - **Scope**: home and review search span **every bucket**; feed search is pinned
   to that feed's bucket. All three match English words AND Chinese meanings —
   the meaning column is what makes Chinese queries work, so every entry point

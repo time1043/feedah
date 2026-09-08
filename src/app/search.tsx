@@ -63,16 +63,26 @@ export default function SearchScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={26} color={colors.textSecondary} />
         </Pressable>
-        <TextInput
-          autoFocus
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search words"
-          placeholderTextColor={colors.textTertiary}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
-        />
+        <View style={styles.inputWrap}>
+          <TextInput
+            autoFocus
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search words"
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+          />
+          {query.length > 0 && (
+            <Pressable
+              style={styles.clear}
+              onPress={() => setQuery('')}
+              accessibilityLabel="Clear search">
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <FlatList
@@ -107,12 +117,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.s,
   },
+  inputWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   input: {
     borderRadius: 10,
-    flex: 1,
     fontSize: fontSize.body,
     paddingHorizontal: spacing.m,
+    // Leaves room for the clear button so a long query never runs under it.
+    paddingRight: 36,
     paddingVertical: spacing.s,
+    width: '100%',
+  },
+  clear: {
+    alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: spacing.s,
+    top: 0,
+    width: 28,
   },
   row: {
     alignItems: 'center',
