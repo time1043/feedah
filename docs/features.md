@@ -43,8 +43,11 @@ All behave identically:
 
 - Fullscreen, no tab bar. One card per page, swipe up / down.
 - Card layout: position number (large), the word, its ipa, and a fixed-height
-  slot for the meaning in the top half; word forms in the bottom half; the
-  bookmark at the bottom. Slots are fixed so toggling never shifts the layout.
+  slot for the meaning in the top half; word forms in a fixed 2×6 grid (12
+  cells, caption-sized so the dataset's longest 22-char form fits without
+  truncation, with margin before the bookmark) in the bottom half; the
+  bookmark at the bottom. Slots and the forms grid are fixed, so toggling or
+  switching words never shifts the layout or card height.
 - Tap the word → replay pronunciation. Tap anywhere else → toggle meaning and
   forms. Bookmark → flag the word as unfamiliar.
 - **Counting**: studying counts a card when you swipe **past** it — landing on

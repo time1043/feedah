@@ -6,6 +6,13 @@ import type { MeaningMode } from '@/db/settings';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
+// Word forms render in a fixed 2×6 grid (12 cells). The largest dataset entry
+// has 11 forms (word "act"), so 12 cells always fit; empty cells keep the
+// layout and card height constant across words.
+const FORMS_COLUMNS = 2;
+const FORMS_ROWS = 6;
+const FORMS_GRID_CELLS = FORMS_COLUMNS * FORMS_ROWS;
+
 type WordCardProps = {
   position: number;
   text: string;
@@ -72,7 +79,20 @@ export function WordCard({
 
       <Pressable style={styles.bottom} onPress={toggleMeaning}>
         {meaningVisible && forms.length > 0 && (
-          <Text style={[styles.forms, { color: colors.textTertiary }]}>{forms.join(', ')}</Text>
+          <View style={styles.formsGrid}>
+            {Array.from({ length: FORMS_GRID_CELLS }).map((_, i) => (
+              <View key={i} style={styles.formCell}>
+                {forms[i] != null && (
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[styles.formText, { color: colors.textTertiary }]}>
+                    {forms[i]}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
         )}
       </Pressable>
 
@@ -133,9 +153,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: 'center',
   },
-  forms: {
-    fontSize: fontSize.body,
-    textAlign: 'center',
+  formsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: '100%',
+    // Breathing room before the bookmark; the bottom half vertically centers
+    // the grid, but a 6-row grid can still come close to the bookmark area.
+    marginBottom: spacing.l,
+  },
+  formCell: {
+    width: '50%',
+    height: 28,
+    justifyContent: 'center',
+    marginBottom: spacing.s,
+    paddingHorizontal: spacing.s,
+  },
+  formText: {
+    fontSize: fontSize.caption,
+    textAlign: 'left',
   },
   flag: {
     alignItems: 'center',
