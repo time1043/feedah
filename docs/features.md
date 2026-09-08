@@ -55,7 +55,7 @@ All behave identically:
   progress and exiting there loses nothing. The newly shown card speaks (if
   auto pronunciation is on) and the completed card advances the pointer.
   Nothing else records anything.
-- **Modes**: the feed has a *studying* mode (default) and a *browsing* mode.
+- **Modes**: the feed has a _studying_ mode (default) and a _browsing_ mode.
   Scrubbing the progress bar switches to browsing — free navigation in both
   directions, nothing recorded. A `Resume studying` control in the header
   returns to the first unlearned card and re-enables recording. The bar
@@ -81,9 +81,39 @@ All behave identically:
   includes it. Each bucket is searched separately and results are never
   deduped, on purpose: a word living in two buckets is worth seeing, and a
   duplicate inside one bucket surfaces a data problem instead of hiding it.
-- **Wildcards**: both search bars accept `*` (any run of characters) and `_`
-  (exactly one character), matching the whole word — `m*p` finds map / mop.
-  Without wildcards the query is a contains-match.
+- **Wildcards**: both search bars mimic SQL `LIKE` so the mental model is
+  already familiar. Only `%` (zero or more characters) and `_` (exactly one
+  character; `__` = two, and so on) are wildcards — every other character,
+  including `*`, is treated as a literal. The SQL layer keeps `ESCAPE '\'`, so a
+  literal `%` or `_` can still be escaped when genuinely needed.
+
+  One deliberate, documented compromise: a query with **no** wildcard is
+  auto-wrapped as a contains-match (`%query%`). Users typing a plain word expect
+  substring discovery, not exact equality, so `ter` behaves like `%ter%`.
+  Everywhere a wildcard appears, SQL semantics are followed exactly — there is no
+  second compromise, which is why `__ter` and `__ter%` differ.
+
+  | Query | SQL pattern | Meaning | Example hits |
+  | --- | --- | --- | --- |
+  | `ter%` | `ter%` | starts with `ter` | terror, terminal, term |
+  | `%ter` | `%ter` | ends with `ter` | after, enter, letter, matter |
+  | `%ter%` | `%ter%` | contains `ter` | interest, after, determine |
+  | `ter` | `%ter%` | contains `ter` (bare-word concession) | same as above |
+  | - | `ter` | **not implemented** — that spelling is already spent on the bare-word concession above, and there is no clear use case (nothing in the data is exactly `ter`), so exact match is deliberately unreachable | - |
+  | `__ter%` | `__ter%` | 2 chars before `ter`, 0+ after | interest, after, water |
+  | `__ter` | `__ter` | 2 chars before `ter`, ends `ter` (≠ `__ter%`) | after, enter, water, cater, outer |
+
+  **Alternatives (`|`)**: separate several patterns with `|` to union their
+  results — the same role `OR` plays in SQL. This covers two similar words that
+  one pattern cannot describe cleanly.
+
+  | Query | Meaning | Example hits |
+  | --- | --- | --- |
+  | `scene\|sense` | matches either word | sense, scene, scenery |
+  | `s%en%e` | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
+  | `sc%e\|se%e` | `\|` alternatives can use `%` | serve, see, sense, settle, schedule |
+  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery` | sense, scene |
+
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to

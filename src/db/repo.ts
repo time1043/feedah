@@ -80,29 +80,32 @@ export async function getWords(bucketId: string): Promise<WordRow[]> {
 }
 
 /**
- * Translates user input into a SQL LIKE pattern: `*` matches any run of
- * characters, `_` exactly one, everything else is literal. Without wildcards
- * the pattern stays a contains-match.
+ * Translates user input into a SQL LIKE pattern, matching SQL semantics:
+ *   %  any run of zero or more characters
+ *   _  exactly one character
+ * Only % and _ are treated as wildcards; any other character is literal.
+ * A query with no wildcard characters is wrapped as a contains-match (%query%),
+ * so a plain word search still finds substrings. Examples: `ter%` matches words
+ * starting with ter, `%ter` ending with ter, `%ter%` containing ter, `wo%rd`
+ * exactly starting with wo and ending with rd.
  */
 function toLikePattern(query: string): string {
-  let wildcard = false;
   let out = '';
+  let hasWildcard = false;
   for (const ch of query) {
-    if (ch === '*') {
+    if (ch === '%') {
       out += '%';
-      wildcard = true;
+      hasWildcard = true;
     } else if (ch === '_') {
       out += '_';
-      wildcard = true;
+      hasWildcard = true;
     } else if (ch === '\\') {
       out += '\\\\';
-    } else if (ch === '%') {
-      out += '\\%';
     } else {
       out += ch;
     }
   }
-  return wildcard ? out : `%${out}%`;
+  return hasWildcard ? out : `%${out}%`;
 }
 
 export async function searchWords(
