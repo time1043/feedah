@@ -170,6 +170,7 @@ export async function advancePointer(bucketId: string, position: number): Promis
         reached: true,
         flagged: flaggedRow?.flagged ?? false,
         reachedAt: settledAt,
+        updatedAt: settledAt,
       })
       .onConflictDoUpdate({
         target: [roundWord.bucketId, roundWord.round, roundWord.position],

@@ -26,10 +26,8 @@ export type CloudState = {
   roundWords: {
     bucketId: string;
     round: number;
-    position: number;
-    reached: boolean;
-    flagged: boolean;
-    reachedAt: number;
+    reached: number[];
+    flagged: number[];
     updatedAt: number;
   }[];
   roundHistory: {
@@ -100,30 +98,46 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
     }
   }
 
+  // Cloud stores one compact doc per round (reached/flagged position arrays);
+  // expand it back into the local per-word `round_word` rows, union-merging so
+  // positions studied only on this device survive. Positions in the cloud arrays
+  // that this device hasn't studied yet get created here, which is how a fresh
+  // device rebuilds its historical heatmaps.
   for (const rw of cloud.roundWords) {
-    const keys = and(
-      eq(roundWord.bucketId, rw.bucketId),
-      eq(roundWord.round, rw.round),
-      eq(roundWord.position, rw.position),
-    );
-    const local = await db.select().from(roundWord).where(keys).get();
-    if (!local) {
-      await db.insert(roundWord).values(rw);
-      changed = true;
-      continue;
-    }
-    const reached = local.reached || rw.reached;
-    const flagged = local.flagged || rw.flagged;
-    const reachedAt = Math.max(local.reachedAt, rw.reachedAt);
-    const updatedAt = Math.max(local.updatedAt, rw.updatedAt);
-    if (
-      reached !== local.reached ||
-      flagged !== local.flagged ||
-      reachedAt !== local.reachedAt ||
-      updatedAt !== local.updatedAt
-    ) {
-      await db.update(roundWord).set({ reached, flagged, reachedAt, updatedAt }).where(keys);
-      changed = true;
+    const reachedSet = new Set(rw.reached);
+    const flaggedSet = new Set(rw.flagged);
+    const positions = new Set<number>([...rw.reached, ...rw.flagged]);
+    for (const pos of positions) {
+      const reached = reachedSet.has(pos);
+      const flagged = flaggedSet.has(pos);
+      const keys = and(
+        eq(roundWord.bucketId, rw.bucketId),
+        eq(roundWord.round, rw.round),
+        eq(roundWord.position, pos),
+      );
+      const local = await db.select().from(roundWord).where(keys).get();
+      if (!local) {
+        await db.insert(roundWord).values({
+          bucketId: rw.bucketId,
+          round: rw.round,
+          position: pos,
+          reached,
+          flagged,
+          reachedAt: rw.updatedAt,
+          updatedAt: rw.updatedAt,
+        });
+        changed = true;
+        continue;
+      }
+      const newReached = local.reached || reached;
+      const newFlagged = local.flagged || flagged;
+      if (newReached !== local.reached || newFlagged !== local.flagged) {
+        await db
+          .update(roundWord)
+          .set({ reached: newReached, flagged: newFlagged, updatedAt: rw.updatedAt })
+          .where(keys);
+        changed = true;
+      }
     }
   }
 

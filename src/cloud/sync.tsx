@@ -18,6 +18,12 @@ import { useSettings } from '@/db/settings';
 import { CONVEX_URL, convex } from './convex';
 import { applyCloudState } from './mirror';
 import { readLocalSnapshot } from './snapshot';
+import {
+  getPullCursor,
+  getPushCursor,
+  setPullCursor,
+  setPushCursor,
+} from './sync-cursor';
 
 export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'error';
 
@@ -76,10 +82,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     syncing = true;
     setStatus('syncing');
     try {
-      const cloud = await convex.query(api.sync.pull, {});
+      // Pull only what changed after the last successful pull, then push only
+      // what changed after the last successful push. Each side's watermark is
+      // advanced to the timestamp the server stamped on its response. A 0
+      // watermark (first sync) yields a full bootstrap; the merge rules are
+      // idempotent so a duplicate full sync converges.
+      const pullCursor = await getPullCursor();
+      const cloud = await convex.query(api.sync.pull, { since: pullCursor });
       const { metaChanged } = await applyCloudState(cloud);
-      const snapshot = await readLocalSnapshot();
-      await convex.mutation(api.sync.push, snapshot);
+      const pushCursor = await getPushCursor();
+      const snapshot = await readLocalSnapshot(pushCursor);
+      const { pushedAt } = await convex.mutation(api.sync.push, snapshot);
+      await setPullCursor(cloud.pulledAt);
+      await setPushCursor(pushedAt);
       if (metaChanged) await reload();
       setLastSyncedAt(Date.now());
       setLastError(null);

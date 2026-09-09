@@ -6,12 +6,21 @@ import { auth } from './auth';
 
 // Cloud-side half of the sync engine. The client pulls the user's full state,
 // merges it into SQLite, then pushes its full state back; both sides apply the
-// same per-field rules, so the two converge to the same merged state. Data
-// volumes are tiny (hundreds of rows), which buys simplicity over an op-log.
+// same per-field rules, so the two converge to the same merged state.
+//
+// round_word is compacted to ONE cloud doc per round (reached/flagged position
+// arrays) so a 3,120-word round is a single row instead of 3,120, and the
+// server merge is an O(reached) array union instead of an O(words^2) per-word
+// lookup. Sync is incremental: the client keeps a pull/push watermark (see
+// src/cloud/sync-cursor.ts) and only ships rows newer than it; `pull` takes the
+// same `since` watermark and returns only rows changed after it. A 0 watermark
+// means "never synced" → a full bootstrap. See docs/cloud-sync.md "Decisions &
+// trade-offs".
 //
 // Merge rules (see docs/cloud-sync.md):
 //   bucket_progress  round/pointer ride the higher round, startedAt by LWW
-//   round_word       reached |=, reachedAt = max, flagged |= (history appends)
+//   round_word       one cloud doc per round; reached/flagged are position
+//                    arrays merged by union across devices (history appends)
 //   round_history    union, startedAt = min, finishedAt = max
 //   daily_stat       per metric max (a high-water beat; summing would
 //                    double-count the same day across devices)
@@ -20,18 +29,26 @@ import { auth } from './auth';
 //   meta             last-write-wins by updatedAt
 
 export const pull = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { since: v.optional(v.number()) },
+  handler: async (ctx, { since }) => {
     const userId = await requireUser(ctx);
+    // `since` is the client's pull watermark; when set we only return rows
+    // changed after it. Each table uses its own version column, applied as a
+    // post-index `.filter` (the per-user index already narrows the scan).
+    const changed = (table: any, index: any, col: string) => {
+      let q = ctx.db.query(table).withIndex(index, (q: any) => q.eq('userId', userId));
+      if (since && since > 0) q = q.filter((row: any) => row.gt(col, since));
+      return q.collect();
+    };
     const [progress, roundWords, roundHistory, dailyStats, dailyPointers, wordFlags, meta] =
       await Promise.all([
-        ctx.db.query('cloudBucketProgress').withIndex('by_user_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudRoundWord').withIndex('by_user_bucket_round', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudRoundHistory').withIndex('by_user_bucket_round', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudDailyStat').withIndex('by_user_day', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudDailyPointer').withIndex('by_user_day_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudWordFlag').withIndex('by_user_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudMeta').withIndex('by_user_key', (q) => q.eq('userId', userId)).collect(),
+        changed('cloudBucketProgress', 'by_user_bucket', 'progressUpdatedAt'),
+        changed('cloudRoundWord', 'by_user_bucket_round', 'updatedAt'),
+        changed('cloudRoundHistory', 'by_user_bucket_round', 'updatedAt'),
+        changed('cloudDailyStat', 'by_user_day', 'updatedAt'),
+        changed('cloudDailyPointer', 'by_user_day_bucket', 'updatedAt'),
+        changed('cloudWordFlag', 'by_user_bucket', 'flaggedAt'),
+        changed('cloudMeta', 'by_user_key', 'updatedAt'),
       ]);
     return {
       progress: progress.map(({ userId: _userId, ...row }) => row),
@@ -61,10 +78,8 @@ export const push = mutation({
       v.object({
         bucketId: v.string(),
         round: v.number(),
-        position: v.number(),
-        reached: v.boolean(),
-        flagged: v.boolean(),
-        reachedAt: v.number(),
+        reached: v.array(v.number()),
+        flagged: v.array(v.number()),
         updatedAt: v.number(),
       }),
     ),
@@ -125,15 +140,21 @@ export const push = mutation({
     }
 
     for (const rw of args.roundWords) {
-      const existing = await findRoundWord(ctx, userId, rw.bucketId, rw.round, rw.position);
+      const existing = await findRoundWordDoc(ctx, userId, rw.bucketId, rw.round);
       if (!existing) {
-        await ctx.db.insert('cloudRoundWord', { userId, ...rw });
+        await ctx.db.insert('cloudRoundWord', {
+          userId,
+          bucketId: rw.bucketId,
+          round: rw.round,
+          reached: rw.reached,
+          flagged: rw.flagged,
+          updatedAt: rw.updatedAt,
+        });
         continue;
       }
       await ctx.db.patch(existing._id, {
-        reached: existing.reached || rw.reached,
-        flagged: existing.flagged || rw.flagged,
-        reachedAt: Math.max(existing.reachedAt, rw.reachedAt),
+        reached: unionPositions(existing.reached, rw.reached),
+        flagged: unionPositions(existing.flagged, rw.flagged),
         updatedAt: Math.max(existing.updatedAt, rw.updatedAt),
       });
     }
@@ -276,20 +297,28 @@ async function findProgress(ctx: MutationCtx, userId: GenericId<'users'>, bucket
     .unique();
 }
 
-async function findRoundWord(
+async function findRoundWordDoc(
   ctx: MutationCtx,
   userId: GenericId<'users'>,
   bucketId: string,
   round: number,
-  position: number,
 ) {
-  const rows = await ctx.db
+  return ctx.db
     .query('cloudRoundWord')
     .withIndex('by_user_bucket_round', (q) =>
       q.eq('userId', userId).eq('bucketId', bucketId).eq('round', round),
     )
-    .collect();
-  return rows.find((r) => r.position === position) ?? null;
+    .unique();
+}
+
+/** Returns the sorted union of two position arrays (used to merge reached /
+ * flagged sets across devices). Empty inputs short-circuit to the other side. */
+function unionPositions(a: number[], b: number[]): number[] {
+  if (a.length === 0) return [...b];
+  if (b.length === 0) return [...a];
+  const set = new Set(a);
+  for (const n of b) set.add(n);
+  return Array.from(set).sort((x, y) => x - y);
 }
 
 async function findRoundHistory(
