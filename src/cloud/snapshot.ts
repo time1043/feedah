@@ -1,4 +1,4 @@
-import { gte } from 'drizzle-orm';
+import { and, gt, gte } from 'drizzle-orm';
 
 import { getDb } from '@/db/index';
 import {
@@ -56,9 +56,19 @@ export type LocalSnapshot = {
   meta: { key: string; value: string; updatedAt: number }[];
 };
 
-/** Reads every user-state row that the cloud mirror should see. */
-export async function readLocalSnapshot(): Promise<LocalSnapshot> {
+/**
+ * Reads the user-state rows that changed since `since` (a sync watermark, 0 =
+ * first sync / full snapshot). Each table is filtered by its own version column
+ * so an unchanged row costs nothing to push. `round_word` is grouped from only
+ * the per-word rows updated since `since`, so an untouched round is skipped
+ * entirely.
+ */
+export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
   const db = await getDb();
+  // `since` of 0 means "everything" — pass `undefined` as the WHERE clause so a
+  // bootstrap still captures rows whose version column is legitimately 0 (e.g. a
+  // freshly seeded bucket whose progressUpdatedAt has never been bumped).
+  const sinceSince = since > 0 ? since : undefined;
   const [
     progress,
     history,
@@ -67,18 +77,29 @@ export async function readLocalSnapshot(): Promise<LocalSnapshot> {
     flags,
     metaRows,
   ] = await Promise.all([
-    db.select().from(bucketProgress),
-    db.select().from(roundHistory),
-    db.select().from(dailyStat),
-    db.select().from(dailyPointer),
+    db.select().from(bucketProgress).where(sinceSince ? gt(bucketProgress.progressUpdatedAt, sinceSince) : undefined),
+    db.select().from(roundHistory).where(sinceSince ? gt(roundHistory.updatedAt, sinceSince) : undefined),
+    db.select().from(dailyStat).where(sinceSince ? gt(dailyStat.updatedAt, sinceSince) : undefined),
+    db.select().from(dailyPointer).where(sinceSince ? gt(dailyPointer.updatedAt, sinceSince) : undefined),
     // flaggedAt = 0 means the flag was never touched, so nothing to sync.
-    db.select().from(word).where(gte(word.flaggedAt, 1)),
-    db.select().from(meta),
+    db
+      .select()
+      .from(word)
+      .where(
+        sinceSince
+          ? and(gte(word.flaggedAt, 1), gt(word.flaggedAt, sinceSince))
+          : gte(word.flaggedAt, 1),
+      ),
+    db.select().from(meta).where(sinceSince ? gt(meta.updatedAt, sinceSince) : undefined),
   ]);
   // `round_word` is per-word locally but ships to the cloud as one compact doc
   // per round: only the positions that differ from the default (unreached,
-  // unflagged) are kept, as two position arrays.
-  const roundWordRows = await db.select().from(roundWord);
+  // unflagged) are kept, as two position arrays. Read only the rows touched
+  // since `since`; rounds with no recent change are skipped.
+  const roundWordRows = await db
+    .select()
+    .from(roundWord)
+    .where(sinceSince ? gt(roundWord.updatedAt, sinceSince) : undefined);
   const byRound = new Map<
     string,
     { bucketId: string; round: number; reached: Set<number>; flagged: Set<number>; updatedAt: number }

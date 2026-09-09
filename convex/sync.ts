@@ -11,9 +11,11 @@ import { auth } from './auth';
 // round_word is compacted to ONE cloud doc per round (reached/flagged position
 // arrays) so a 3,120-word round is a single row instead of 3,120, and the
 // server merge is an O(reached) array union instead of an O(words^2) per-word
-// lookup. Sync is still full-state (no incremental yet) — fine at current
-// volumes, but incremental push/pull is the planned scaling step once a user
-// accrues many rounds. See docs/cloud-sync.md "Decisions & trade-offs".
+// lookup. Sync is incremental: the client keeps a pull/push watermark (see
+// src/cloud/sync-cursor.ts) and only ships rows newer than it; `pull` takes the
+// same `since` watermark and returns only rows changed after it. A 0 watermark
+// means "never synced" → a full bootstrap. See docs/cloud-sync.md "Decisions &
+// trade-offs".
 //
 // Merge rules (see docs/cloud-sync.md):
 //   bucket_progress  round/pointer ride the higher round, startedAt by LWW
@@ -27,18 +29,26 @@ import { auth } from './auth';
 //   meta             last-write-wins by updatedAt
 
 export const pull = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { since: v.optional(v.number()) },
+  handler: async (ctx, { since }) => {
     const userId = await requireUser(ctx);
+    // `since` is the client's pull watermark; when set we only return rows
+    // changed after it. Each table uses its own version column, applied as a
+    // post-index `.filter` (the per-user index already narrows the scan).
+    const changed = (table: any, index: any, col: string) => {
+      let q = ctx.db.query(table).withIndex(index, (q: any) => q.eq('userId', userId));
+      if (since && since > 0) q = q.filter((row: any) => row.gt(col, since));
+      return q.collect();
+    };
     const [progress, roundWords, roundHistory, dailyStats, dailyPointers, wordFlags, meta] =
       await Promise.all([
-        ctx.db.query('cloudBucketProgress').withIndex('by_user_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudRoundWord').withIndex('by_user_bucket_round', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudRoundHistory').withIndex('by_user_bucket_round', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudDailyStat').withIndex('by_user_day', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudDailyPointer').withIndex('by_user_day_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudWordFlag').withIndex('by_user_bucket', (q) => q.eq('userId', userId)).collect(),
-        ctx.db.query('cloudMeta').withIndex('by_user_key', (q) => q.eq('userId', userId)).collect(),
+        changed('cloudBucketProgress', 'by_user_bucket', 'progressUpdatedAt'),
+        changed('cloudRoundWord', 'by_user_bucket_round', 'updatedAt'),
+        changed('cloudRoundHistory', 'by_user_bucket_round', 'updatedAt'),
+        changed('cloudDailyStat', 'by_user_day', 'updatedAt'),
+        changed('cloudDailyPointer', 'by_user_day_bucket', 'updatedAt'),
+        changed('cloudWordFlag', 'by_user_bucket', 'flaggedAt'),
+        changed('cloudMeta', 'by_user_key', 'updatedAt'),
       ]);
     return {
       progress: progress.map(({ userId: _userId, ...row }) => row),

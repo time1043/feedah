@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import { Screen } from '@/components/screen';
+import { clearCursors } from '@/cloud/sync-cursor';
 // The convex/ directory sits at the repo root, outside the @/* (src) mapping.
 import { CONVEX_URL, convex } from '@/cloud/convex';
 import { api } from '../../../convex/_generated/api';
@@ -191,6 +192,11 @@ export default function SettingsScreen() {
               }
               await resetDatabase();
               resetUsage();
+              // Drop the sync watermarks so the next sign-in does a full
+              // bootstrap instead of assuming the (now erased) cloud state is
+              // current — otherwise pull would return nothing and local data
+              // would never come back.
+              await clearCursors();
               await reload();
             })(),
         },

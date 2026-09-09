@@ -35,17 +35,22 @@ first cycle of a session fires when the bound account becomes ready (auth
 and settings may resolve in either order); network regain and app foreground
 trigger catch-up cycles, and signing in re-syncs immediately. One cycle is:
 
-1. **Pull** — `sync.pull` returns the user's whole cloud state;
-   `applyCloudState` (`src/cloud/mirror.ts`) merges it into SQLite.
-2. **Push** — the full local state (`readLocalSnapshot`) is sent to
-   `sync.push`, which applies the same merge rules server-side.
+1. **Pull** — `sync.pull({ since })` returns only the cloud rows changed after
+   the client's pull watermark; `applyCloudState` (`src/cloud/mirror.ts`) merges
+   them into SQLite.
+2. **Push** — `readLocalSnapshot(since)` sends only the local rows changed after
+   the push watermark to `sync.push`, which applies the same merge rules
+   server-side.
 
 Both sides run the same rules, so the two stores converge after any cycle.
 `round_word` is compacted on the wire: the cloud keeps **one document per
 round** holding only the reached/flagged positions (as two sorted arrays), so
 even a 3,120-word round stays a single cloud row instead of 3,120 — and the
 server merge is an O(reached) array union, not an O(words²) per-word lookup.
-All other tables stay tiny, which buys this full-state simplicity over an op-log.
+Sync is **incremental**: the client carries a pull/push watermark (in the
+device keychain, `src/cloud/sync-cursor.ts`) and each cycle only ships rows
+newer than it, so a user with many rounds no longer re-pushes the whole history
+every time. A 0 watermark means "never synced" → one full bootstrap.
 
 ## Merge rules
 
@@ -84,14 +89,18 @@ is a single `.unique()` lookup plus an array union, and `pull` no longer
 re-collects thousands of rows. The `stats` heatmap and all local UI are
 unchanged — only the on-the-wire / cloud representation differs.
 
-**Push and pull are still full-state.** Compaction cuts *per-round* size and
-server reads, but `readLocalSnapshot` still ships **every** round and `pull`
-still collects the user's whole cloud state each cycle. At current volumes that
-is fine; once a user accrues many rounds (hundreds) the full push approaches
-request-size limits and becomes wasteful. **Incremental sync** — a sync cursor
-tracking `updatedAt` per entity, pushing/pulling only changes since the last
-cycle (with `round_word` changes keyed by round) — is the planned next step and
-a separate change, not part of this compaction.
+**Incremental sync rides on top of the compaction.** With one doc per round the
+per-cycle cost is bounded by *changed* rounds, not total history. The client
+stores a pull/push watermark (`src/cloud/sync-cursor.ts`, in the device
+keychain so it never travels to the cloud) and each cycle pushes only rows newer
+than the push watermark (`readLocalSnapshot(since)` filters every table by its
+version column) and pulls only rows newer than the pull watermark (`sync.pull`
+takes the same `since` and filters server-side). A 0 watermark means "never
+synced" and triggers one full bootstrap; the merge rules are idempotent so a
+duplicate full sync converges. Crucially, **every local mutation must bump its
+version column** (`updatedAt` / `flaggedAt` / `progressUpdatedAt`) or that row
+would be invisible to incremental sync after the first bootstrap — `setReached`
+and `seedBuckets` were fixed to set theirs.
 
 ## Setup
 

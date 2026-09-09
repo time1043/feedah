@@ -43,7 +43,7 @@ export async function seedBuckets(db: Db): Promise<void> {
     if (existing && existing.wordCount === file.words.length) {
       await db
         .insert(bucketProgress)
-        .values({ bucketId: file.name })
+        .values({ bucketId: file.name, progressUpdatedAt: Date.now() })
         .onConflictDoNothing({ target: bucketProgress.bucketId });
       continue;
     }
@@ -82,7 +82,7 @@ export async function seedBuckets(db: Db): Promise<void> {
       }
       await tx
         .insert(bucketProgress)
-        .values({ bucketId: file.name })
+        .values({ bucketId: file.name, progressUpdatedAt: Date.now() })
         .onConflictDoNothing({ target: bucketProgress.bucketId });
     });
   }
