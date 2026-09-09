@@ -20,15 +20,18 @@ export default defineSchema({
   })
     .index('by_user_bucket', ['userId', 'bucketId']),
 
-  // Per-user mirror of `round_word`.
+  // Per-user mirror of `round_word`, compacted to ONE document per round. A
+  // 3,120-word round would be 3,120 rows if stored per word (almost all of them
+  // the default unreached/unflagged), so we store only the positions that
+  // differ from that default as two arrays. This keeps the cloud document count
+  // at one-per-round (not thousands) and turns the server-side merge into an
+  // O(reached) array union instead of an O(words^2) per-word lookup.
   cloudRoundWord: defineTable({
     userId: v.id('users'),
     bucketId: v.string(),
     round: v.number(),
-    position: v.number(),
-    reached: v.boolean(),
-    flagged: v.boolean(),
-    reachedAt: v.number(),
+    reached: v.array(v.number()),
+    flagged: v.array(v.number()),
     updatedAt: v.number(),
   })
     .index('by_user_bucket_round', ['userId', 'bucketId', 'round']),

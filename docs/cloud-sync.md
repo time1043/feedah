@@ -41,15 +41,18 @@ trigger catch-up cycles, and signing in re-syncs immediately. One cycle is:
    `sync.push`, which applies the same merge rules server-side.
 
 Both sides run the same rules, so the two stores converge after any cycle.
-Data volumes are tiny (hundreds of rows), which buys this full-state
-simplicity over an op-log.
+`round_word` is compacted on the wire: the cloud keeps **one document per
+round** holding only the reached/flagged positions (as two sorted arrays), so
+even a 3,120-word round stays a single cloud row instead of 3,120 — and the
+server merge is an O(reached) array union, not an O(words²) per-word lookup.
+All other tables stay tiny, which buys this full-state simplicity over an op-log.
 
 ## Merge rules
 
 | Data | Rule |
 | --- | --- |
 | `bucket_progress` | round/pointer ride the higher round; `startedAt` last-write-wins by `progress_updated_at` |
-| `round_word` | `reached` OR, `reached_at` max, `flagged` OR (per-round history is append-only) |
+| `round_word` | one cloud doc per round; `reached`/`flagged` are position arrays merged by **union** across devices (per-round history is append-only) |
 | `round_history` | union; `started_at` min, `finished_at` max |
 | `daily_stat` | per metric max (high-water beat; summing would double-count one day used on two devices) |
 | `daily_pointer` | `global_position` max (high-water snapshots) |
@@ -58,6 +61,37 @@ simplicity over an op-log.
 
 The timestamp columns (`updated_at`, `flagged_at`, `progress_updated_at`)
 exist solely for these rules; local behavior never reads them.
+
+## Decisions & trade-offs
+
+**`cloudRoundWord` is one array doc per round, not one row per word.** The
+history heatmap (`stats` screen) renders every past round, so its per-round
+shape must survive a reinstall or a second device — that portability is the
+reason the table exists at all. Two cheaper alternatives were considered and
+rejected:
+
+- **Drop `cloudRoundWord` entirely** (keep only `cloudBucketProgress` + the
+  `word.flagged` mirror). Simplest, but a fresh device would lose all past
+  round heatmaps and have to re-learn to rebuild them. Rejected because the
+  user cares about history portability.
+- **Keep per-word rows but add a `position` index.** This fixes the O(words²)
+  server read blow-up (the `Too many documents read` crash at ~254 words/round)
+  but leaves the table growing without bound — thousands of rows per round, and
+  `pull` would later hit the *same* 32k read ceiling re-collecting it.
+
+The array form fixes both: cloud rows drop ~3120× per round, the server merge
+is a single `.unique()` lookup plus an array union, and `pull` no longer
+re-collects thousands of rows. The `stats` heatmap and all local UI are
+unchanged — only the on-the-wire / cloud representation differs.
+
+**Push and pull are still full-state.** Compaction cuts *per-round* size and
+server reads, but `readLocalSnapshot` still ships **every** round and `pull`
+still collects the user's whole cloud state each cycle. At current volumes that
+is fine; once a user accrues many rounds (hundreds) the full push approaches
+request-size limits and becomes wasteful. **Incremental sync** — a sync cursor
+tracking `updatedAt` per entity, pushing/pulling only changes since the last
+cycle (with `round_word` changes keyed by round) — is the planned next step and
+a separate change, not part of this compaction.
 
 ## Setup
 
@@ -92,3 +126,8 @@ on every push.
   used on two devices counts once — conservative by design.
 - The engine is single-user by construction; there is no sharing or
   multi-device conflict UI — conflicts resolve silently by the rules above.
+- **Schema migration note:** `cloudRoundWord` changed shape (per-word rows →
+  one array doc per round). Deploying the new backend leaves the old per-word
+  documents behind, which the new reader cannot interpret — after `npx convex
+  dev`, wipe the cloud once (`npx convex run sync:resetAll '{}'` in dev, or
+  Settings → Account → Clear all data from the app) so the table starts clean.

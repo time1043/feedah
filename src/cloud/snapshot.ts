@@ -24,10 +24,8 @@ export type LocalSnapshot = {
   roundWords: {
     bucketId: string;
     round: number;
-    position: number;
-    reached: boolean;
-    flagged: boolean;
-    reachedAt: number;
+    reached: number[];
+    flagged: number[];
     updatedAt: number;
   }[];
   roundHistory: {
@@ -61,9 +59,15 @@ export type LocalSnapshot = {
 /** Reads every user-state row that the cloud mirror should see. */
 export async function readLocalSnapshot(): Promise<LocalSnapshot> {
   const db = await getDb();
-  const [progress, roundWords, history, stats, pointers, flags, metaRows] = await Promise.all([
+  const [
+    progress,
+    history,
+    stats,
+    pointers,
+    flags,
+    metaRows,
+  ] = await Promise.all([
     db.select().from(bucketProgress),
-    db.select().from(roundWord),
     db.select().from(roundHistory),
     db.select().from(dailyStat),
     db.select().from(dailyPointer),
@@ -71,6 +75,32 @@ export async function readLocalSnapshot(): Promise<LocalSnapshot> {
     db.select().from(word).where(gte(word.flaggedAt, 1)),
     db.select().from(meta),
   ]);
+  // `round_word` is per-word locally but ships to the cloud as one compact doc
+  // per round: only the positions that differ from the default (unreached,
+  // unflagged) are kept, as two position arrays.
+  const roundWordRows = await db.select().from(roundWord);
+  const byRound = new Map<
+    string,
+    { bucketId: string; round: number; reached: Set<number>; flagged: Set<number>; updatedAt: number }
+  >();
+  for (const r of roundWordRows) {
+    const key = `${r.bucketId}|${r.round}`;
+    let agg = byRound.get(key);
+    if (!agg) {
+      agg = { bucketId: r.bucketId, round: r.round, reached: new Set(), flagged: new Set(), updatedAt: 0 };
+      byRound.set(key, agg);
+    }
+    if (r.reached) agg.reached.add(r.position);
+    if (r.flagged) agg.flagged.add(r.position);
+    if (r.updatedAt > agg.updatedAt) agg.updatedAt = r.updatedAt;
+  }
+  const roundWords = Array.from(byRound.values()).map((a) => ({
+    bucketId: a.bucketId,
+    round: a.round,
+    reached: Array.from(a.reached).sort((x, y) => x - y),
+    flagged: Array.from(a.flagged).sort((x, y) => x - y),
+    updatedAt: a.updatedAt,
+  }));
 
   return {
     progress: progress.map((row) => ({
@@ -80,15 +110,7 @@ export async function readLocalSnapshot(): Promise<LocalSnapshot> {
       startedAt: row.startedAt,
       progressUpdatedAt: row.progressUpdatedAt,
     })),
-    roundWords: roundWords.map((row) => ({
-      bucketId: row.bucketId,
-      round: row.round,
-      position: row.position,
-      reached: row.reached,
-      flagged: row.flagged,
-      reachedAt: row.reachedAt,
-      updatedAt: row.updatedAt,
-    })),
+    roundWords,
     roundHistory: history.map((row) => ({
       bucketId: row.bucketId,
       round: row.round,
