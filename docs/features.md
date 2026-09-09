@@ -48,6 +48,13 @@ All behave identically:
   truncation, with margin before the bookmark) in the bottom half; the
   bookmark at the bottom. Slots and the forms grid are fixed, so toggling or
   switching words never shifts the layout or card height.
+- **Meaning line breaks**: a long meaning breaks onto one line per **part-of-
+  speech group**, not per "、" — a sense starting with a POS tag (n. / v. /
+  prep. / conj. …) opens a new line and any following bare senses join it with
+  "、", so one group stays together. "for" → "prep. 为了……、对于……、conj. 因为"
+  becomes 2 lines ("prep. 为了……、对于……" / "conj. 因为"), spaced apart. Short
+  meanings (1-2 senses, e.g. "change" → "v. n. 改变、n. 零钱") and meanings
+  that are a single group stay on one line.
 - Tap the word → replay pronunciation. Tap anywhere else → toggle meaning and
   forms. Bookmark → flag the word as unfamiliar.
 - **Counting**: studying counts a card when you swipe **past** it — landing on

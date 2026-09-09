@@ -13,6 +13,33 @@ const FORMS_COLUMNS = 2;
 const FORMS_ROWS = 6;
 const FORMS_GRID_CELLS = FORMS_COLUMNS * FORMS_ROWS;
 
+// Matches a leading part-of-speech tag: n. / v. / adj. / prep. / conj. …
+const POS_TAG = /^[a-z]+\./i;
+
+/**
+ * Groups a meaning's "、"-separated senses by part of speech: a sense that
+ * starts with a POS tag opens a new line, and any following bare senses join
+ * it with "、" so one POS group stays together.
+ *   "prep. 为了……、对于……、conj. 因为"
+ *     -> ["prep. 为了……、对于……", "conj. 因为"]
+ * Returns null when no break is needed: the meaning is short (1-2 senses), or
+ * every sense belongs to the same POS group.
+ */
+function meaningLines(meaning: string): string[] | null {
+  const senses = meaning
+    .split('、')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  if (senses.length < 3) return null;
+  const lines: string[] = [];
+  for (const sense of senses) {
+    if (lines.length === 0 || POS_TAG.test(sense)) lines.push(sense);
+    else lines[lines.length - 1] += `、${sense}`;
+  }
+  // One group (e.g. "n. 形式、表格、外观") needs no break.
+  return lines.length > 1 ? lines : null;
+}
+
 type WordCardProps = {
   position: number;
   text: string;
@@ -53,6 +80,10 @@ export function WordCard({
     setRevealed((v) => !v);
   };
 
+  // Long meanings break onto one line per part-of-speech group; short ones
+  // stay on a single line.
+  const lines = meaningLines(meaning);
+
   return (
     <View style={styles.root}>
       <Pressable style={styles.top} onPress={toggleMeaning}>
@@ -72,7 +103,17 @@ export function WordCard({
         {/* Reserved slot: keeps number and word anchored while meaning toggles. */}
         <View style={styles.meaningSlot}>
           {meaningVisible && meaning.length > 0 && (
-            <Text style={[styles.meaning, { color: colors.textSecondary }]}>{meaning}</Text>
+            lines ? (
+              <View style={styles.meaningLines}>
+                {lines.map((line, i) => (
+                  <Text key={i} style={[styles.meaning, { color: colors.textSecondary }]}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.meaning, { color: colors.textSecondary }]}>{meaning}</Text>
+            )
           )}
         </View>
       </Pressable>
@@ -145,13 +186,17 @@ const styles = StyleSheet.create({
   },
   meaningSlot: {
     alignItems: 'center',
-    height: 96,
+    height: 110,
     justifyContent: 'flex-start',
     marginTop: spacing.m,
   },
   meaning: {
     fontSize: 20,
     textAlign: 'center',
+  },
+  meaningLines: {
+    alignItems: 'center',
+    gap: spacing.s,
   },
   formsGrid: {
     flexDirection: 'row',
