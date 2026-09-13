@@ -45,10 +45,13 @@
     "@types/react": "~19.2.2",
     "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "1.0.0-rc.4",
+    "oxfmt": "^0.67.0",
     "sharp": "^0.35.4",
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
