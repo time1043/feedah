@@ -6,7 +6,7 @@
  *   node scripts/generate-assets.mjs
  */
 
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';

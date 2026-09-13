@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -41,7 +41,6 @@ import {
   formatTimeOfDay,
   openNotificationSettings,
   parseTimeOfDaySetting,
-  parseTimeOfDay,
   requestReminderPermission,
   syncReminders,
 } from '@/lib/reminders';
