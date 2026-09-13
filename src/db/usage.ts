@@ -1,5 +1,6 @@
-import { addDailyTime } from './repo';
 import { todayLocalDate } from '@/lib/date';
+
+import { addDailyTime } from './repo';
 
 /**
  * Tracks two daily time metrics while the app is in the foreground:

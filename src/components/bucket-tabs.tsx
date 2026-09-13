@@ -25,7 +25,8 @@ export function BucketTabs({ buckets, activeId, onSelect }: BucketTabsProps) {
           <Pressable
             key={bucket.id}
             onPress={() => onSelect(bucket.id)}
-            style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surface }]}>
+            style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surface }]}
+          >
             <Text style={[styles.label, { color: active ? '#FFFFFF' : colors.textSecondary }]}>
               {bucket.id}
             </Text>

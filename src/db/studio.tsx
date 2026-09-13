@@ -1,6 +1,6 @@
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
-import { useEffect, useState } from 'react';
 import * as SQLite from 'expo-sqlite';
+import { useEffect, useState } from 'react';
 
 import { getDb, getRawDb } from './index';
 

@@ -1,3 +1,8 @@
+import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import Constants from 'expo-constants';
+import { useFocusEffect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -12,21 +17,22 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
-import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
 
-import { Screen } from '@/components/screen';
-import { clearCursors } from '@/cloud/sync-cursor';
 // The convex/ directory sits at the repo root, outside the @/* (src) mapping.
 import { CONVEX_URL, convex } from '@/cloud/convex';
-import { api } from '../../../convex/_generated/api';
 import { useSync } from '@/cloud/sync';
+import { clearCursors } from '@/cloud/sync-cursor';
+import { Screen } from '@/components/screen';
 import { resetDatabase } from '@/db/index';
 import { getDailyStat, type DailyStatRow } from '@/db/repo';
-import { useSettings, type MeaningMode, type Reminder, type Settings, type SpeechRate, type ThemeMode } from '@/db/settings';
+import {
+  useSettings,
+  type MeaningMode,
+  type Reminder,
+  type Settings,
+  type SpeechRate,
+  type ThemeMode,
+} from '@/db/settings';
 import { getLiveUsage, resetUsage } from '@/db/usage';
 import { todayLocalDate } from '@/lib/date';
 import { formatClock } from '@/lib/format';
@@ -41,6 +47,8 @@ import {
 } from '@/lib/reminders';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
+
+import { api } from '../../../convex/_generated/api';
 
 const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -101,9 +109,9 @@ export default function SettingsScreen() {
   };
 
   const syncFrom = (next: Settings) => {
-    void syncReminders(
-      next.remindersEnabled ? activeReminderTimes(next.reminders) : [],
-    ).catch(() => {});
+    void syncReminders(next.remindersEnabled ? activeReminderTimes(next.reminders) : []).catch(
+      () => {},
+    );
   };
 
   const toggleReminders = async (v: boolean) => {
@@ -275,17 +283,20 @@ export default function SettingsScreen() {
                 ? () => setActionModal(true)
                 : () => openAccountModal(true)
           }
-          disabled={!CONVEX_URL}>
+          disabled={!CONVEX_URL}
+        >
           <View
             style={[
               styles.avatar,
               { backgroundColor: settings.accountEmail ? colors.accent : colors.background },
-            ]}>
+            ]}
+          >
             <Text
               style={[
                 styles.avatarText,
                 { color: settings.accountEmail ? '#FFFFFF' : colors.textSecondary },
-              ]}>
+              ]}
+            >
               {settings.accountEmail ? settings.accountEmail.charAt(0).toUpperCase() : 'G'}
             </Text>
           </View>
@@ -293,7 +304,10 @@ export default function SettingsScreen() {
             <Text style={[styles.profileName, { color: colors.text }]} numberOfLines={1}>
               {settings.accountEmail || 'Guest'}
             </Text>
-            <Text style={[styles.profileSubtitle, { color: colors.textTertiary }]} numberOfLines={1}>
+            <Text
+              style={[styles.profileSubtitle, { color: colors.textTertiary }]}
+              numberOfLines={1}
+            >
               {!CONVEX_URL
                 ? 'Cloud sync not configured'
                 : settings.accountEmail
@@ -410,10 +424,16 @@ export default function SettingsScreen() {
           </Pressable>
         </Group>
 
-        <Modal transparent visible={accountModal} animationType="slide" onRequestClose={() => setAccountModal(false)}>
+        <Modal
+          transparent
+          visible={accountModal}
+          animationType="slide"
+          onRequestClose={() => setAccountModal(false)}
+        >
           <KeyboardAvoidingView
             style={styles.sheetOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
             <Pressable style={styles.sheetBackdrop} onPress={() => setAccountModal(false)} />
             <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
               <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
@@ -450,12 +470,17 @@ export default function SettingsScreen() {
                   { backgroundColor: colors.accent, opacity: canSubmit ? 1 : 0.4 },
                 ]}
                 disabled={!canSubmit || accountBusy}
-                onPress={submitAccount}>
+                onPress={submitAccount}
+              >
                 <Text style={styles.primaryButtonText}>
                   {accountBusy ? 'Please wait…' : signUpMode ? 'Create account' : 'Sign in'}
                 </Text>
               </Pressable>
-              <Pressable style={styles.swapRow} hitSlop={8} onPress={() => setSignUpMode((v) => !v)}>
+              <Pressable
+                style={styles.swapRow}
+                hitSlop={8}
+                onPress={() => setSignUpMode((v) => !v)}
+              >
                 <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
                   {signUpMode ? 'Already have an account? ' : 'New here? '}
                   <Text style={{ color: colors.accent, fontWeight: '600' }}>
@@ -467,10 +492,16 @@ export default function SettingsScreen() {
           </KeyboardAvoidingView>
         </Modal>
 
-        <Modal transparent visible={actionModal} animationType="slide" onRequestClose={() => setActionModal(false)}>
+        <Modal
+          transparent
+          visible={actionModal}
+          animationType="slide"
+          onRequestClose={() => setActionModal(false)}
+        >
           <KeyboardAvoidingView
             style={styles.sheetOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
             <Pressable style={styles.sheetBackdrop} onPress={() => setActionModal(false)} />
             <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
               <View style={[styles.sheetHandle, { backgroundColor: colors.separator }]} />
@@ -482,7 +513,8 @@ export default function SettingsScreen() {
                 onPress={() => {
                   setActionModal(false);
                   openAccountModal(false);
-                }}>
+                }}
+              >
                 <Text style={{ color: colors.text, fontSize: fontSize.body }}>Switch account</Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </Pressable>
@@ -491,7 +523,8 @@ export default function SettingsScreen() {
                 onPress={() => {
                   setActionModal(false);
                   signOutAccount();
-                }}>
+                }}
+              >
                 <Text style={{ color: colors.danger, fontSize: fontSize.body }}>Sign out</Text>
               </Pressable>
             </View>
@@ -576,13 +609,18 @@ function OptionRow<T extends string>({
             <Pressable
               key={option.value}
               onPress={() => onChange(option.value)}
-              style={[styles.option, { backgroundColor: active ? colors.accent : colors.background }]}>
+              style={[
+                styles.option,
+                { backgroundColor: active ? colors.accent : colors.background },
+              ]}
+            >
               <Text
                 style={{
                   color: active ? '#FFFFFF' : colors.textSecondary,
                   fontSize: fontSize.caption,
                   fontWeight: '600',
-                }}>
+                }}
+              >
                 {option.label}
               </Text>
             </Pressable>
@@ -631,8 +669,11 @@ function SelectRow<T extends string>({
                   onPress={() => {
                     onChange(option.value);
                     setOpen(false);
-                  }}>
-                  <Text style={{ color: active ? colors.accent : colors.text, fontSize: fontSize.body }}>
+                  }}
+                >
+                  <Text
+                    style={{ color: active ? colors.accent : colors.text, fontSize: fontSize.body }}
+                  >
                     {option.label}
                   </Text>
                   {active && <Ionicons name="checkmark" size={20} color={colors.accent} />}
@@ -694,7 +735,8 @@ function ReminderRow({
             setLabelDraft(reminder.label);
             setRenaming(true);
           }}
-          hitSlop={6}>
+          hitSlop={6}
+        >
           <Text style={[styles.label, { color: colors.text }]}>{reminder.label}</Text>
         </Pressable>
         <View style={styles.reminderControls}>
@@ -708,12 +750,7 @@ function ReminderRow({
       </View>
 
       {picking && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={pickerValue}
-          mode="time"
-          is24Hour
-          onChange={onPickerChange}
-        />
+        <DateTimePicker value={pickerValue} mode="time" is24Hour onChange={onPickerChange} />
       )}
       {picking && Platform.OS === 'ios' && (
         <Modal transparent visible animationType="fade" onRequestClose={() => setPicking(false)}>
@@ -728,19 +765,27 @@ function ReminderRow({
               />
               <View style={styles.modalActions}>
                 <Pressable onPress={() => setPicking(false)} hitSlop={8}>
-                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>Cancel</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.body }}>
+                    Cancel
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
                     if (iosDraft) {
                       onTimeChange(
-                        formatTimeOfDay({ hour: iosDraft.getHours(), minute: iosDraft.getMinutes() }),
+                        formatTimeOfDay({
+                          hour: iosDraft.getHours(),
+                          minute: iosDraft.getMinutes(),
+                        }),
                       );
                     }
                     setPicking(false);
                   }}
-                  hitSlop={8}>
-                  <Text style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: '600' }}>
+                  hitSlop={8}
+                >
+                  <Text
+                    style={{ color: colors.accent, fontSize: fontSize.body, fontWeight: '600' }}
+                  >
                     Done
                   </Text>
                 </Pressable>
@@ -750,7 +795,12 @@ function ReminderRow({
         </Modal>
       )}
 
-      <Modal transparent visible={renaming} animationType="fade" onRequestClose={() => setRenaming(false)}>
+      <Modal
+        transparent
+        visible={renaming}
+        animationType="fade"
+        onRequestClose={() => setRenaming(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setRenaming(false)}>
           <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Rename reminder</Text>
@@ -760,7 +810,10 @@ function ReminderRow({
               onChangeText={setLabelDraft}
               placeholder="Label"
               placeholderTextColor={colors.textTertiary}
-              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text }]}
+              style={[
+                styles.modalInput,
+                { backgroundColor: colors.background, color: colors.text },
+              ]}
             />
             <View style={styles.modalActions}>
               <Pressable onPress={onDelete} hitSlop={8}>

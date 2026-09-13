@@ -1,13 +1,13 @@
-import { useEffect, type ReactNode } from 'react';
-import { AppState } from 'react-native';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CONVEX_URL, convex } from '@/cloud/convex';
 import { SyncProvider } from '@/cloud/sync';
 import { secureStorage } from '@/cloud/token-storage';
-import { CONVEX_URL, convex } from '@/cloud/convex';
 import { getDb } from '@/db/index';
 import { SettingsProvider, useSettings } from '@/db/settings';
 import { DrizzleStudio } from '@/db/studio';

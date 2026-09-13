@@ -2,9 +2,7 @@
   "version": "7",
   "dialect": "sqlite",
   "id": "dbdeb4b1-b93b-42a8-b89f-1e772d891680",
-  "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
-  ],
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
       "name": "bucket",
@@ -349,13 +347,9 @@
       "table": "word"
     },
     {
-      "columns": [
-        "bucket_id"
-      ],
+      "columns": ["bucket_id"],
       "tableTo": "bucket",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -364,13 +358,9 @@
       "table": "bucket_progress"
     },
     {
-      "columns": [
-        "bucket_id"
-      ],
+      "columns": ["bucket_id"],
       "tableTo": "bucket",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -379,77 +369,56 @@
       "table": "word"
     },
     {
-      "columns": [
-        "day",
-        "bucket_id"
-      ],
+      "columns": ["day", "bucket_id"],
       "nameExplicit": false,
       "name": "daily_pointer_pk",
       "entityType": "pks",
       "table": "daily_pointer"
     },
     {
-      "columns": [
-        "bucket_id",
-        "round"
-      ],
+      "columns": ["bucket_id", "round"],
       "nameExplicit": false,
       "name": "round_history_pk",
       "entityType": "pks",
       "table": "round_history"
     },
     {
-      "columns": [
-        "bucket_id",
-        "round",
-        "position"
-      ],
+      "columns": ["bucket_id", "round", "position"],
       "nameExplicit": false,
       "name": "round_word_pk",
       "entityType": "pks",
       "table": "round_word"
     },
     {
-      "columns": [
-        "bucket_id",
-        "position"
-      ],
+      "columns": ["bucket_id", "position"],
       "nameExplicit": false,
       "name": "word_pk",
       "entityType": "pks",
       "table": "word"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "bucket_pk",
       "table": "bucket",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "bucket_id"
-      ],
+      "columns": ["bucket_id"],
       "nameExplicit": false,
       "name": "bucket_progress_pk",
       "table": "bucket_progress",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "day"
-      ],
+      "columns": ["day"],
       "nameExplicit": false,
       "name": "daily_stat_pk",
       "table": "daily_stat",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "key"
-      ],
+      "columns": ["key"],
       "nameExplicit": false,
       "name": "meta_pk",
       "table": "meta",

@@ -104,37 +104,37 @@ All behave identically:
   Everywhere a wildcard appears, SQL semantics are followed exactly — there is no
   second compromise, which is why `__ter` and `__ter%` differ.
 
-  | Query | SQL pattern | Meaning | Example hits |
-  | --- | --- | --- | --- |
-  | `ter%` | `ter%` | starts with `ter` | terror, terminal, term |
-  | `%ter` | `%ter` | ends with `ter` | after, enter, letter, matter |
-  | `%ter%` | `%ter%` | contains `ter` | interest, after, determine |
-  | `ter` | `%ter%` | contains `ter` (bare-word concession) | same as above |
-  | - | `ter` | **not implemented** — that spelling is already spent on the bare-word concession above, and there is no clear use case (nothing in the data is exactly `ter`), so exact match is deliberately unreachable | - |
-  | `__ter%` | `__ter%` | 2 chars before `ter`, 0+ after | interest, after, water |
-  | `__ter` | `__ter` | 2 chars before `ter`, ends `ter` (≠ `__ter%`) | after, enter, water, cater, outer |
+  | Query    | SQL pattern | Meaning                                                                                                                                                                                                   | Example hits                      |
+  | -------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+  | `ter%`   | `ter%`      | starts with `ter`                                                                                                                                                                                         | terror, terminal, term            |
+  | `%ter`   | `%ter`      | ends with `ter`                                                                                                                                                                                           | after, enter, letter, matter      |
+  | `%ter%`  | `%ter%`     | contains `ter`                                                                                                                                                                                            | interest, after, determine        |
+  | `ter`    | `%ter%`     | contains `ter` (bare-word concession)                                                                                                                                                                     | same as above                     |
+  | -        | `ter`       | **not implemented** — that spelling is already spent on the bare-word concession above, and there is no clear use case (nothing in the data is exactly `ter`), so exact match is deliberately unreachable | -                                 |
+  | `__ter%` | `__ter%`    | 2 chars before `ter`, 0+ after                                                                                                                                                                            | interest, after, water            |
+  | `__ter`  | `__ter`     | 2 chars before `ter`, ends `ter` (≠ `__ter%`)                                                                                                                                                             | after, enter, water, cater, outer |
 
   **Alternatives (`|`)**: separate several patterns with `|` to union their
   results — the same role `OR` plays in SQL. This covers two similar words that
   one pattern cannot describe cleanly.
 
-  | Query | Meaning | Example hits |
-  | --- | --- | --- |
-  | `scene\|sense` | matches either word | sense, scene, scenery |
-  | `s%en%e` | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
-  | `sc%e\|se%e` | `\|` alternatives can use `%` | serve, see, sense, settle, schedule |
-  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery` | sense, scene |
+  | Query          | Meaning                                                                                            | Example hits                              |
+  | -------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+  | `scene\|sense` | matches either word                                                                                | sense, scene, scenery                     |
+  | `s%en%e`       | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
+  | `sc%e\|se%e`   | `\|` alternatives can use `%`                                                                      | serve, see, sense, settle, schedule       |
+  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery`                                 | sense, scene                              |
 
   **Alternatives (`|`)**: separate several patterns with `|` to union their
   results — the same role `OR` plays in SQL. This covers two similar words that
   one pattern cannot describe cleanly.
 
-  | Query | Meaning | Example hits |
-  | --- | --- | --- |
-  | `scene\|sense` | matches either word | sense, scene, scenery |
-  | `s%en%e` | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
-  | `sc%e\|se%e` | `\|` alternatives can use `%` | serve, see, sense, settle, schedule |
-  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery` | sense, scene |
+  | Query          | Meaning                                                                                            | Example hits                              |
+  | -------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+  | `scene\|sense` | matches either word                                                                                | sense, scene, scenery                     |
+  | `s%en%e`       | the same pair **without** `\|`: one pattern must cover both, so it reads poorly and picks up noise | sense, science, scene, sentence, sequence |
+  | `sc%e\|se%e`   | `\|` alternatives can use `%`                                                                      | serve, see, sense, settle, schedule       |
+  | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery`                                 | sense, scene                              |
 
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.

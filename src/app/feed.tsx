@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, AppState, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
+import { WordCard } from '@/components/word-card';
 import {
   advancePointer,
   getProgress,
@@ -210,7 +219,10 @@ export default function FeedScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       {/* Fixed header: progress bar row, then controls row; the card area
           always starts below it, so spacing stays constant. */}
       <View style={styles.header}>
@@ -231,12 +243,17 @@ export default function FeedScreen() {
           {mode === 'browse' && (
             <Pressable
               style={[styles.modePill, { backgroundColor: colors.accent }]}
-              onPress={resumeStudy}>
+              onPress={resumeStudy}
+            >
               <Text style={styles.modePillText}>Resume studying</Text>
             </Pressable>
           )}
           {settings.feedSearch && (
-            <Pressable onPress={() => router.push(`/search?bucket=${bucketId}`)} hitSlop={12} accessibilityLabel="Search words">
+            <Pressable
+              onPress={() => router.push(`/search?bucket=${bucketId}`)}
+              hitSlop={12}
+              accessibilityLabel="Search words"
+            >
               <Ionicons name="search" size={22} color={colors.textTertiary} />
             </Pressable>
           )}
@@ -250,7 +267,8 @@ export default function FeedScreen() {
           // sub-pixel drift between page snapping and item heights.
           const height = event.nativeEvent.layout.height;
           if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height);
-        }}>
+        }}
+      >
         {viewport > 0 && (
           <FlatList
             ref={listRef}
@@ -273,7 +291,9 @@ export default function FeedScreen() {
                 </View>
               ) : (
                 <View style={[styles.roundEnd, { height: viewport }]}>
-                  <Text style={[styles.roundEndTitle, { color: colors.text }]}>Round {round} complete</Text>
+                  <Text style={[styles.roundEndTitle, { color: colors.text }]}>
+                    Round {round} complete
+                  </Text>
                   <Text style={[styles.roundEndHint, { color: colors.textTertiary }]}>
                     Round {round + 1} starts in a moment
                   </Text>
@@ -305,7 +325,6 @@ export default function FeedScreen() {
           />
         )}
       </View>
-
     </SafeAreaView>
   );
 }

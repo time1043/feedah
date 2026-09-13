@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listBuckets, searchWords, type WordRow } from '@/db/repo';
@@ -78,7 +78,8 @@ export default function SearchScreen() {
             <Pressable
               style={styles.clear}
               onPress={() => setQuery('')}
-              accessibilityLabel="Clear search">
+              accessibilityLabel="Clear search"
+            >
               <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
             </Pressable>
           )}
@@ -92,7 +93,8 @@ export default function SearchScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-            onPress={() => router.push(`/word/${item.position}?bucket=${item.bucketId}`)}>
+            onPress={() => router.push(`/word/${item.position}?bucket=${item.bucketId}`)}
+          >
             <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
             {item.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}
             <Text style={[styles.word, { color: colors.text }]} numberOfLines={1}>

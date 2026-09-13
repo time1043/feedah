@@ -1,6 +1,6 @@
-import { convexAuth } from '@convex-dev/auth/server';
 import { Anonymous } from '@convex-dev/auth/providers/Anonymous';
 import { Password } from '@convex-dev/auth/providers/Password';
+import { convexAuth } from '@convex-dev/auth/server';
 
 // Anonymous keeps the app fully usable without an account (offline-first);
 // Password adds the optional email + password upgrade. Email verification is

@@ -69,18 +69,23 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
   // bootstrap still captures rows whose version column is legitimately 0 (e.g. a
   // freshly seeded bucket whose progressUpdatedAt has never been bumped).
   const sinceSince = since > 0 ? since : undefined;
-  const [
-    progress,
-    history,
-    stats,
-    pointers,
-    flags,
-    metaRows,
-  ] = await Promise.all([
-    db.select().from(bucketProgress).where(sinceSince ? gt(bucketProgress.progressUpdatedAt, sinceSince) : undefined),
-    db.select().from(roundHistory).where(sinceSince ? gt(roundHistory.updatedAt, sinceSince) : undefined),
-    db.select().from(dailyStat).where(sinceSince ? gt(dailyStat.updatedAt, sinceSince) : undefined),
-    db.select().from(dailyPointer).where(sinceSince ? gt(dailyPointer.updatedAt, sinceSince) : undefined),
+  const [progress, history, stats, pointers, flags, metaRows] = await Promise.all([
+    db
+      .select()
+      .from(bucketProgress)
+      .where(sinceSince ? gt(bucketProgress.progressUpdatedAt, sinceSince) : undefined),
+    db
+      .select()
+      .from(roundHistory)
+      .where(sinceSince ? gt(roundHistory.updatedAt, sinceSince) : undefined),
+    db
+      .select()
+      .from(dailyStat)
+      .where(sinceSince ? gt(dailyStat.updatedAt, sinceSince) : undefined),
+    db
+      .select()
+      .from(dailyPointer)
+      .where(sinceSince ? gt(dailyPointer.updatedAt, sinceSince) : undefined),
     // flaggedAt = 0 means the flag was never touched, so nothing to sync.
     db
       .select()
@@ -90,7 +95,10 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
           ? and(gte(word.flaggedAt, 1), gt(word.flaggedAt, sinceSince))
           : gte(word.flaggedAt, 1),
       ),
-    db.select().from(meta).where(sinceSince ? gt(meta.updatedAt, sinceSince) : undefined),
+    db
+      .select()
+      .from(meta)
+      .where(sinceSince ? gt(meta.updatedAt, sinceSince) : undefined),
   ]);
   // `round_word` is per-word locally but ships to the cloud as one compact doc
   // per round: only the positions that differ from the default (unreached,
@@ -102,13 +110,25 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
     .where(sinceSince ? gt(roundWord.updatedAt, sinceSince) : undefined);
   const byRound = new Map<
     string,
-    { bucketId: string; round: number; reached: Set<number>; flagged: Set<number>; updatedAt: number }
+    {
+      bucketId: string;
+      round: number;
+      reached: Set<number>;
+      flagged: Set<number>;
+      updatedAt: number;
+    }
   >();
   for (const r of roundWordRows) {
     const key = `${r.bucketId}|${r.round}`;
     let agg = byRound.get(key);
     if (!agg) {
-      agg = { bucketId: r.bucketId, round: r.round, reached: new Set(), flagged: new Set(), updatedAt: 0 };
+      agg = {
+        bucketId: r.bucketId,
+        round: r.round,
+        reached: new Set(),
+        flagged: new Set(),
+        updatedAt: 0,
+      };
       byRound.set(key, agg);
     }
     if (r.reached) agg.reached.add(r.position);

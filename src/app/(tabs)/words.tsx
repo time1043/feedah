@@ -1,10 +1,10 @@
+import { router, useFocusEffect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
 
+import { BucketTabs } from '@/components/bucket-tabs';
 import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
-import { BucketTabs } from '@/components/bucket-tabs';
 import { getWords, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { useTheme } from '@/theme/context';
@@ -55,12 +55,7 @@ export default function WordsScreen() {
         <Text style={[styles.count, { color: colors.textTertiary }]}>{words.length} words</Text>
       </View>
       <View style={styles.jump}>
-        <ProgressBar
-          value={index}
-          max={Math.max(words.length, 1)}
-          interactive
-          onScrub={jumpTo}
-        />
+        <ProgressBar value={index} max={Math.max(words.length, 1)} interactive onScrub={jumpTo} />
       </View>
       <FlatList
         ref={listRef}
@@ -69,7 +64,8 @@ export default function WordsScreen() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/word/${item.position}?bucket=${tab}`)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
             <Row word={item} />
           </Pressable>
         )}

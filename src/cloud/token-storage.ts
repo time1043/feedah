@@ -1,4 +1,5 @@
 import type { TokenStorage } from '@convex-dev/auth/react';
+
 import * as SecureStore from 'expo-secure-store';
 
 // Convex Auth recommends wrapping expo-secure-store for React Native: auth

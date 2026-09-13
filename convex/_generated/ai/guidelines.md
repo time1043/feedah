@@ -9,12 +9,12 @@ These guidelines target Convex `^1.44.0`.
 - HTTP endpoints are defined in `convex/http.ts` and require an `httpAction` decorator. For example:
 
 ```typescript
-import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
+import { httpRouter } from 'convex/server';
+import { httpAction } from './_generated/server';
 const http = httpRouter();
 http.route({
-  path: "/echo",
-  method: "POST",
+  path: '/echo',
+  method: 'POST',
   handler: httpAction(async (ctx, req) => {
     const body = await req.bytes();
     return new Response(body, { status: 200 });
@@ -30,8 +30,8 @@ http.route({
 - Below is an example of an array validator:
 
 ```typescript
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { mutation } from './_generated/server';
+import { v } from 'convex/values';
 
 export default mutation({
   args: {
@@ -48,18 +48,18 @@ export default mutation({
 - Below is an example of a schema with validators that codify a discriminated union type:
 
 ```typescript
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 export default defineSchema({
   results: defineTable(
     v.union(
       v.object({
-        kind: v.literal("error"),
+        kind: v.literal('error'),
         errorMessage: v.string(),
       }),
       v.object({
-        kind: v.literal("success"),
+        kind: v.literal('success'),
         value: v.number(),
       }),
     ),
@@ -68,17 +68,17 @@ export default defineSchema({
 ```
 
 - Here are the valid Convex types along with their respective validators:
-  | Convex Type | TS/JS type | Example Usage | Validator for argument validation and schemas | Notes |
+  | Convex Type | TS/JS type  | Example Usage        | Validator for argument validation and schemas | Notes                                                                                                                                                                                                  |
   | ----------- | ----------- | -------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-  | Id | string | `doc._id` | `v.id(tableName)` | |
-  | Null | null | `null` | `v.null()` | JavaScript's `undefined` is not a valid Convex value. Functions the return `undefined` or do not return will return `null` when called from a client. Use `null` instead. |
-  | Int64 | bigint | `3n` | `v.int64()` | Int64s only support BigInts between -2^63 and 2^63-1. Convex supports `bigint`s in most modern browsers. |
-  | Float64 | number | `3.1` | `v.number()` | Convex supports all IEEE-754 double-precision floating point numbers (such as NaNs). Inf and NaN are JSON serialized as strings. |
-  | Boolean | boolean | `true` | `v.boolean()` |
-  | String | string | `"abc"` | `v.string()` | Strings are stored as UTF-8 and must be valid Unicode sequences. Strings must be smaller than the 1MB total size limit when encoded as UTF-8. |
-  | Bytes | ArrayBuffer | `new ArrayBuffer(8)` | `v.bytes()` | Convex supports first class bytestrings, passed in as `ArrayBuffer`s. Bytestrings must be smaller than the 1MB total size limit for Convex types. |
-  | Array | Array | `[1, 3.2, "abc"]` | `v.array(values)` | Arrays can have at most 8192 values. |
-  | Object | Object | `{a: "abc"}` | `v.object({property: value})` | Convex only supports "plain old JavaScript objects" (objects that do not have a custom prototype). Objects can have at most 1024 entries. Field names must be nonempty and not start with "$" or "\_". |
+  | Id          | string      | `doc._id`            | `v.id(tableName)`                             |                                                                                                                                                                                                        |
+  | Null        | null        | `null`               | `v.null()`                                    | JavaScript's `undefined` is not a valid Convex value. Functions the return `undefined` or do not return will return `null` when called from a client. Use `null` instead.                              |
+  | Int64       | bigint      | `3n`                 | `v.int64()`                                   | Int64s only support BigInts between -2^63 and 2^63-1. Convex supports `bigint`s in most modern browsers.                                                                                               |
+  | Float64     | number      | `3.1`                | `v.number()`                                  | Convex supports all IEEE-754 double-precision floating point numbers (such as NaNs). Inf and NaN are JSON serialized as strings.                                                                       |
+  | Boolean     | boolean     | `true`               | `v.boolean()`                                 |
+  | String      | string      | `"abc"`              | `v.string()`                                  | Strings are stored as UTF-8 and must be valid Unicode sequences. Strings must be smaller than the 1MB total size limit when encoded as UTF-8.                                                          |
+  | Bytes       | ArrayBuffer | `new ArrayBuffer(8)` | `v.bytes()`                                   | Convex supports first class bytestrings, passed in as `ArrayBuffer`s. Bytestrings must be smaller than the 1MB total size limit for Convex types.                                                      |
+  | Array       | Array       | `[1, 3.2, "abc"]`    | `v.array(values)`                             | Arrays can have at most 8192 values.                                                                                                                                                                   |
+  | Object      | Object      | `{a: "abc"}`         | `v.object({property: value})`                 | Convex only supports "plain old JavaScript objects" (objects that do not have a custom prototype). Objects can have at most 1024 entries. Field names must be nonempty and not start with "$" or "\_". |
 
 | Record | Record | `{"a": "1", "b": "2"}` | `v.record(keys, values)` | Records are objects at runtime, but can have dynamic keys. Keys must be only ASCII characters, nonempty, and not start with "$" or "\_". |
 
@@ -144,16 +144,16 @@ export const g = query({
 - Define pagination using the following syntax:
 
 ```ts
-import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
-import { paginationOptsValidator } from "convex/server";
+import { v } from 'convex/values';
+import { query, mutation } from './_generated/server';
+import { paginationOptsValidator } from 'convex/server';
 export const listWithExtraArg = query({
   args: { paginationOpts: paginationOptsValidator, author: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("messages")
-      .withIndex("by_author", (q) => q.eq("author", args.author))
-      .order("desc")
+      .query('messages')
+      .withIndex('by_author', (q) => q.eq('author', args.author))
+      .order('desc')
       .paginate(args.paginationOpts);
   },
 });
@@ -200,8 +200,8 @@ For the return validator of a paginated query, use `paginationResultValidator(it
 export default {
   providers: [
     {
-      domain: "https://your-auth-provider.com",
-      applicationID: "convex",
+      domain: 'https://your-auth-provider.com',
+      applicationID: 'convex',
     },
   ],
 };
@@ -215,7 +215,7 @@ The `domain` must be the issuer URL of the JWT provider. Convex fetches `{domain
 - When using an external auth provider with Convex on the client, use `ConvexProviderWithAuth` instead of `ConvexProvider`:
 
 ```tsx
-import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithAuth, ConvexReactClient } from 'convex/react';
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -238,15 +238,15 @@ The `useAuth` prop must return `{ isLoading, isAuthenticated, fetchAccessToken }
 - If you need to define a `Record` make sure that you correctly provide the type of the key and value in the type. For example a validator `v.record(v.id('users'), v.string())` would have the type `Record<Id<'users'>, string>`. Below is an example of using `Record` with an `Id` type in a query:
 
 ```ts
-import { query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { query } from './_generated/server';
+import { Doc, Id } from './_generated/dataModel';
 
 export const exampleQuery = query({
-  args: { userIds: v.array(v.id("users")) },
+  args: { userIds: v.array(v.id('users')) },
   handler: async (ctx, args) => {
-    const idToUsername: Record<Id<"users">, string> = {};
+    const idToUsername: Record<Id<'users'>, string> = {};
     for (const userId of args.userIds) {
-      const user = await ctx.db.get("users", userId);
+      const user = await ctx.db.get('users', userId);
       if (user) {
         idToUsername[user._id] = user.username;
       }
@@ -291,10 +291,10 @@ documents: defineTable({
 - `ctx.vectorSearch` is ONLY available in actions - not in queries or mutations:
 
 ```ts
-const results = await ctx.vectorSearch("documents", "by_embedding", {
+const results = await ctx.vectorSearch('documents', 'by_embedding', {
   vector: args.embedding,
   limit: 10,
-  filter: (q) => q.eq("category", args.category),
+  filter: (q) => q.eq('category', args.category),
 });
 ```
 
@@ -306,8 +306,8 @@ const results = await ctx.vectorSearch("documents", "by_embedding", {
 - Convex components are installable building blocks (e.g. `@convex-dev/aggregate`, `@convex-dev/rate-limiter`) with their own isolated tables and functions. Install the npm package, then mount the component in `convex/convex.config.ts`:
 
 ```ts
-import { defineApp } from "convex/server";
-import aggregate from "@convex-dev/aggregate/convex.config"; // no .js suffix
+import { defineApp } from 'convex/server';
+import aggregate from '@convex-dev/aggregate/convex.config'; // no .js suffix
 
 const app = defineApp();
 app.use(aggregate);
@@ -357,12 +357,12 @@ export default app;
 - Below is an example of the syntax for an action:
 
 ```ts
-import { action } from "./_generated/server";
+import { action } from './_generated/server';
 
 export const exampleAction = action({
   args: {},
   handler: async (ctx, args) => {
-    console.log("This action does not return anything");
+    console.log('This action does not return anything');
     return null;
   },
 });
@@ -377,21 +377,21 @@ export const exampleAction = action({
 - Define crons by declaring the top-level `crons` object, calling some methods on it, and then exporting it as default. For example,
 
 ```ts
-import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { cronJobs } from 'convex/server';
+import { internal } from './_generated/api';
+import { internalAction } from './_generated/server';
 
 const empty = internalAction({
   args: {},
   handler: async (ctx, args) => {
-    console.log("empty");
+    console.log('empty');
   },
 });
 
 const crons = cronJobs();
 
 // Run `internal.crons.empty` every two hours.
-crons.interval("delete inactive users", { hours: 2 }, internal.crons.empty, {});
+crons.interval('delete inactive users', { hours: 2 }, internal.crons.empty, {});
 
 export default crons;
 ```
@@ -407,18 +407,18 @@ Test files go inside the `convex/` directory. You must pass a module map from `i
 
 ```typescript
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
-import { api } from "./_generated/api";
-import schema from "./schema";
+import { convexTest } from 'convex-test';
+import { expect, test } from 'vitest';
+import { api } from './_generated/api';
+import schema from './schema';
 
-const modules = import.meta.glob("./**/*.ts");
+const modules = import.meta.glob('./**/*.ts');
 
-test("some behavior", async () => {
+test('some behavior', async () => {
   const t = convexTest(schema, modules);
-  await t.mutation(api.messages.send, { body: "Hi!", author: "Sarah" });
+  await t.mutation(api.messages.send, { body: 'Hi!', author: 'Sarah' });
   const messages = await t.query(api.messages.list);
-  expect(messages).toMatchObject([{ body: "Hi!", author: "Sarah" }]);
+  expect(messages).toMatchObject([{ body: 'Hi!', author: 'Sarah' }]);
 });
 ```
 

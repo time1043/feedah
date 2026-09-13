@@ -1,6 +1,6 @@
+import { Canvas, Rect } from '@shopify/react-native-skia';
 import { useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import { Canvas, Rect } from '@shopify/react-native-skia';
 
 import { useTheme } from '@/theme/context';
 

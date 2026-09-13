@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Screen } from '@/components/screen';
 import { BucketTabs } from '@/components/bucket-tabs';
+import { Screen } from '@/components/screen';
 import {
   countFlaggedWords,
   getProgress,
@@ -72,7 +72,8 @@ export default function HomeScreen() {
 
       <Pressable
         style={[styles.search, { backgroundColor: colors.surface }]}
-        onPress={() => router.push('/search')}>
+        onPress={() => router.push('/search')}
+      >
         <Ionicons name="search" size={18} color={colors.textTertiary} />
         <Text style={[styles.searchText, { color: colors.textTertiary }]}>Search words</Text>
       </Pressable>
@@ -86,18 +87,22 @@ export default function HomeScreen() {
         <View style={styles.flagRow}>
           <View style={styles.flagGroup}>
             <View style={[styles.flagDot, { backgroundColor: colors.success }]} />
-            <Text style={[styles.flagCount, { color: colors.textSecondary }]}>{flagCounts.green}</Text>
+            <Text style={[styles.flagCount, { color: colors.textSecondary }]}>
+              {flagCounts.green}
+            </Text>
           </View>
           <Pressable
             disabled={flagCounts.red === 0}
             onPress={() => router.push(`/review?bucket=${activeId}&round=${round}`)}
-            style={styles.flagGroup}>
+            style={styles.flagGroup}
+          >
             <View style={[styles.flagDot, { backgroundColor: colors.danger }]} />
             <Text
               style={[
                 styles.flagCount,
                 { color: flagCounts.red > 0 ? colors.danger : colors.textSecondary },
-              ]}>
+              ]}
+            >
               {flagCounts.red}
             </Text>
           </Pressable>
@@ -107,7 +112,8 @@ export default function HomeScreen() {
             styles.start,
             { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
           ]}
-          onPress={() => router.push(`/feed?bucket=${activeId}`)}>
+          onPress={() => router.push(`/feed?bucket=${activeId}`)}
+        >
           <Text style={styles.startText}>{started ? 'Continue' : 'Start'}</Text>
         </Pressable>
         <Pressable
@@ -116,7 +122,8 @@ export default function HomeScreen() {
             styles.review,
             { borderColor: colors.accent, opacity: flaggedTotal === 0 || pressed ? 0.4 : 1 },
           ]}
-          onPress={() => router.push(`/review?bucket=${activeId}`)}>
+          onPress={() => router.push(`/review?bucket=${activeId}`)}
+        >
           <Text style={[styles.reviewText, { color: colors.accent }]}>Review · {flaggedTotal}</Text>
         </Pressable>
       </View>

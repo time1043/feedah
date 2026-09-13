@@ -62,8 +62,11 @@ export function ProgressBar({ value, max, interactive, onScrub }: ProgressBarPro
     <View style={styles.container} {...panResponder.panHandlers}>
       <View
         style={[styles.track, { backgroundColor: colors.track }]}
-        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}>
-        <View style={[styles.fill, { backgroundColor: colors.accent, width: `${fraction * 100}%` }]} />
+        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+      >
+        <View
+          style={[styles.fill, { backgroundColor: colors.accent, width: `${fraction * 100}%` }]}
+        />
         {dragIndex !== null && (
           <View
             style={[
@@ -72,7 +75,8 @@ export function ProgressBar({ value, max, interactive, onScrub }: ProgressBarPro
                 backgroundColor: colors.accent,
                 left: `${Math.min(100, Math.max(0, fraction * 100))}%`,
               },
-            ]}>
+            ]}
+          >
             <Text style={styles.thumbText}>{dragIndex + 1}</Text>
           </View>
         )}

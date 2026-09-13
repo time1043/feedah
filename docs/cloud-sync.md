@@ -54,15 +54,15 @@ every time. A 0 watermark means "never synced" → one full bootstrap.
 
 ## Merge rules
 
-| Data | Rule |
-| --- | --- |
-| `bucket_progress` | round/pointer ride the higher round; `startedAt` last-write-wins by `progress_updated_at` |
-| `round_word` | one cloud doc per round; `reached`/`flagged` are position arrays merged by **union** across devices (per-round history is append-only) |
-| `round_history` | union; `started_at` min, `finished_at` max |
-| `daily_stat` | per metric max (high-water beat; summing would double-count one day used on two devices) |
-| `daily_pointer` | `global_position` max (high-water snapshots) |
-| `word.flagged` | last-write-wins by `flagged_at` — unflagging propagates; an unflag also clears the current round's `round_word.flagged` |
-| `meta` | last-write-wins by `updated_at` |
+| Data              | Rule                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `bucket_progress` | round/pointer ride the higher round; `startedAt` last-write-wins by `progress_updated_at`                                              |
+| `round_word`      | one cloud doc per round; `reached`/`flagged` are position arrays merged by **union** across devices (per-round history is append-only) |
+| `round_history`   | union; `started_at` min, `finished_at` max                                                                                             |
+| `daily_stat`      | per metric max (high-water beat; summing would double-count one day used on two devices)                                               |
+| `daily_pointer`   | `global_position` max (high-water snapshots)                                                                                           |
+| `word.flagged`    | last-write-wins by `flagged_at` — unflagging propagates; an unflag also clears the current round's `round_word.flagged`                |
+| `meta`            | last-write-wins by `updated_at`                                                                                                        |
 
 The timestamp columns (`updated_at`, `flagged_at`, `progress_updated_at`)
 exist solely for these rules; local behavior never reads them.
@@ -82,7 +82,7 @@ rejected:
 - **Keep per-word rows but add a `position` index.** This fixes the O(words²)
   server read blow-up (the `Too many documents read` crash at ~254 words/round)
   but leaves the table growing without bound — thousands of rows per round, and
-  `pull` would later hit the *same* 32k read ceiling re-collecting it.
+  `pull` would later hit the _same_ 32k read ceiling re-collecting it.
 
 The array form fixes both: cloud rows drop ~3120× per round, the server merge
 is a single `.unique()` lookup plus an array union, and `pull` no longer
@@ -90,7 +90,7 @@ re-collects thousands of rows. The `stats` heatmap and all local UI are
 unchanged — only the on-the-wire / cloud representation differs.
 
 **Incremental sync rides on top of the compaction.** With one doc per round the
-per-cycle cost is bounded by *changed* rounds, not total history. The client
+per-cycle cost is bounded by _changed_ rounds, not total history. The client
 stores a pull/push watermark (`src/cloud/sync-cursor.ts`, in the device
 keychain so it never travels to the cloud) and each cycle pushes only rows newer
 than the push watermark (`readLocalSnapshot(since)` filters every table by its
@@ -138,5 +138,5 @@ on every push.
 - **Schema migration note:** `cloudRoundWord` changed shape (per-word rows →
   one array doc per round). Deploying the new backend leaves the old per-word
   documents behind, which the new reader cannot interpret — after `npx convex
-  dev`, wipe the cloud once (`npx convex run sync:resetAll '{}'` in dev, or
+dev`, wipe the cloud once (`npx convex run sync:resetAll '{}'` in dev, or
   Settings → Account → Clear all data from the app) so the table starts clean.

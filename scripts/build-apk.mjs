@@ -23,8 +23,8 @@
 // node scripts/build-apk.mjs --abi arm64-v8a
 //   -> dist/feedah-260907-0144-8b21-arm64-v8a.apk
 
-import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -82,7 +82,10 @@ if (process.argv.includes('--clean')) {
 }
 
 // Record only after a successful prebuild, so a failed prebuild is retried.
-if (!existsSync(FINGERPRINT_FILE) || readFileSync(FINGERPRINT_FILE, 'utf8') !== nativeFingerprint()) {
+if (
+  !existsSync(FINGERPRINT_FILE) ||
+  readFileSync(FINGERPRINT_FILE, 'utf8') !== nativeFingerprint()
+) {
   writeFileSync(FINGERPRINT_FILE, nativeFingerprint());
 }
 
@@ -93,10 +96,21 @@ const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
 const daemonFlag = process.env.CI ? '--no-daemon' : '';
 const abiFlag = abi ? `-PreactNativeArchitectures=${abi}` : '';
 console.log(abi ? `\nBuilding for ABI: ${abi}` : '\nBuilding universal APK (all ABIs)');
-run(`${gradlew} assembleRelease ${abiFlag} ${daemonFlag}`.trimEnd(), { cwd: path.join(root, 'android') });
+run(`${gradlew} assembleRelease ${abiFlag} ${daemonFlag}`.trimEnd(), {
+  cwd: path.join(root, 'android'),
+});
 
 // 3. Copy the artifact out under the stamped name.
-const built = path.join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
+const built = path.join(
+  root,
+  'android',
+  'app',
+  'build',
+  'outputs',
+  'apk',
+  'release',
+  'app-release.apk',
+);
 if (!existsSync(built)) throw new Error(`APK not found at ${built} — did assembleRelease succeed?`);
 
 // The ABI is stamped onto the copied artifact because gradle emits the same

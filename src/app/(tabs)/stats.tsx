@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Heatmap } from '@/components/heatmap';
 import { RoundBar, type RoundWordStatus } from '@/components/round-bar';
@@ -71,7 +71,8 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
   displays.push({
     round: progress.round,
     statuses: currentStatuses,
-    days: progress.startedAt > 0 ? Math.max(1, Math.ceil((now - progress.startedAt) / 86_400_000)) : 0,
+    days:
+      progress.startedAt > 0 ? Math.max(1, Math.ceil((now - progress.startedAt) / 86_400_000)) : 0,
     done: progress.pointer >= wordCount,
     pointer: progress.pointer,
     wordCount,
@@ -195,8 +196,16 @@ export default function StatsScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={styles.cardHeader}>
             <View style={styles.toggle}>
-              <MetricPill label="Words" active={metric === 'words'} onPress={() => setMetric('words')} />
-              <MetricPill label="Minutes" active={metric === 'minutes'} onPress={() => setMetric('minutes')} />
+              <MetricPill
+                label="Words"
+                active={metric === 'words'}
+                onPress={() => setMetric('words')}
+              />
+              <MetricPill
+                label="Minutes"
+                active={metric === 'minutes'}
+                onPress={() => setMetric('minutes')}
+              />
             </View>
             <View style={styles.yearNav}>
               <Pressable onPress={() => setYear((y) => y - 1)} hitSlop={8}>
@@ -218,7 +227,8 @@ export default function StatsScreen() {
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={[styles.yearSummary, { color: colors.textTertiary }]}>
+            style={[styles.yearSummary, { color: colors.textTertiary }]}
+          >
             {`${yearTotals.words} words · ${formatMinutes(yearTotals.feedSeconds)} studying · ${formatMinutes(
               yearTotals.appSeconds,
             )} in app`}
@@ -228,12 +238,19 @@ export default function StatsScreen() {
         <View style={styles.rounds}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Rounds</Text>
           {roundTabs.length === 0 ? (
-            <Text style={[styles.empty, { color: colors.textTertiary }]}>No rounds yet — start studying first.</Text>
+            <Text style={[styles.empty, { color: colors.textTertiary }]}>
+              No rounds yet — start studying first.
+            </Text>
           ) : (
             <>
               <View style={styles.toggle}>
                 {roundTabs.map((id) => (
-                  <MetricPill key={id} label={id} active={id === roundTab} onPress={() => selectRoundTab(id)} />
+                  <MetricPill
+                    key={id}
+                    label={id}
+                    active={id === roundTab}
+                    onPress={() => selectRoundTab(id)}
+                  />
                 ))}
               </View>
               {rounds.map((round) => (
@@ -242,19 +259,26 @@ export default function StatsScreen() {
                     <Text style={[styles.roundLabel, { color: colors.textTertiary }]}>
                       {formatRoundLabel(round)}
                     </Text>
-                  <View style={styles.roundCounts}>
-                    <View style={styles.countGroup}>
-                      <View style={[styles.countDot, { backgroundColor: colors.success }]} />
-                      <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.green}</Text>
+                    <View style={styles.roundCounts}>
+                      <View style={styles.countGroup}>
+                        <View style={[styles.countDot, { backgroundColor: colors.success }]} />
+                        <Text style={[styles.roundCount, { color: colors.textSecondary }]}>
+                          {round.green}
+                        </Text>
+                      </View>
+                      <Pressable
+                        disabled={round.red === 0}
+                        onPress={() =>
+                          router.push(`/review?bucket=${roundTab}&round=${round.round}`)
+                        }
+                        style={styles.countGroup}
+                      >
+                        <View style={[styles.countDot, { backgroundColor: colors.danger }]} />
+                        <Text style={[styles.roundCount, { color: colors.textSecondary }]}>
+                          {round.red}
+                        </Text>
+                      </Pressable>
                     </View>
-                    <Pressable
-                      disabled={round.red === 0}
-                      onPress={() => router.push(`/review?bucket=${roundTab}&round=${round.round}`)}
-                      style={styles.countGroup}>
-                      <View style={[styles.countDot, { backgroundColor: colors.danger }]} />
-                      <Text style={[styles.roundCount, { color: colors.textSecondary }]}>{round.red}</Text>
-                    </Pressable>
-                  </View>
                   </View>
                   <RoundBar statuses={round.statuses} />
                 </View>
@@ -296,13 +320,28 @@ function StatBlock({
   return <View style={styles.statBlock}>{content}</View>;
 }
 
-function MetricPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function MetricPill({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.pill, { backgroundColor: active ? colors.accent : colors.background }]}>
-      <Text style={{ color: active ? '#FFFFFF' : colors.textSecondary, fontSize: fontSize.caption, fontWeight: '600' }}>
+      style={[styles.pill, { backgroundColor: active ? colors.accent : colors.background }]}
+    >
+      <Text
+        style={{
+          color: active ? '#FFFFFF' : colors.textSecondary,
+          fontSize: fontSize.caption,
+          fontWeight: '600',
+        }}
+      >
         {label}
       </Text>
     </Pressable>

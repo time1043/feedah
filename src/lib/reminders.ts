@@ -84,9 +84,7 @@ async function doSyncReminders(times: TimeOfDay[]): Promise<void> {
 }
 
 /** Asks for notification permission; call from a user gesture. */
-export async function requestReminderPermission(): Promise<
-  'granted' | 'denied' | 'unavailable'
-> {
+export async function requestReminderPermission(): Promise<'granted' | 'denied' | 'unavailable'> {
   const Notifications = notifications();
   if (!Notifications) return 'unavailable';
   const current = await Notifications.getPermissionsAsync();
@@ -149,5 +147,7 @@ export function parseTimeOfDaySetting(value: string): TimeOfDay {
 
 /** The enabled reminder times for scheduling, parsed and in list order. */
 export function activeReminderTimes(reminders: { time: string; enabled: boolean }[]): TimeOfDay[] {
-  return reminders.filter((reminder) => reminder.enabled).map((reminder) => parseTimeOfDaySetting(reminder.time));
+  return reminders
+    .filter((reminder) => reminder.enabled)
+    .map((reminder) => parseTimeOfDaySetting(reminder.time));
 }

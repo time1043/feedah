@@ -85,9 +85,11 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
     // The pointer rides the higher round; a stale device in an older round
     // must not drag it back.
     const pointer =
-      p.round > local.round ? p.pointer
-      : local.round > p.round ? local.pointer
-      : Math.max(local.pointer, p.pointer);
+      p.round > local.round
+        ? p.pointer
+        : local.round > p.round
+          ? local.pointer
+          : Math.max(local.pointer, p.pointer);
     const startedAt = p.progressUpdatedAt > local.progressUpdatedAt ? p.startedAt : local.startedAt;
     if (round !== local.round || pointer !== local.pointer || startedAt !== local.startedAt) {
       await db
@@ -177,7 +179,10 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
       appSeconds !== local.appSeconds ||
       updatedAt !== local.updatedAt
     ) {
-      await db.update(dailyStat).set({ feedSeconds, appSeconds, updatedAt }).where(eq(dailyStat.day, ds.day));
+      await db
+        .update(dailyStat)
+        .set({ feedSeconds, appSeconds, updatedAt })
+        .where(eq(dailyStat.day, ds.day));
       changed = true;
     }
   }
@@ -239,7 +244,10 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
       continue;
     }
     if (m.updatedAt > local.updatedAt && m.value !== local.value) {
-      await db.update(meta).set({ value: m.value, updatedAt: m.updatedAt }).where(eq(meta.key, m.key));
+      await db
+        .update(meta)
+        .set({ value: m.value, updatedAt: m.updatedAt })
+        .where(eq(meta.key, m.key));
       changed = true;
       metaChanged = true;
     } else if (m.updatedAt > local.updatedAt) {

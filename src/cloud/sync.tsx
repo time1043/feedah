@@ -1,3 +1,5 @@
+import { useConvexAuth } from '@convex-dev/auth/react';
+import NetInfo from '@react-native-community/netinfo';
 import {
   createContext,
   useCallback,
@@ -7,23 +9,16 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useConvexAuth } from '@convex-dev/auth/react';
-// The convex/ directory sits at the repo root, outside the @/* (src) mapping.
-import { api } from '../../convex/_generated/api';
-import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
 
 import { useSettings } from '@/db/settings';
 
+// The convex/ directory sits at the repo root, outside the @/* (src) mapping.
+import { api } from '../../convex/_generated/api';
 import { CONVEX_URL, convex } from './convex';
 import { applyCloudState } from './mirror';
 import { readLocalSnapshot } from './snapshot';
-import {
-  getPullCursor,
-  getPushCursor,
-  setPullCursor,
-  setPushCursor,
-} from './sync-cursor';
+import { getPullCursor, getPushCursor, setPullCursor, setPushCursor } from './sync-cursor';
 
 export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'error';
 

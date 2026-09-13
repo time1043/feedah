@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
 import type { Scheme, ThemeMode } from './scheme';
+
 import { palette, type ThemeColors } from './tokens';
 
 type ThemeContextValue = {

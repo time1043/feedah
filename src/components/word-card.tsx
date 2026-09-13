@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import type { MeaningMode } from '@/db/settings';
+
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -93,7 +94,8 @@ export function WordCard({
             adjustsFontSizeToFit
             minimumFontScale={0.5}
             numberOfLines={1}
-            style={[styles.word, { color: colors.text }]}>
+            style={[styles.word, { color: colors.text }]}
+          >
             {text}
           </Text>
         </Pressable>
@@ -102,8 +104,9 @@ export function WordCard({
         )}
         {/* Reserved slot: keeps number and word anchored while meaning toggles. */}
         <View style={styles.meaningSlot}>
-          {meaningVisible && meaning.length > 0 && (
-            lines ? (
+          {meaningVisible &&
+            meaning.length > 0 &&
+            (lines ? (
               <View style={styles.meaningLines}>
                 {lines.map((line, i) => (
                   <Text key={i} style={[styles.meaning, { color: colors.textSecondary }]}>
@@ -113,8 +116,7 @@ export function WordCard({
               </View>
             ) : (
               <Text style={[styles.meaning, { color: colors.textSecondary }]}>{meaning}</Text>
-            )
-          )}
+            ))}
         </View>
       </Pressable>
 
@@ -127,7 +129,8 @@ export function WordCard({
                   <Text
                     numberOfLines={1}
                     ellipsizeMode="tail"
-                    style={[styles.formText, { color: colors.textTertiary }]}>
+                    style={[styles.formText, { color: colors.textTertiary }]}
+                  >
                     {forms[i]}
                   </Text>
                 )}
@@ -141,7 +144,8 @@ export function WordCard({
         style={styles.flag}
         onPress={onToggleFlagged}
         hitSlop={16}
-        accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}>
+        accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}
+      >
         <Ionicons
           name={flagged ? 'bookmark' : 'bookmark-outline'}
           size={30}

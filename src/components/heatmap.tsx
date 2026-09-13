@@ -24,7 +24,14 @@ const GUTTER = 30;
 
 /** GitHub-style calendar heatmap for one year with month/weekday labels and
  * tappable cells. */
-export function Heatmap({ year, values, thresholds, selectedDay, onSelectDay, cellSize = 12 }: HeatmapProps) {
+export function Heatmap({
+  year,
+  values,
+  thresholds,
+  selectedDay,
+  onSelectDay,
+  cellSize = 12,
+}: HeatmapProps) {
   const { colors } = useTheme();
   const gap = 2;
   const levelColors = [
@@ -80,10 +87,21 @@ export function Heatmap({ year, values, thresholds, selectedDay, onSelectDay, ce
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View>
-        <View style={[styles.monthRow, { height: 14, marginBottom: gap, width: GUTTER + weeks.length * (cellSize + gap) }]}>
+        <View
+          style={[
+            styles.monthRow,
+            { height: 14, marginBottom: gap, width: GUTTER + weeks.length * (cellSize + gap) },
+          ]}
+        >
           {monthLabels.map((label, index) =>
             label ? (
-              <Text key={index} style={[styles.monthLabel, { color: colors.textTertiary, left: GUTTER + index * (cellSize + gap) }]}>
+              <Text
+                key={index}
+                style={[
+                  styles.monthLabel,
+                  { color: colors.textTertiary, left: GUTTER + index * (cellSize + gap) },
+                ]}
+              >
                 {label}
               </Text>
             ) : null,
@@ -93,7 +111,13 @@ export function Heatmap({ year, values, thresholds, selectedDay, onSelectDay, ce
           <View style={{ gap, width: GUTTER }}>
             {Array.from({ length: WEEKDAYS }, (_, row) =>
               LABEL_ROWS.includes(row) ? (
-                <Text key={row} style={[styles.weekdayLabel, { color: colors.textTertiary, height: cellSize, lineHeight: cellSize }]}>
+                <Text
+                  key={row}
+                  style={[
+                    styles.weekdayLabel,
+                    { color: colors.textTertiary, height: cellSize, lineHeight: cellSize },
+                  ]}
+                >
                   {WEEKDAY_LABELS[row]}
                 </Text>
               ) : (
@@ -106,7 +130,12 @@ export function Heatmap({ year, values, thresholds, selectedDay, onSelectDay, ce
               <View key={weekIndex} style={{ gap }}>
                 {days.map((day, dayIndex) => {
                   if (day === null) {
-                    return <View key={`empty-${dayIndex}`} style={{ height: cellSize, width: cellSize }} />;
+                    return (
+                      <View
+                        key={`empty-${dayIndex}`}
+                        style={{ height: cellSize, width: cellSize }}
+                      />
+                    );
                   }
                   const selected = day === selectedDay;
                   return (

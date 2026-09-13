@@ -62,7 +62,7 @@ data/               local word buckets (gitignored, bundled at build)
   a stale bucket until restart.
 - The root layout must wrap everything in `SafeAreaProvider`. Expo Go injects
   one for you; a standalone APK does not, and insets silently resolve to zero.
-- Feed card height must be the *measured* viewport height (`onLayout`), not
+- Feed card height must be the _measured_ viewport height (`onLayout`), not
   the window height. `pagingEnabled` snaps to multiples of the container
   height; any mismatch drifts across pages and shows two cards at once.
 - On iOS, `expo-speech` is muted while the ring/silent switch is on; the feed

@@ -1,11 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  index,
-  integer,
-  primaryKey,
-  sqliteTable,
-  text,
-} from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const bucket = sqliteTable('bucket', {
   id: text('id').primaryKey(),

@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
+import { WordCard } from '@/components/word-card';
 import { getWords, setFlag, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { speakWord } from '@/lib/speech';
@@ -86,7 +86,10 @@ export default function WordPage() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <View style={styles.header}>
         {settings.wordProgressBar && (
           <View style={styles.progress}>
@@ -102,7 +105,11 @@ export default function WordPage() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
-          <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={12}
+            accessibilityLabel="Search words"
+          >
             <Ionicons name="search" size={22} color={colors.textTertiary} />
           </Pressable>
         </View>
@@ -113,7 +120,8 @@ export default function WordPage() {
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
           if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height);
-        }}>
+        }}
+      >
         {ready && viewport > 0 && (
           <FlatList
             ref={listRef}

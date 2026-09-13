@@ -14,16 +14,16 @@ never reads them (see docs/cloud-sync.md for the mirror and merge rules).
 
 ## Tables
 
-| Table | Purpose |
-| --- | --- |
-| `bucket` | id (`2050` / `700` / `370`) and word count |
-| `word` | bucket, position (1-based), text, ipa, meaning, forms (JSON), flagged |
-| `bucket_progress` | per bucket: current `round`, `pointer`, round `started_at` |
-| `round_word` | per (bucket, round, position): `reached`, `flagged`, `reached_at` |
-| `round_history` | finished rounds: started_at, finished_at |
-| `daily_stat` | per day: `feed_seconds`, `app_seconds` |
-| `daily_pointer` | per (day, bucket): end-of-day global position snapshot |
-| `meta` | key-value store (active bucket, settings) |
+| Table             | Purpose                                                               |
+| ----------------- | --------------------------------------------------------------------- |
+| `bucket`          | id (`2050` / `700` / `370`) and word count                            |
+| `word`            | bucket, position (1-based), text, ipa, meaning, forms (JSON), flagged |
+| `bucket_progress` | per bucket: current `round`, `pointer`, round `started_at`            |
+| `round_word`      | per (bucket, round, position): `reached`, `flagged`, `reached_at`     |
+| `round_history`   | finished rounds: started_at, finished_at                              |
+| `daily_stat`      | per day: `feed_seconds`, `app_seconds`                                |
+| `daily_pointer`   | per (day, bucket): end-of-day global position snapshot                |
+| `meta`            | key-value store (active bucket, settings)                             |
 
 ## Semantics
 

@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { GenericId } from 'convex/values';
+
 import { internal } from './_generated/api';
 import { internalMutation, mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 import { auth } from './auth';
@@ -131,9 +132,11 @@ export const push = mutation({
       // must not drag it back.
       const round = Math.max(existing.round, p.round);
       const pointer =
-        p.round > existing.round ? p.pointer
-        : existing.round > p.round ? existing.pointer
-        : Math.max(existing.pointer, p.pointer);
+        p.round > existing.round
+          ? p.pointer
+          : existing.round > p.round
+            ? existing.pointer
+            : Math.max(existing.pointer, p.pointer);
       const startedAt =
         p.progressUpdatedAt > existing.progressUpdatedAt ? p.startedAt : existing.startedAt;
       await ctx.db.patch(existing._id, { round, pointer, startedAt });
@@ -282,9 +285,7 @@ export const wipe = internalMutation({
   },
 });
 
-async function requireUser(
-  ctx: MutationCtx | QueryCtx,
-): Promise<GenericId<'users'>> {
+async function requireUser(ctx: MutationCtx | QueryCtx): Promise<GenericId<'users'>> {
   const user = await auth.getUserId(ctx);
   if (!user) throw new Error('unauthenticated: sign in before syncing');
   return user;

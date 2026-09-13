@@ -3,7 +3,6 @@ import { and, count, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { dayBounds, todayLocalDate } from '@/lib/date';
 
 import { getDb, withTransaction } from './index';
-import { DEFAULT_BUCKET_ID } from './seed';
 import {
   bucket,
   bucketProgress,
@@ -14,6 +13,7 @@ import {
   roundWord,
   word,
 } from './schema';
+import { DEFAULT_BUCKET_ID } from './seed';
 
 export type Bucket = { id: string; wordCount: number };
 
@@ -213,7 +213,11 @@ export async function startNextRound(bucketId: string): Promise<Progress> {
       })
       .onConflictDoUpdate({
         target: [roundHistory.bucketId, roundHistory.round],
-        set: { startedAt: before.startedAt > 0 ? before.startedAt : now, finishedAt: now, updatedAt: now },
+        set: {
+          startedAt: before.startedAt > 0 ? before.startedAt : now,
+          finishedAt: now,
+          updatedAt: now,
+        },
       });
     await tx
       .update(bucketProgress)
@@ -225,11 +229,7 @@ export async function startNextRound(bucketId: string): Promise<Progress> {
 }
 
 /** Toggles the flag on a word and records it against the current round. */
-export async function setFlag(
-  bucketId: string,
-  position: number,
-  flagged: boolean,
-): Promise<void> {
+export async function setFlag(bucketId: string, position: number, flagged: boolean): Promise<void> {
   const db = await getDb();
   const { round } = await getProgress(bucketId);
   const now = Date.now();
@@ -313,7 +313,9 @@ export async function getRoundFlaggedWords(bucketId: string, round: number): Pro
       roundWord,
       and(eq(roundWord.bucketId, word.bucketId), eq(roundWord.position, word.position)),
     )
-    .where(and(eq(word.bucketId, bucketId), eq(roundWord.round, round), eq(roundWord.flagged, true)))
+    .where(
+      and(eq(word.bucketId, bucketId), eq(roundWord.round, round), eq(roundWord.flagged, true)),
+    )
     .orderBy(word.position);
 }
 
@@ -352,7 +354,9 @@ export async function countFlaggedWords(bucketId: string): Promise<number> {
 }
 
 /** Green/red counts for the current round, matching the stats timelines. */
-export async function getRoundFlagCounts(bucketId: string): Promise<{ green: number; red: number }> {
+export async function getRoundFlagCounts(
+  bucketId: string,
+): Promise<{ green: number; red: number }> {
   const db = await getDb();
   const { round } = await getProgress(bucketId);
   const rows = await db
@@ -380,13 +384,21 @@ export async function getRoundHistory(bucketId: string): Promise<RoundHistoryRow
 export async function getRoundWords(bucketId: string, round: number): Promise<RoundWordRow[]> {
   const db = await getDb();
   return db
-    .select({ position: roundWord.position, reached: roundWord.reached, flagged: roundWord.flagged })
+    .select({
+      position: roundWord.position,
+      reached: roundWord.reached,
+      flagged: roundWord.flagged,
+    })
     .from(roundWord)
     .where(and(eq(roundWord.bucketId, bucketId), eq(roundWord.round, round)))
     .orderBy(roundWord.position);
 }
 
-export async function addDailyTime(day: string, feedSeconds: number, appSeconds: number): Promise<void> {
+export async function addDailyTime(
+  day: string,
+  feedSeconds: number,
+  appSeconds: number,
+): Promise<void> {
   const db = await getDb();
   const now = Date.now();
   await db

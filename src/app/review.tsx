@@ -1,15 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { AppState, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { WordCard } from '@/components/word-card';
 import { ProgressBar } from '@/components/progress-bar';
-import { getFlaggedWords, getRoundFlaggedWords, getWordsCompletedOn, setFlag, type WordRow } from '@/db/repo';
-import { formatDayLabel } from '@/lib/format';
+import { WordCard } from '@/components/word-card';
+import {
+  getFlaggedWords,
+  getRoundFlaggedWords,
+  getWordsCompletedOn,
+  setFlag,
+  type WordRow,
+} from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
+import { formatDayLabel } from '@/lib/format';
 import { speakWord } from '@/lib/speech';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
@@ -39,7 +45,8 @@ export default function ReviewScreen() {
   // flag set.
   const round = Number(params.round);
   const hasRound = Number.isInteger(round) && round > 0;
-  const day = typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : '';
+  const day =
+    typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : '';
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
@@ -141,7 +148,10 @@ export default function ReviewScreen() {
 
   if (ready && queue.length === 0) {
     return (
-      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={[styles.root, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <View style={styles.headerRow}>
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
@@ -163,25 +173,31 @@ export default function ReviewScreen() {
   const items: ReviewItem[] = [...queue.map((word) => ({ kind: 'word' as const, word })), FOOTER];
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <View style={styles.header}>
         <View style={styles.progress}>
-          <ProgressBar
-            value={current}
-            max={items.length}
-            interactive
-            onScrub={jumpTo}
-          />
+          <ProgressBar value={current} max={items.length} interactive onScrub={jumpTo} />
         </View>
         <View style={styles.headerRow}>
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close review">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
           <Text style={[styles.title, { color: colors.textSecondary }]}>
-            {hasRound ? `Review · Round ${round}` : day !== '' ? `Review · ${formatDayLabel(day)}` : 'Review'}
+            {hasRound
+              ? `Review · Round ${round}`
+              : day !== ''
+                ? `Review · ${formatDayLabel(day)}`
+                : 'Review'}
             {currentWord ? ` · ${currentWord.bucketId}` : ''}
           </Text>
-          <Pressable onPress={() => router.push('/search')} hitSlop={12} accessibilityLabel="Search words">
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={12}
+            accessibilityLabel="Search words"
+          >
             <Ionicons name="search" size={22} color={colors.textTertiary} />
           </Pressable>
         </View>
@@ -192,12 +208,15 @@ export default function ReviewScreen() {
         onLayout={(event) => {
           const height = event.nativeEvent.layout.height;
           if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height);
-        }}>
+        }}
+      >
         {ready && viewport > 0 && (
           <FlatList
             ref={listRef}
             data={items}
-            keyExtractor={(item) => (item.kind === 'word' ? `${item.word.bucketId}-${item.word.position}` : 'review-end')}
+            keyExtractor={(item) =>
+              item.kind === 'word' ? `${item.word.bucketId}-${item.word.position}` : 'review-end'
+            }
             renderItem={({ item, index }) =>
               item.kind === 'word' ? (
                 <View style={{ height: viewport }}>
