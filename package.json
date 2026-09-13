@@ -11,7 +11,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "ios": "expo run:ios",
-    "lint": "expo lint",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "start": "expo start",
     "web": "expo start --web"
   },
@@ -58,7 +59,9 @@
     "@types/react": "~19.2.2",
     "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "1.0.0-rc.4",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
     "sharp": "^0.35.4",
     "typescript": "~6.0.3"
   }
