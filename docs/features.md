@@ -22,6 +22,10 @@ Three review flavors share one screen:
   round's on home, or any round's in the stats list.
 - **Day review** (stats, tap the words number): the distinct words completed
   on the selected local day, across all buckets. Great as a daily wrap-up.
+- **Day review, flagged only** (stats, tap the red count next to the words
+  number): the same day, narrowed to the words still flagged. Shorter and
+  sharper than the full day — the ones actually worth another pass. Title
+  reads `Review · <day> · flagged`.
 
 All behave identically:
 
@@ -149,7 +153,12 @@ All behave identically:
 ## Stats
 
 - Selected day row: words, studying time, in-app time for the day tapped on
-  the heatmap (defaults to today; the title shows its date).
+  the heatmap (defaults to today; the title shows its date). Next to the words
+  number, a red dot + count of that day's words that are **still flagged**
+  (hidden at zero). The count follows the CURRENT flag, so unflagging a word
+  drops it immediately, and it is deduped by word like the day's word count —
+  always a subset of it. Tapping it opens the day review narrowed to those
+  words (see Review pass); tapping the number itself still opens the full day.
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
   toggle, five color levels, tappable cells. Under the grid, one subordinate
   summary line for the displayed year: its cumulative words, studying time,

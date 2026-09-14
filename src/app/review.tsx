@@ -10,6 +10,7 @@ import {
   getFlaggedWords,
   getRoundFlaggedWords,
   getWordsCompletedOn,
+  getWordsCompletedOnFlagged,
   setFlag,
   type WordRow,
 } from '@/db/repo';
@@ -34,7 +35,12 @@ export default function ReviewScreen() {
   const { colors } = useTheme();
   const { settings, ready: settingsReady } = useSettings();
   const isFocused = useIsFocused();
-  const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>();
+  const params = useLocalSearchParams<{
+    bucket?: string;
+    round?: string;
+    day?: string;
+    flagged?: string;
+  }>();
   const bucketId =
     typeof params.bucket === 'string' && params.bucket.length > 0
       ? params.bucket
@@ -42,11 +48,13 @@ export default function ReviewScreen() {
   // Flavor of the session: a round param targets the words flagged during
   // that round (snapshot); a day param targets the words completed on that
   // local day across buckets; without either it reviews the bucket's current
-  // flag set.
+  // flag set. A day session may additionally be narrowed to the words of that
+  // day that are still flagged (`flagged=1`, the stats red count).
   const round = Number(params.round);
   const hasRound = Number.isInteger(round) && round > 0;
   const day =
     typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : '';
+  const dayFlaggedOnly = day !== '' && params.flagged === '1';
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
@@ -63,7 +71,9 @@ export default function ReviewScreen() {
       const list = hasRound
         ? await getRoundFlaggedWords(bucketId, round)
         : day !== ''
-          ? await getWordsCompletedOn(day)
+          ? dayFlaggedOnly
+            ? await getWordsCompletedOnFlagged(day)
+            : await getWordsCompletedOn(day)
           : await getFlaggedWords(bucketId);
       if (cancelled) return;
       setQueue(list);
@@ -75,7 +85,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [settingsReady, bucketId, hasRound, round, day]);
+  }, [settingsReady, bucketId, hasRound, round, day, dayFlaggedOnly]);
 
   // Review time counts as studying: same tracking as the feed screen.
   const focusedRef = useRef(isFocused);
@@ -159,7 +169,11 @@ export default function ReviewScreen() {
         </View>
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
-            {day !== '' ? 'Nothing completed that day' : 'Nothing flagged yet'}
+            {day === ''
+              ? 'Nothing flagged yet'
+              : dayFlaggedOnly
+                ? 'Nothing flagged that day'
+                : 'Nothing completed that day'}
           </Text>
         </View>
       </SafeAreaView>
@@ -189,7 +203,7 @@ export default function ReviewScreen() {
             {hasRound
               ? `Review · Round ${round}`
               : day !== ''
-                ? `Review · ${formatDayLabel(day)}`
+                ? `Review · ${formatDayLabel(day)}${dayFlaggedOnly ? ' · flagged' : ''}`
                 : 'Review'}
             {currentWord ? ` · ${currentWord.bucketId}` : ''}
           </Text>

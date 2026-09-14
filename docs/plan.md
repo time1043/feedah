@@ -35,6 +35,9 @@ on the integration branch.
       during that specific round
 - [x] Day review: from stats, tap the words number of a selected day to review
       every word completed that day across buckets (`round_word.reached_at`)
+- [x] Day review, flagged only: the red dot + count next to the stats day's
+      words number (words of that day still flagged) opens a day review
+      narrowed to exactly those words
 - [x] Reminders: daily local notifications with a dynamic reminder list
       (rename / add / delete, native time picker, per-item switches)
 - [x] DB layer: port hand-written SQL strings to drizzle-orm (schema-first

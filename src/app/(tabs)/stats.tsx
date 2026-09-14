@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Heatmap } from '@/components/heatmap';
 import { RoundBar, type RoundWordStatus } from '@/components/round-bar';
 import { Screen } from '@/components/screen';
 import {
+  countWordsCompletedOnFlagged,
   getProgress,
   getRoundHistory,
   getRoundWords,
@@ -116,6 +117,13 @@ export default function StatsScreen() {
   const [roundTabs, setRoundTabs] = useState<string[]>([]);
   const [roundTab, setRoundTab] = useState('');
   const [rounds, setRounds] = useState<RoundDisplay[]>([]);
+  // Words of the selected day that are still flagged — the red badge next to
+  // the day's word count.
+  const [dayFlagged, setDayFlagged] = useState(0);
+  // The focus refetch below reads the day through a ref so a read that started
+  // before a day change cannot land after it and show the wrong day's count.
+  const selectedDayRef = useRef(selectedDay);
+  selectedDayRef.current = selectedDay;
 
   useFocusEffect(() => {
     void (async () => {
@@ -141,8 +149,21 @@ export default function StatsScreen() {
       const tab = tabs.includes(active) ? active : (tabs[0] ?? '');
       setRoundTab(tab);
       setRounds(tab === '' ? [] : await loadRounds(tab));
+      setDayFlagged(await countWordsCompletedOnFlagged(selectedDayRef.current));
     })();
   });
+
+  // The badge is day-scoped and separate from the focus refetch, so it follows
+  // the selected day on its own.
+  useEffect(() => {
+    let cancelled = false;
+    void countWordsCompletedOnFlagged(selectedDay).then((n) => {
+      if (!cancelled) setDayFlagged(n);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDay]);
 
   const selectRoundTab = (id: string) => {
     if (id === roundTab) return;
@@ -182,6 +203,12 @@ export default function StatsScreen() {
             <StatBlock
               label="Words"
               value={`${dayUsage?.words ?? 0}`}
+              flaggedCount={dayFlagged}
+              onPressFlagged={
+                dayFlagged > 0
+                  ? () => router.push(`/review?day=${selectedDay}&flagged=1`)
+                  : undefined
+              }
               onPress={
                 dayUsage && dayUsage.words > 0
                   ? () => router.push(`/review?day=${selectedDay}`)
@@ -295,16 +322,34 @@ function StatBlock({
   label,
   value,
   onPress,
+  /** Count of still-flagged words for this day; renders a red tappable badge. */
+  flaggedCount,
+  onPressFlagged,
 }: {
   label: string;
   value: string;
   onPress?: () => void;
+  flaggedCount?: number;
+  onPressFlagged?: () => void;
 }) {
   const { colors } = useTheme();
+  const showBadge = (flaggedCount ?? 0) > 0 && onPressFlagged !== undefined;
   const content = (
     <>
       <View style={styles.statValueRow}>
         <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+        {showBadge && (
+          <Pressable
+            onPress={onPressFlagged}
+            hitSlop={10}
+            style={styles.statBadge}
+            accessibilityLabel={`Review the ${flaggedCount} flagged words of this day`}
+          >
+            <View style={[styles.statBadgeDot, { backgroundColor: colors.danger }]} />
+            <Text style={[styles.statBadgeCount, { color: colors.danger }]}>{flaggedCount}</Text>
+            <Ionicons name="chevron-forward" size={11} color={colors.textTertiary} />
+          </Pressable>
+        )}
         {onPress && <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />}
       </View>
       <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{label}</Text>
@@ -377,6 +422,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 2,
+  },
+  statBadge: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 3,
+    marginLeft: 4,
+  },
+  statBadgeDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  statBadgeCount: {
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
   },
   statLabel: {
     fontSize: fontSize.caption,

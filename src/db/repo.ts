@@ -343,6 +343,56 @@ export async function getWordsCompletedOn(day: string): Promise<WordRow[]> {
     .orderBy(word.bucketId, word.position);
 }
 
+/**
+ * Subset of getWordsCompletedOn that is still flagged: the words studied on a
+ * local day which the user has not yet cleared. The flag is the CURRENT value
+ * (word.flagged), not the per-round snapshot, so unflagging a word drops it
+ * out of this list — and out of the day's marked count — right away.
+ * Deduped by word, exactly like the list it narrows, so it is always a subset
+ * of that day's word count.
+ */
+export async function getWordsCompletedOnFlagged(day: string): Promise<WordRow[]> {
+  const db = await getDb();
+  const { start, end } = dayBounds(day);
+  return db
+    .selectDistinct({
+      bucketId: word.bucketId,
+      position: word.position,
+      text: word.text,
+      ipa: word.ipa,
+      meaning: word.meaning,
+      forms: word.forms,
+      flagged: word.flagged,
+      flaggedAt: word.flaggedAt,
+    })
+    .from(word)
+    .innerJoin(
+      roundWord,
+      and(eq(roundWord.bucketId, word.bucketId), eq(roundWord.position, word.position)),
+    )
+    .where(
+      and(gte(roundWord.reachedAt, start), lt(roundWord.reachedAt, end), eq(word.flagged, true)),
+    )
+    .orderBy(word.bucketId, word.position);
+}
+
+/** Count of getWordsCompletedOnFlagged, for the stats day readout. */
+export async function countWordsCompletedOnFlagged(day: string): Promise<number> {
+  const db = await getDb();
+  const { start, end } = dayBounds(day);
+  const rows = await db
+    .selectDistinct({ bucketId: word.bucketId, position: word.position })
+    .from(word)
+    .innerJoin(
+      roundWord,
+      and(eq(roundWord.bucketId, word.bucketId), eq(roundWord.position, word.position)),
+    )
+    .where(
+      and(gte(roundWord.reachedAt, start), lt(roundWord.reachedAt, end), eq(word.flagged, true)),
+    );
+  return rows.length;
+}
+
 export async function countFlaggedWords(bucketId: string): Promise<number> {
   const db = await getDb();
   const row = await db
