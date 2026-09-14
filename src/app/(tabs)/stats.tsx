@@ -171,7 +171,6 @@ export default function StatsScreen() {
     void loadRounds(id).then(setRounds);
   };
 
-  const today = usage.get(todayLocalDate());
   const dayUsage = usage.get(selectedDay);
   const isToday = selectedDay === todayLocalDate();
   const heatValues = new Map<string, number>();
@@ -322,7 +321,7 @@ function StatBlock({
   label,
   value,
   onPress,
-  /** Count of still-flagged words for this day; renders a red tappable badge. */
+  /** Count of still-flagged words for this day; renders a red tappable sub-row. */
   flaggedCount,
   onPressFlagged,
 }: {
@@ -334,35 +333,38 @@ function StatBlock({
 }) {
   const { colors } = useTheme();
   const showBadge = (flaggedCount ?? 0) > 0 && onPressFlagged !== undefined;
-  const content = (
-    <>
-      <View style={styles.statValueRow}>
+  return (
+    <View style={styles.statBlock}>
+      {/* Two hit areas, kept vertically apart: the value row opens the whole
+          day, the red sub-row opens the day narrowed to its flagged words.
+          Stacking them is what keeps the big number from reading as `102`. */}
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        style={styles.statValueRow}
+        accessibilityLabel={onPress ? `${value} words. Review every word of this day` : undefined}
+      >
         <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />}
+      </Pressable>
+      <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{label}</Text>
+      {/* Fixed height on every column so the values and labels share a
+          baseline whether or not a column has a flagged sub-row. */}
+      <View style={styles.statSubRow}>
         {showBadge && (
           <Pressable
             onPress={onPressFlagged}
-            hitSlop={10}
-            style={styles.statBadge}
+            hitSlop={{ bottom: 8, left: 8, right: 8, top: 4 }}
+            style={styles.statBadgeHit}
             accessibilityLabel={`Review the ${flaggedCount} flagged words of this day`}
           >
             <View style={[styles.statBadgeDot, { backgroundColor: colors.danger }]} />
             <Text style={[styles.statBadgeCount, { color: colors.danger }]}>{flaggedCount}</Text>
-            <Ionicons name="chevron-forward" size={11} color={colors.textTertiary} />
           </Pressable>
         )}
-        {onPress && <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />}
       </View>
-      <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{label}</Text>
-    </>
+    </View>
   );
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} style={styles.statBlock}>
-        {content}
-      </Pressable>
-    );
-  }
-  return <View style={styles.statBlock}>{content}</View>;
 }
 
 function MetricPill({
@@ -423,11 +425,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
   },
-  statBadge: {
+  // Fixed height on all three columns so the values and labels share a
+  // baseline whether or not a column has a flagged sub-row.
+  statSubRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: 16,
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  statBadgeHit: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 3,
-    marginLeft: 4,
   },
   statBadgeDot: {
     borderRadius: 3,

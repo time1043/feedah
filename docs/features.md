@@ -153,12 +153,18 @@ All behave identically:
 ## Stats
 
 - Selected day row: words, studying time, in-app time for the day tapped on
-  the heatmap (defaults to today; the title shows its date). Next to the words
-  number, a red dot + count of that day's words that are **still flagged**
-  (hidden at zero). The count follows the CURRENT flag, so unflagging a word
-  drops it immediately, and it is deduped by word like the day's word count —
-  always a subset of it. Tapping it opens the day review narrowed to those
-  words (see Review pass); tapping the number itself still opens the full day.
+  the heatmap (defaults to today; the title shows its date). Everything about
+  the words column lives in its own column — a large number, the `Words` label,
+  then a red dot + count of that day's words that are **still flagged** (hidden
+  at zero) on a sub-row beneath the label. The sub-row is a fixed-height
+  placeholder on all three columns, so the values and labels stay on one
+  baseline. The count follows the CURRENT flag, so unflagging a word drops it
+  immediately, and it is deduped by word like the day's word count — always a
+  subset of it.
+- Both words entries stay reachable and are stacked rather than side by side:
+  the number opens the **full day** review, the red count opens the day
+  narrowed to its **flagged** words (see Review pass). Keeping the red count
+  off the number's line is deliberate — inline it reads as one token (`102`).
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
   toggle, five color levels, tappable cells. Under the grid, one subordinate
   summary line for the displayed year: its cumulative words, studying time,
