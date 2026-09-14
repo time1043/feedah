@@ -928,6 +928,9 @@ const styles = StyleSheet.create({
   },
   groupCaption: {
     fontSize: fontSize.caption,
+    // The caption is the last child of a group card, so it needs its own
+    // bottom padding — otherwise the text sits flush against the card edge.
+    paddingBottom: spacing.m,
     paddingHorizontal: spacing.m,
   },
   modalTitle: {
