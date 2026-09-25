@@ -125,6 +125,11 @@ All behave identically:
   | `sc%e\|se%e`   | `\|` alternatives can use `%`                                                                      | serve, see, sense, settle, schedule       |
   | `sc_ne\|s_nse` | `\|` alternatives can use `_` too — tighter still, drops `scenery`                                 | sense, scene                              |
 
+- **Forms**: the query also runs against each word's inflected forms, so
+  `donate` finds `donation` — `donation`'s forms include `donate v.`. A form
+  match always lists the headword; the form itself never becomes a result row,
+  it only widens what matches. The same `%` / `_` / `|` rules apply.
+
 - Every result row shows which bucket it came from; tapping a result opens the
   word page pinned to that bucket and position.
 - A result opens the **word page**: a full bucket browser. Swipe up/down to

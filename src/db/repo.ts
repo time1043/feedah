@@ -126,7 +126,14 @@ export async function searchWords(
   const parts = alternatives.length > 0 ? alternatives : [trimmed];
   const conditions = parts.map((part) => {
     const pattern = toLikePattern(part);
-    const textMatch = sql`lower(${word.text}) LIKE lower(${pattern}) ESCAPE '\\'`;
+    // Forms match like the text does: a query may name any inflected form
+    // ("donate") and the hit is the headword that owns it ("donation"). Forms
+    // is a JSON array in a text column, so LIKE runs over its serialized text;
+    // the row returned is always the word itself, never the form.
+    const textMatch = or(
+      sql`lower(${word.text}) LIKE lower(${pattern}) ESCAPE '\\'`,
+      sql`lower(${word.forms}) LIKE lower(${pattern}) ESCAPE '\\'`,
+    );
     return matchMeaning
       ? or(textMatch, sql`lower(${word.meaning}) LIKE lower(${pattern}) ESCAPE '\\'`)
       : textMatch;
