@@ -137,6 +137,11 @@ All behave identically:
   replay, reveal, and flag all work.
 - The word page browses the bucket it was opened from: search omits the bucket
   (uses the active one), the word list pins its tab's bucket explicitly.
+- The word page's search icon **replaces** the page with a fresh search instead
+  of pushing a new layer: a lookup chain (search → word → search → …) never
+  stacks word pages, and each search stays exactly one layer — backing out
+  walks the previous queries' results, then the screen the first search came
+  from.
 - None of it counts as studying: no pointer movement, no word counts, no feed
   time.
 

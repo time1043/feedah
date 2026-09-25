@@ -105,8 +105,11 @@ export default function WordPage() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
+          {/* Search replaces this page instead of pushing, so a lookup chain
+              (search → word → search → …) never stacks word pages and every
+              search stays exactly one layer deep. */}
           <Pressable
-            onPress={() => router.push('/search')}
+            onPress={() => router.replace('/search')}
             hitSlop={12}
             accessibilityLabel="Search words"
           >
