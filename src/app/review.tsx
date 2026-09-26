@@ -96,6 +96,29 @@ export default function ReviewScreen() {
     };
   }, [settingsReady, bucketId, hasRound, round, day, sessionKey]);
 
+  // The card the user is on, read by the alignment effect below without
+  // listing `current` among its dependencies: a re-measure must re-snap to
+  // wherever the user is, not re-run on every settle.
+  const currentRef = useRef(0);
+  currentRef.current = current;
+
+  // initialScrollIndex aims with the first viewport measure, which on Android
+  // can predate the final safe-area insets — the list then comes to rest
+  // between two pages and pagingEnabled never re-snaps on its own. Re-apply
+  // the scroll whenever the measured viewport changes: the first pass lands
+  // on the resumed card, a later re-measure (insets settling, rotation)
+  // re-snaps to the card the user is on.
+  useEffect(() => {
+    if (!ready || viewport <= 0) return;
+    const frame = requestAnimationFrame(() => {
+      // Swallow the scroll's own settle event, mirroring jumpTo — a
+      // programmatic scroll must not register as a swiped card.
+      suppressSettle.current = true;
+      listRef.current?.scrollToIndex({ index: currentRef.current, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ready, viewport]);
+
   // Review time counts as studying: same tracking as the feed screen.
   const focusedRef = useRef(isFocused);
   focusedRef.current = isFocused;
