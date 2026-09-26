@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,26 +26,33 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WordRow[]>([]);
   // The word page's search icon comes back here for a fresh lookup: clear the
-  // bar at once, and raise the keyboard once the screen is on top again.
+  // bar at once, and raise the keyboard once the pop transition has ended —
+  // focus fired mid-transition is swallowed by the screen still animating in.
   const inputRef = useRef<TextInput | null>(null);
-  const isFocused = useIsFocused();
-  const pendingReset = useRef(false);
+  // The transitionEnd event lives on the native stack navigator; expo-router's
+  // generic navigation type omits it, so narrow just this listener's shape.
+  const navigation = useNavigation() as unknown as {
+    addListener: (
+      event: 'transitionEnd',
+      listener: (e: { data: { closing: boolean } }) => void,
+    ) => () => void;
+  };
 
   useEffect(
     () =>
       onSearchReset(() => {
-        pendingReset.current = true;
         setQuery('');
+        const unsubscribe = navigation.addListener('transitionEnd', (e) => {
+          unsubscribe();
+          if (!e.data.closing) {
+            // Blur first so a stale focused state can't swallow the keyboard.
+            inputRef.current?.blur();
+            inputRef.current?.focus();
+          }
+        });
       }),
-    [],
+    [navigation],
   );
-
-  useEffect(() => {
-    if (isFocused && pendingReset.current) {
-      pendingReset.current = false;
-      inputRef.current?.focus();
-    }
-  }, [isFocused]);
 
   useEffect(() => {
     void (async () => {
