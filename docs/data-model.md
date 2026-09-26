@@ -33,7 +33,7 @@ never on review, never on jumps. Global position is
 
 **round_word** — `reached = 1` means the card was settled by hand in that
 round; jump targets never count. `reached_at` records when it was completed
-(0 means it cannot be attributed to a day — this powers the day review).
+(informational only — it never syncs, so the day review cannot rely on it).
 `flagged = 1` means the bookmark was on at
 some point during the round; the row may exist with `reached = 0` when a word
 was flagged without being reached (e.g. from search). Unflagging only rewrites
@@ -47,6 +47,9 @@ row and resets the pointer to 0.
 advance upserts the day's `daily_pointer` snapshot; a day's count is the
 difference between its snapshot and the previous recorded one, summed across
 buckets (see `lib/daily.ts`). Re-viewing cards therefore cannot inflate counts.
+The day review reads the same deltas, so its queue always matches the number
+and survives reinstalls — the snapshots sync row-for-row, per-word timestamps
+do not.
 
 **Daily time** — two overlapping metrics: `app_seconds` (app foreground and
 active) and `feed_seconds` (feed screen focused and active). Time accumulates

@@ -46,7 +46,8 @@ export const bucketProgress = sqliteTable('bucket_progress', {
 // in that round (jump targets never count). flagged=true marks the flag was
 // on at some point during the round; rows may exist with reached=false when
 // the word was flagged without being reached (e.g. from search). reachedAt
-// records the settle time; 0 means it cannot be attributed to a day.
+// records the settle time (informational only — not synced; the day review
+// reads daily_pointer deltas instead).
 export const roundWord = sqliteTable(
   'round_word',
   {

@@ -22,6 +22,9 @@ Three review flavors share one screen:
   round's on home, or any round's in the stats list.
 - **Day review** (stats, tap the words number): the distinct words completed
   on the selected local day, across all buckets. Great as a daily wrap-up.
+  The queue is rebuilt from the daily pointer deltas — the same rule the
+  stats number uses — so it always matches the number and survives
+  reinstalls.
 
 All behave identically:
 

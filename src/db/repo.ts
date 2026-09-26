@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
 
-import { dayBounds, todayLocalDate } from '@/lib/date';
+import { todayLocalDate } from '@/lib/date';
 
 import { getDb, withTransaction } from './index';
 import {
@@ -326,28 +326,53 @@ export async function getRoundFlaggedWords(bucketId: string, round: number): Pro
     .orderBy(word.position);
 }
 
-/** Distinct words completed on a local day, across all buckets. */
+/**
+ * Distinct words completed on a local day, across all buckets, rebuilt from
+ * the daily pointer high-water marks: the day's globalPosition gain over the
+ * previous recorded snapshot names exactly the global positions settled that
+ * day — the same rule the stats word counts use, so the queue always matches
+ * the number. Per-word reached timestamps are not synced (round_word ships to
+ * the cloud compacted per round), so the pointer deltas are what survives a
+ * reinstall.
+ */
 export async function getWordsCompletedOn(day: string): Promise<WordRow[]> {
   const db = await getDb();
-  const { start, end } = dayBounds(day);
-  return db
-    .selectDistinct({
-      bucketId: word.bucketId,
-      position: word.position,
-      text: word.text,
-      ipa: word.ipa,
-      meaning: word.meaning,
-      forms: word.forms,
-      flagged: word.flagged,
-      flaggedAt: word.flaggedAt,
-    })
-    .from(word)
-    .innerJoin(
-      roundWord,
-      and(eq(roundWord.bucketId, word.bucketId), eq(roundWord.position, word.position)),
-    )
-    .where(and(gte(roundWord.reachedAt, start), lt(roundWord.reachedAt, end)))
-    .orderBy(word.bucketId, word.position);
+  const rows = await db
+    .select()
+    .from(dailyPointer)
+    .orderBy(dailyPointer.bucketId, dailyPointer.day);
+  const prevByBucket = new Map<string, number>();
+  const ranges: { bucketId: string; from: number; to: number }[] = [];
+  for (const row of rows) {
+    if (row.day === day) {
+      const from = (prevByBucket.get(row.bucketId) ?? 0) + 1;
+      if (row.globalPosition >= from) {
+        ranges.push({ bucketId: row.bucketId, from, to: row.globalPosition });
+      }
+    }
+    prevByBucket.set(row.bucketId, row.globalPosition);
+  }
+
+  const out: WordRow[] = [];
+  for (const range of ranges) {
+    const wordCount = await getWordCount(range.bucketId);
+    if (wordCount <= 0) continue;
+    // A day's gain is contiguous global positions; crossing a round boundary
+    // wraps the within-round positions, and every round replays the same word
+    // set, so distinct positions is all the identity we need.
+    const positions = new Set<number>();
+    for (let gp = range.from; gp <= range.to; gp++) {
+      positions.add(((gp - 1) % wordCount) + 1);
+    }
+    out.push(
+      ...(await db
+        .select()
+        .from(word)
+        .where(and(eq(word.bucketId, range.bucketId), inArray(word.position, [...positions])))
+        .orderBy(word.position)),
+    );
+  }
+  return out;
 }
 
 export async function countFlaggedWords(bucketId: string): Promise<number> {
