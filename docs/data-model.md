@@ -24,6 +24,7 @@ never reads them (see docs/cloud-sync.md for the mirror and merge rules).
 | `daily_stat`      | per day: `feed_seconds`, `app_seconds`                                |
 | `daily_pointer`   | per (day, bucket): end-of-day global position snapshot                |
 | `meta`            | key-value store (active bucket, settings)                             |
+| `review_cursor`   | per review session key: furthest card settled — local only, never synced |
 
 ## Semantics
 

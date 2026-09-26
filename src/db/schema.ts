@@ -101,6 +101,15 @@ export const meta = sqliteTable('meta', {
   updatedAt: integer('updated_at').notNull().default(0),
 });
 
+// Resume position per review session: the furthest card settled before the
+// user left, keyed by session flavor (day:<day>, round:<bucket>:<round>,
+// flagged:<bucket>). Local only — deliberately absent from the cloud mirror;
+// a lost cursor just means the review restarts from the top.
+export const reviewCursor = sqliteTable('review_cursor', {
+  key: text('key').primaryKey(),
+  position: integer('position').notNull().default(0),
+});
+
 export type BucketRow = typeof bucket.$inferSelect;
 export type WordSelect = typeof word.$inferSelect;
 export type BucketProgressSelect = typeof bucketProgress.$inferSelect;
@@ -109,3 +118,4 @@ export type RoundHistorySelect = typeof roundHistory.$inferSelect;
 export type DailyStatSelect = typeof dailyStat.$inferSelect;
 export type DailyPointerSelect = typeof dailyPointer.$inferSelect;
 export type MetaSelect = typeof meta.$inferSelect;
+export type ReviewCursorSelect = typeof reviewCursor.$inferSelect;

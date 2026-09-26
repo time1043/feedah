@@ -9,6 +9,7 @@ import {
   dailyPointer,
   dailyStat,
   meta,
+  reviewCursor,
   roundHistory,
   roundWord,
   word,
@@ -460,4 +461,34 @@ export async function getDailyStat(day: string): Promise<DailyStatRow | null> {
   const db = await getDb();
   const row = await db.select().from(dailyStat).where(eq(dailyStat.day, day)).get();
   return row ?? null;
+}
+
+/** Furthest card settled in a review session (0 when none was recorded). */
+export async function getReviewCursor(key: string): Promise<number> {
+  const db = await getDb();
+  const row = await db.select().from(reviewCursor).where(eq(reviewCursor.key, key)).get();
+  return row?.position ?? 0;
+}
+
+/**
+ * Records the card a review session settled on. Monotonic: swiping back to
+ * re-view earlier cards never lowers the resume position, matching the feed's
+ * high-water pointer.
+ */
+export async function saveReviewCursor(key: string, position: number): Promise<void> {
+  if (position <= 0) return;
+  const db = await getDb();
+  await db
+    .insert(reviewCursor)
+    .values({ key, position })
+    .onConflictDoUpdate({
+      target: reviewCursor.key,
+      set: { position: sql`MAX(${reviewCursor.position}, excluded.position)` },
+    });
+}
+
+/** Drops a review session's cursor — the queue was finished. */
+export async function clearReviewCursor(key: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(reviewCursor).where(eq(reviewCursor.key, key));
 }

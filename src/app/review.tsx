@@ -7,9 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressBar } from '@/components/progress-bar';
 import { WordCard } from '@/components/word-card';
 import {
+  clearReviewCursor,
   getFlaggedWords,
+  getReviewCursor,
   getRoundFlaggedWords,
   getWordsCompletedOn,
+  saveReviewCursor,
   setFlag,
   type WordRow,
 } from '@/db/repo';
@@ -28,7 +31,9 @@ type ReviewItem = { kind: 'word'; word: WordRow } | typeof FOOTER;
  * order. The queue is snapshotted on entry; unflagging during the session
  * updates the state but the word stays until the next pass. Nothing is
  * recorded — no pointer, no rounds, no word counts — though the time spent
- * counts as studying.
+ * counts as studying. The one durable trace is the local resume cursor
+ * (never synced): leaving mid-queue and re-entering resumes at the furthest
+ * card settled; finishing the queue clears it.
  */
 export default function ReviewScreen() {
   const { colors } = useTheme();
@@ -47,9 +52,17 @@ export default function ReviewScreen() {
   const hasRound = Number.isInteger(round) && round > 0;
   const day =
     typeof params.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.day) ? params.day : '';
+  // Resume-cursor identity: one key per queue, so every flavor remembers its
+  // own position (day queues span buckets, hence no bucket in that key).
+  const sessionKey = hasRound
+    ? `round:${bucketId}:${round}`
+    : day !== ''
+      ? `day:${day}`
+      : `flagged:${bucketId}`;
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
+  const [startIndex, setStartIndex] = useState(0);
   const [current, setCurrent] = useState(0);
   const [viewport, setViewport] = useState(0);
 
@@ -66,16 +79,22 @@ export default function ReviewScreen() {
           ? await getWordsCompletedOn(day)
           : await getFlaggedWords(bucketId);
       if (cancelled) return;
+      // Resume at the furthest card settled last time; a finished or stale
+      // cursor (past the queue's end) restarts from the top.
+      const resume = await getReviewCursor(sessionKey);
+      const start = resume > 0 && resume < list.length ? resume : 0;
       setQueue(list);
+      setStartIndex(start);
+      setCurrent(start);
       setReady(true);
-      if (settings.autoPronounce && list[0]) {
-        speakWord(list[0].text, settings.speechRate);
+      if (settings.autoPronounce && list[start]) {
+        speakWord(list[start].text, settings.speechRate);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [settingsReady, bucketId, hasRound, round, day]);
+  }, [settingsReady, bucketId, hasRound, round, day, sessionKey]);
 
   // Review time counts as studying: same tracking as the feed screen.
   const focusedRef = useRef(isFocused);
@@ -119,6 +138,8 @@ export default function ReviewScreen() {
     if (endTimer.current) return;
     if (index >= queue.length) {
       setCurrent(index);
+      // The queue was walked through: the next entry starts fresh.
+      void clearReviewCursor(sessionKey);
       endTimer.current = setTimeout(() => {
         endTimer.current = null;
         router.back();
@@ -126,6 +147,7 @@ export default function ReviewScreen() {
       return;
     }
     setCurrent(index);
+    void saveReviewCursor(sessionKey, index);
     if (settings.autoPronounce) {
       speakWord(queue[index].text, settings.speechRate);
     }
@@ -217,6 +239,7 @@ export default function ReviewScreen() {
             keyExtractor={(item) =>
               item.kind === 'word' ? `${item.word.bucketId}-${item.word.position}` : 'review-end'
             }
+            initialScrollIndex={startIndex}
             renderItem={({ item, index }) =>
               item.kind === 'word' ? (
                 <View style={{ height: viewport }}>

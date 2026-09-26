@@ -41,6 +41,12 @@ All behave identically:
 - The end card lingers for two seconds, then leaves the session.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
   time spent counts as studying.
+- Leaving mid-queue is remembered: re-entering the same session resumes at
+  the furthest card settled (each flavor — live set, round, day — keeps its
+  own cursor in the local-only `review_cursor` table, never synced). Swiping
+  back never lowers it, scrubbing the progress bar is not swiping and does
+  not move it, and finishing the queue clears it so the next entry starts
+  from the top.
 
 ## Feed (the core)
 

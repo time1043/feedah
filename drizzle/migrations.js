@@ -2,10 +2,13 @@
 
 import m0000 from './20260905110923_slow_vector/migration.sql';
 import m0001 from './20260905153156_dapper_hannibal_king/migration.sql';
+import m0002 from './20260926161228_absurd_triton/migration.sql';
 
-export default {
-  migrations: {
-    '20260905110923_slow_vector': m0000,
-    '20260905153156_dapper_hannibal_king': m0001,
-  },
-};
+  export default {
+    migrations: {
+      "20260905110923_slow_vector": m0000,
+"20260905153156_dapper_hannibal_king": m0001,
+"20260926161228_absurd_triton": m0002
+}
+  }
+  

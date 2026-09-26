@@ -26,7 +26,9 @@ optional — the app runs fully offline, fully local, forever.
 The three bundled word banks never leave the device (they are identical in
 every build). The cloud mirrors only user state — `cloud_*` tables in
 `convex/schema.ts` mirror `bucket_progress`, `round_word`, `round_history`,
-`daily_stat`, `daily_pointer`, `word.flagged`, and `meta`.
+`daily_stat`, `daily_pointer`, `word.flagged`, and `meta`. The local-only
+`review_cursor` (review resume positions) is deliberately absent: a lost
+cursor just means the review restarts from the top.
 
 ## One sync cycle
 
