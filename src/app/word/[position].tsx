@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { WordCard } from '@/components/word-card';
 import { getWords, setFlag, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
+import { requestSearchReset } from '@/lib/search-reset';
 import { speakWord } from '@/lib/speech';
 import { useTheme } from '@/theme/context';
 import { spacing } from '@/theme/tokens';
@@ -20,7 +21,7 @@ import { spacing } from '@/theme/tokens';
 export default function WordPage() {
   const { colors } = useTheme();
   const { settings } = useSettings();
-  const params = useLocalSearchParams<{ position: string; bucket?: string }>();
+  const params = useLocalSearchParams<{ position: string; bucket?: string; from?: string }>();
   const requested = Number(params.position);
   // The bucket is pinned by the opener (word list passes its tab); search
   // omits it and the active bucket is used.
@@ -28,6 +29,9 @@ export default function WordPage() {
     typeof params.bucket === 'string' && params.bucket.length > 0
       ? params.bucket
       : settings.activeBucketId;
+  // Search results mark this page `from=search`; the search icon then returns
+  // to that search instead of opening another one.
+  const fromSearch = params.from === 'search';
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
@@ -105,8 +109,19 @@ export default function WordPage() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
+          {/* Results open this page marked from=search, so the icon goes back
+              to that search for a fresh lookup — bar cleared, keyboard up;
+              the back gesture keeps the query. Other origins replace into a
+              fresh search, so a word card never lingers beneath a search. */}
           <Pressable
-            onPress={() => router.push('/search')}
+            onPress={
+              fromSearch
+                ? () => {
+                    requestSearchReset();
+                    router.back();
+                  }
+                : () => router.replace('/search')
+            }
             hitSlop={12}
             accessibilityLabel="Search words"
           >
