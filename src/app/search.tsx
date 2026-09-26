@@ -13,7 +13,8 @@ import { fontSize, spacing } from '@/theme/tokens';
  * purpose: the same word in two buckets is worth seeing (and a duplicate
  * inside one bucket exposes a data problem instead of hiding it). From the
  * feed it is pinned to that feed's bucket. Results open the word page pinned
- * to the result's bucket.
+ * to the result's bucket, marked `from=search` so that page's search icon
+ * comes back here instead of stacking another search.
  */
 export default function SearchScreen() {
   const { colors } = useTheme();
@@ -93,7 +94,9 @@ export default function SearchScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-            onPress={() => router.push(`/word/${item.position}?bucket=${item.bucketId}`)}
+            onPress={() =>
+              router.push(`/word/${item.position}?bucket=${item.bucketId}&from=search`)
+            }
           >
             <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
             {item.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}

@@ -20,7 +20,7 @@ import { spacing } from '@/theme/tokens';
 export default function WordPage() {
   const { colors } = useTheme();
   const { settings } = useSettings();
-  const params = useLocalSearchParams<{ position: string; bucket?: string }>();
+  const params = useLocalSearchParams<{ position: string; bucket?: string; from?: string }>();
   const requested = Number(params.position);
   // The bucket is pinned by the opener (word list passes its tab); search
   // omits it and the active bucket is used.
@@ -28,6 +28,9 @@ export default function WordPage() {
     typeof params.bucket === 'string' && params.bucket.length > 0
       ? params.bucket
       : settings.activeBucketId;
+  // Search results mark this page `from=search`; the search icon then returns
+  // to that search instead of opening another one.
+  const fromSearch = params.from === 'search';
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
@@ -105,11 +108,12 @@ export default function WordPage() {
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back">
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
-          {/* Search replaces this page instead of pushing, so a lookup chain
-              (search → word → search → …) never stacks word pages and every
-              search stays exactly one layer deep. */}
+          {/* Results open this page marked from=search, so the icon goes back
+              to that search — its query stays in the bar, ready to edit.
+              Other origins replace into a fresh search, so a word card never
+              lingers beneath a search. */}
           <Pressable
-            onPress={() => router.replace('/search')}
+            onPress={fromSearch ? () => router.back() : () => router.replace('/search')}
             hitSlop={12}
             accessibilityLabel="Search words"
           >
