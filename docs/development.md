@@ -57,6 +57,16 @@ JSON locally or bundling fails.
 Reference word banks: https://github.com/time1043/vocabulary-bucket (same schema;
 its JSON bucket files map 1:1 to this project's buckets).
 
+Data rules: `word` holds exactly one headword — a slashed variant pair like
+`lie / lay` is not allowed there, since exact-length search patterns (`_ie`)
+miss it and TTS reads the slash aloud. Variants belong in `forms`, POS-tagged
+like every entry (`lay v.`, `an art.`). The 260926 upstream normalization
+folded four pairs (`lie / lay` → `lie`, `bear / bore` → `bear`, `a / an` →
+`a`, `a.m. / A.M.` → `a.m.`) and left `B.C. / A.D.` — two opposite meanings
+share one row, and splitting it would shift positions. Content-only edits
+like these never change word counts, so installed devices keep the old text
+until a fresh install; seeding re-runs only on word count changes.
+
 ## Local builds
 
 ```bash
