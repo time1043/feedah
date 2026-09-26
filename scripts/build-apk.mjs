@@ -22,14 +22,28 @@
 // app-release.apk, so the ABI is stamped onto the copied artifact instead:
 // node scripts/build-apk.mjs --abi arm64-v8a
 //   -> dist/feedah-260907-0144-8b21-arm64-v8a.apk
+//
+// The word bank JSONs (data/*.json) are fingerprinted separately: gradle's
+// bundle task only tracks js/jsx/ts/tsx sources, so changed bucket data would
+// never invalidate it and the APK would silently ship the previous word banks.
+// A data change wipes the cached JS bundle before gradle runs.
 
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
 const FINGERPRINT_FILE = path.join(root, 'android', '.prebuild-fingerprint');
+const DATA_FINGERPRINT_FILE = path.join(root, 'android', '.data-fingerprint');
 
 // `--abi <abi>` (e.g. arm64-v8a) limits the bundled native libs to one
 // architecture via gradle's reactNativeArchitectures property.
@@ -70,6 +84,22 @@ const needsPrebuild = () =>
   !existsSync(FINGERPRINT_FILE) ||
   readFileSync(FINGERPRINT_FILE, 'utf8') !== nativeFingerprint();
 
+// Every bucket JSON the app bundles at build time, hashed together. The data
+// dir is a user-maintained symlink, so it is read through like any directory.
+const dataFingerprint = () => {
+  const hash = createHash('sha256');
+  const files = existsSync(path.join(root, 'data'))
+    ? readdirSync(path.join(root, 'data'))
+        .filter((file) => file.endsWith('.json'))
+        .sort()
+    : [];
+  for (const file of files) {
+    hash.update(file);
+    hash.update(readFileSync(path.join(root, 'data', file)));
+  }
+  return hash.digest('hex');
+};
+
 if (process.argv.includes('--clean')) {
   run('pnpm exec expo prebuild --platform android');
 } else if (needsPrebuild()) {
@@ -87,6 +117,22 @@ if (
   readFileSync(FINGERPRINT_FILE, 'utf8') !== nativeFingerprint()
 ) {
   writeFileSync(FINGERPRINT_FILE, nativeFingerprint());
+}
+
+// The gradle bundle task (BundleHermesCTask) declares no *.json inputs, so
+// changed word banks would leave it UP-TO-DATE and the APK would ship stale
+// data. Wipe its output when the data fingerprint moved; the task then reruns
+// and the downstream asset merges follow. The fingerprint is recorded only
+// after a successful build, so a failed build retries the re-bundle.
+if (
+  !existsSync(DATA_FINGERPRINT_FILE) ||
+  readFileSync(DATA_FINGERPRINT_FILE, 'utf8') !== dataFingerprint()
+) {
+  console.log('\nWord bank data changed — wiping the cached JS bundle');
+  rmSync(path.join(root, 'android', 'app', 'build', 'generated', 'assets', 'react'), {
+    recursive: true,
+    force: true,
+  });
 }
 
 // 2. Assemble the release APK. Windows runs gradlew.bat through cmd; the sh
@@ -112,6 +158,7 @@ const built = path.join(
   'app-release.apk',
 );
 if (!existsSync(built)) throw new Error(`APK not found at ${built} — did assembleRelease succeed?`);
+writeFileSync(DATA_FINGERPRINT_FILE, dataFingerprint());
 
 // The ABI is stamped onto the copied artifact because gradle emits the same
 // app-release.apk no matter what reactNativeArchitectures was set to — without
