@@ -137,14 +137,16 @@ All behave identically:
   replay, reveal, and flag all work.
 - The word page browses the bucket it was opened from: search omits the bucket
   (uses the active one), the word list pins its tab's bucket explicitly.
-- The word page's search icon **returns to the search it came from** — the bar
-  still holds that query, ready to edit — instead of opening another search;
-  from any other origin, like the word list, it **replaces** the page with a
-  fresh search so no word card lingers beneath a search. Either way a lookup
-  chain never grows: one search page plus one word page, whatever the lookup
-  count. Walk: from the feed, search `donate`, open `donation`; back on the
-  search, edit the bar to `appreciate`, open it; edit to `royal`, open it.
-  Two backs leave the session — the `royal` search, then the feed.
+- The word page's search icon **returns to the search it came from and starts
+  it fresh** — bar emptied, keyboard up — while the back gesture returns with
+  the previous query still in the bar, ready to edit. From any other origin,
+  like the word list, the icon **replaces** the page with a fresh search so no
+  word card lingers beneath a search. Either way a lookup chain never grows:
+  one search page plus one word page, whatever the lookup count. Walk: from
+  the feed, search `donate`, open `donation`; tap the card's search icon —
+  back on the search with an empty bar — type `appreciate`, open it; the same
+  for `royal`. Two backs leave the session — the `royal` search, then the
+  feed.
 - None of it counts as studying: no pointer movement, no word counts, no feed
   time.
 

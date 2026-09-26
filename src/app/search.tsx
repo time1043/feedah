@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listBuckets, searchWords, type WordRow } from '@/db/repo';
+import { onSearchReset } from '@/lib/search-reset';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -24,6 +25,27 @@ export default function SearchScreen() {
   const [scopes, setScopes] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WordRow[]>([]);
+  // The word page's search icon comes back here for a fresh lookup: clear the
+  // bar at once, and raise the keyboard once the screen is on top again.
+  const inputRef = useRef<TextInput | null>(null);
+  const isFocused = useIsFocused();
+  const pendingReset = useRef(false);
+
+  useEffect(
+    () =>
+      onSearchReset(() => {
+        pendingReset.current = true;
+        setQuery('');
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    if (isFocused && pendingReset.current) {
+      pendingReset.current = false;
+      inputRef.current?.focus();
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     void (async () => {
@@ -66,6 +88,7 @@ export default function SearchScreen() {
         </Pressable>
         <View style={styles.inputWrap}>
           <TextInput
+            ref={inputRef}
             autoFocus
             value={query}
             onChangeText={setQuery}

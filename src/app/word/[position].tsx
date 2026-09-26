@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { WordCard } from '@/components/word-card';
 import { getWords, setFlag, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
+import { requestSearchReset } from '@/lib/search-reset';
 import { speakWord } from '@/lib/speech';
 import { useTheme } from '@/theme/context';
 import { spacing } from '@/theme/tokens';
@@ -109,11 +110,18 @@ export default function WordPage() {
             <Ionicons name="chevron-down" size={28} color={colors.textTertiary} />
           </Pressable>
           {/* Results open this page marked from=search, so the icon goes back
-              to that search — its query stays in the bar, ready to edit.
-              Other origins replace into a fresh search, so a word card never
-              lingers beneath a search. */}
+              to that search for a fresh lookup — bar cleared, keyboard up;
+              the back gesture keeps the query. Other origins replace into a
+              fresh search, so a word card never lingers beneath a search. */}
           <Pressable
-            onPress={fromSearch ? () => router.back() : () => router.replace('/search')}
+            onPress={
+              fromSearch
+                ? () => {
+                    requestSearchReset();
+                    router.back();
+                  }
+                : () => router.replace('/search')
+            }
             hitSlop={12}
             accessibilityLabel="Search words"
           >
