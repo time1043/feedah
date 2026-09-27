@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -5,8 +6,9 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BucketTabs } from '@/components/bucket-tabs';
 import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
-import { getWords, listBuckets, type Bucket, type WordRow } from '@/db/repo';
+import { getWords, getWordsCompletedOn, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
+import { consumeSelectedDayChange } from '@/lib/day-jump';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -14,30 +16,55 @@ const ROW_HEIGHT = 52;
 
 export default function WordsScreen() {
   const { colors } = useTheme();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [tab, setTab] = useState('');
   const [words, setWords] = useState<WordRow[]>([]);
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<WordRow> | null>(null);
+  const pendingJump = useRef(-1);
 
   useFocusEffect(() => {
     void (async () => {
       const list = await listBuckets();
       setBuckets(list);
-      // Keep the current tab when valid; otherwise follow the active bucket.
+      // The list mirrors the stats heatmap's selected day: it opens at that
+      // day's first completed word, and the day-review's canonical bucket
+      // order decides which tab shows it. A day without records anchors back
+      // at the very first word. No change since the last positioning —
+      // nothing moves.
+      const day = consumeSelectedDayChange();
+      const first = day ? ((await getWordsCompletedOn(day))[0] ?? null) : null;
       const target =
-        tab && list.some((bucket) => bucket.id === tab)
+        first?.bucketId ??
+        (tab && list.some((bucket) => bucket.id === tab)
           ? tab
-          : (list.find((bucket) => bucket.id === settings.activeBucketId)?.id ?? list[0]?.id ?? '');
+          : (list.find((bucket) => bucket.id === settings.activeBucketId)?.id ??
+            list[0]?.id ??
+            ''));
       setTab(target);
       if (target !== '') setWords(await getWords(target));
+      if (first) pendingJump.current = first.position - 1;
+      else if (day) pendingJump.current = 0;
     })();
   });
 
   useEffect(() => {
     if (tab !== '') void getWords(tab).then(setWords);
   }, [tab]);
+
+  // Applies a day change once the day's words are committed: scrolls the
+  // list to its anchor (the day's first word, or the very first word for an
+  // empty day), the readout following. Without a change the list keeps
+  // whatever position the user left it at.
+  useEffect(() => {
+    const target = pendingJump.current;
+    if (target < 0 || words.length === 0) return;
+    pendingJump.current = -1;
+    const targetIndex = Math.max(0, Math.min(words.length - 1, target));
+    setIndex(targetIndex);
+    listRef.current?.scrollToIndex({ index: targetIndex, animated: false });
+  }, [words]);
 
   const jumpTo = (target: number) => {
     setIndex(target);
@@ -53,6 +80,17 @@ export default function WordsScreen() {
       <BucketTabs buckets={buckets} activeId={tab} onSelect={setTab} />
       <View style={styles.header}>
         <Text style={[styles.count, { color: colors.textTertiary }]}>{words.length} words</Text>
+        <Pressable
+          hitSlop={12}
+          accessibilityLabel="Toggle meanings"
+          onPress={() => update({ wordsMeaning: !settings.wordsMeaning })}
+        >
+          <Ionicons
+            name={settings.wordsMeaning ? 'eye' : 'eye-off'}
+            size={18}
+            color={settings.wordsMeaning ? colors.accent : colors.textTertiary}
+          />
+        </Pressable>
       </View>
       <View style={styles.jump}>
         <ProgressBar value={index} max={Math.max(words.length, 1)} interactive onScrub={jumpTo} />
@@ -66,7 +104,7 @@ export default function WordsScreen() {
             onPress={() => router.push(`/word/${item.position}?bucket=${tab}`)}
             style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
           >
-            <Row word={item} />
+            <Row word={item} showMeaning={settings.wordsMeaning} />
           </Pressable>
         )}
         getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
@@ -81,25 +119,33 @@ export default function WordsScreen() {
   );
 }
 
-function Row({ word }: { word: WordRow }) {
+function Row({ word, showMeaning }: { word: WordRow; showMeaning: boolean }) {
   const { colors } = useTheme();
 
   return (
     <View style={[styles.row, { borderBottomColor: colors.separator, height: ROW_HEIGHT }]}>
       <Text style={[styles.position, { color: colors.textTertiary }]}>{word.position}</Text>
       {word.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}
-      <Text style={[styles.word, { color: colors.text }]} numberOfLines={1}>
+      <Text
+        style={[styles.word, { color: colors.text }, !showMeaning && styles.wordWide]}
+        numberOfLines={1}
+      >
         {word.text}
       </Text>
-      <Text style={[styles.meaning, { color: colors.textSecondary }]} numberOfLines={1}>
-        {word.meaning}
-      </Text>
+      {showMeaning && (
+        <Text style={[styles.meaning, { color: colors.textSecondary }]} numberOfLines={1}>
+          {word.meaning}
+        </Text>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: spacing.m,
     paddingHorizontal: spacing.m,
   },
@@ -132,6 +178,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginRight: spacing.s,
+  },
+  // With the meaning column hidden the word takes its place.
+  wordWide: {
+    flex: 2.1,
   },
   meaning: {
     flex: 1,

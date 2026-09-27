@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Heatmap } from '@/components/heatmap';
@@ -18,6 +18,7 @@ import {
 import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
 import { todayLocalDate } from '@/lib/date';
+import { publishSelectedDay } from '@/lib/day-jump';
 import { formatDayLabel, formatMinutes } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -117,6 +118,19 @@ export default function StatsScreen() {
   const [roundTab, setRoundTab] = useState('');
   const [rounds, setRounds] = useState<RoundDisplay[]>([]);
 
+  useFocusEffect(
+    useCallback(() => {
+      // Returning to the tab always re-anchors to today: a browsed day is a
+      // momentary readout, and this fires when focus returns from a pushed
+      // review too. The reset is published, so the words list mirrors it on
+      // its next focus.
+      const day = todayLocalDate();
+      setSelectedDay(day);
+      setYear(new Date().getFullYear());
+      publishSelectedDay(day);
+    }, []),
+  );
+
   useFocusEffect(() => {
     void (async () => {
       const [stats, pointers, buckets] = await Promise.all([
@@ -150,7 +164,6 @@ export default function StatsScreen() {
     void loadRounds(id).then(setRounds);
   };
 
-  const today = usage.get(todayLocalDate());
   const dayUsage = usage.get(selectedDay);
   const isToday = selectedDay === todayLocalDate();
   const heatValues = new Map<string, number>();
@@ -222,7 +235,12 @@ export default function StatsScreen() {
             values={heatValues}
             thresholds={metric === 'words' ? WORD_THRESHOLDS : MINUTE_THRESHOLDS}
             selectedDay={selectedDay}
-            onSelectDay={setSelectedDay}
+            onSelectDay={(day) => {
+              setSelectedDay(day);
+              // Publish every selection change — the words list mirrors the
+              // heatmap day on its next focus, tap or focus reset alike.
+              publishSelectedDay(day);
+            }}
           />
           <Text
             numberOfLines={1}
