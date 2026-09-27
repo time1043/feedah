@@ -30,14 +30,15 @@ current commit, so the hash in the name should be the release commit.
 ## 4. Build the APK
 
 ```bash
-pnpm apk
+pnpm apk:arm64-v8a
 ```
 
-Produces `dist/feedah-<yyMMdd-HHmm>-<short commit>.apk` (dist/ is
-gitignored). `pnpm apk:arm64-v8a` builds for arm64-v8a only and appends the
-ABI to the name: `dist/feedah-<yyMMdd-HHmm>-<short commit>-arm64-v8a.apk`.
-Install it on a real device and smoke-test sign-in, sync, and one feed round
-before publishing.
+Produces `dist/feedah-<yyMMdd-HHmm>-<short commit>-arm64-v8a.apk` (dist/ is
+gitignored). Since v0.0.2, releases ship the **arm64-v8a APK only** — it is
+the only artifact attached to the GitHub Release. (`pnpm apk` still builds
+the full universal APK; use it for local testing on devices that need other
+ABIs.) Install it on a real device and smoke-test sign-in, sync, and one
+feed round before publishing.
 
 ## 5. Tag
 
