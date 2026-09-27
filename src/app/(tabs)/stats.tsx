@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Heatmap } from '@/components/heatmap';
@@ -18,6 +18,7 @@ import {
 import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
 import { todayLocalDate } from '@/lib/date';
+import { requestDayJump } from '@/lib/day-jump';
 import { formatDayLabel, formatMinutes } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -117,6 +118,17 @@ export default function StatsScreen() {
   const [roundTab, setRoundTab] = useState('');
   const [rounds, setRounds] = useState<RoundDisplay[]>([]);
 
+  useFocusEffect(
+    useCallback(() => {
+      // Returning to the tab always re-anchors to today: a browsed day is a
+      // momentary readout, and its word list handoff has already been made
+      // through the heatmap tap. This also fires when focus returns from a
+      // pushed review.
+      setSelectedDay(todayLocalDate());
+      setYear(new Date().getFullYear());
+    }, []),
+  );
+
   useFocusEffect(() => {
     void (async () => {
       const [stats, pointers, buckets] = await Promise.all([
@@ -150,7 +162,6 @@ export default function StatsScreen() {
     void loadRounds(id).then(setRounds);
   };
 
-  const today = usage.get(todayLocalDate());
   const dayUsage = usage.get(selectedDay);
   const isToday = selectedDay === todayLocalDate();
   const heatValues = new Map<string, number>();
@@ -222,7 +233,13 @@ export default function StatsScreen() {
             values={heatValues}
             thresholds={metric === 'words' ? WORD_THRESHOLDS : MINUTE_THRESHOLDS}
             selectedDay={selectedDay}
-            onSelectDay={setSelectedDay}
+            onSelectDay={(day) => {
+              setSelectedDay(day);
+              // Hand the day to the words list: its next focus opens at the
+              // day's first completed word. Emitted on taps only — plain tab
+              // switches never re-anchor that list.
+              requestDayJump(day);
+            }}
           />
           <Text
             numberOfLines={1}

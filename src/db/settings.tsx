@@ -27,6 +27,8 @@ export type Settings = {
   progressBar: boolean;
   progressBarDrag: boolean;
   wordProgressBar: boolean;
+  /** Whether the words list shows the meaning column (default hidden). */
+  wordsMeaning: boolean;
   feedSearch: boolean;
   todayReadout: boolean;
   silentHintShown: boolean;
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   progressBar: false,
   progressBarDrag: true,
   wordProgressBar: true,
+  wordsMeaning: false,
   feedSearch: true,
   todayReadout: true,
   silentHintShown: false,

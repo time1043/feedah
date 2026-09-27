@@ -159,10 +159,31 @@ All behave identically:
 - None of it counts as studying: no pointer movement, no word counts, no feed
   time.
 
+## Words
+
+- One tab per bucket. First entry follows the active bucket; afterwards the
+  last browsed tab is kept across visits. Rows: position, flag dot, word,
+  meaning.
+- The meaning column is **hidden by default** — the eye icon at the right of
+  the word-count row toggles it, and the choice is remembered (a local
+  preference synced with the rest of the settings; the card-level meaning
+  display in settings is a separate control).
+- The scrub bar jumps the list; the `N words` readout and the bar track the
+  row in view.
+- Day handoff from stats: tapping a heatmap day opens this list at that
+  day's first completed word, and the day-review's canonical bucket order
+  (bucket, then position) picks the tab — switching it if needed. Days
+  without records change nothing. One handoff per tap, consumed once: plain
+  tab switches never re-anchor the list, so a browse is left where the user
+  left it.
+
 ## Stats
 
 - Selected day row: words, studying time, in-app time for the day tapped on
-  the heatmap (defaults to today; the title shows its date).
+  the heatmap (defaults to today; the title shows its date). The selection
+  resets to today whenever the tab regains focus — including returning from
+  a review — and a heatmap tap also hands the day to the words list (see
+  Words).
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
   toggle, five color levels, tappable cells. Under the grid, one subordinate
   summary line for the displayed year: its cumulative words, studying time,
