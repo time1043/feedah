@@ -8,7 +8,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { Screen } from '@/components/screen';
 import { getWords, getWordsCompletedOn, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
-import { consumeDayJump } from '@/lib/day-jump';
+import { consumeSelectedDayChange } from '@/lib/day-jump';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -28,10 +28,12 @@ export default function WordsScreen() {
     void (async () => {
       const list = await listBuckets();
       setBuckets(list);
-      // A heatmap tap hands the day over: the list opens at that day's first
-      // completed word, and the day-review's canonical bucket order decides
-      // which tab shows it. Days without records change nothing.
-      const day = consumeDayJump();
+      // The list mirrors the stats heatmap's selected day: it opens at that
+      // day's first completed word, and the day-review's canonical bucket
+      // order decides which tab shows it. A day without records anchors back
+      // at the very first word. No change since the last positioning —
+      // nothing moves.
+      const day = consumeSelectedDayChange();
       const first = day ? ((await getWordsCompletedOn(day))[0] ?? null) : null;
       const target =
         first?.bucketId ??
@@ -43,6 +45,7 @@ export default function WordsScreen() {
       setTab(target);
       if (target !== '') setWords(await getWords(target));
       if (first) pendingJump.current = first.position - 1;
+      else if (day) pendingJump.current = 0;
     })();
   });
 
@@ -50,9 +53,10 @@ export default function WordsScreen() {
     if (tab !== '') void getWords(tab).then(setWords);
   }, [tab]);
 
-  // Consumes a heatmap handoff once the day's words are committed: scrolls
-  // the list to that word, the readout following. Without a handoff the list
-  // keeps whatever position the user left it at.
+  // Applies a day change once the day's words are committed: scrolls the
+  // list to its anchor (the day's first word, or the very first word for an
+  // empty day), the readout following. Without a change the list keeps
+  // whatever position the user left it at.
   useEffect(() => {
     const target = pendingJump.current;
     if (target < 0 || words.length === 0) return;

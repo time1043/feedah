@@ -18,7 +18,7 @@ import {
 import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
 import { todayLocalDate } from '@/lib/date';
-import { requestDayJump } from '@/lib/day-jump';
+import { publishSelectedDay } from '@/lib/day-jump';
 import { formatDayLabel, formatMinutes } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
@@ -121,11 +121,13 @@ export default function StatsScreen() {
   useFocusEffect(
     useCallback(() => {
       // Returning to the tab always re-anchors to today: a browsed day is a
-      // momentary readout, and its word list handoff has already been made
-      // through the heatmap tap. This also fires when focus returns from a
-      // pushed review.
-      setSelectedDay(todayLocalDate());
+      // momentary readout, and this fires when focus returns from a pushed
+      // review too. The reset is published, so the words list mirrors it on
+      // its next focus.
+      const day = todayLocalDate();
+      setSelectedDay(day);
       setYear(new Date().getFullYear());
+      publishSelectedDay(day);
     }, []),
   );
 
@@ -235,10 +237,9 @@ export default function StatsScreen() {
             selectedDay={selectedDay}
             onSelectDay={(day) => {
               setSelectedDay(day);
-              // Hand the day to the words list: its next focus opens at the
-              // day's first completed word. Emitted on taps only — plain tab
-              // switches never re-anchor that list.
-              requestDayJump(day);
+              // Publish every selection change — the words list mirrors the
+              // heatmap day on its next focus, tap or focus reset alike.
+              publishSelectedDay(day);
             }}
           />
           <Text

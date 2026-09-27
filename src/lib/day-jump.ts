@@ -1,23 +1,28 @@
 /**
- * One-shot handoff from the stats heatmap to the words tab: tapping a day
- * asks the words list to open at that day's first completed word, its bucket
- * winning the tab (the same canonical order the day review queue uses). Tab
- * screens cannot receive params, so stats writes the request and the words
- * tab consumes it on its next focus. The signal lives in memory only — a
- * handoff that outlived the app would yank the list to a stale day on the
- * next launch. Plain tab switches never write it, so a browse through the
- * list is never re-anchored.
+ * The stats heatmap's selected day, published for the words tab: the list
+ * anchors at that day's first completed word — its bucket winning the tab —
+ * or, for a day without records, back at the very first word. Tab screens
+ * cannot receive params, so stats publishes and the words tab reads on its
+ * next focus. Stats publishes wherever its selection changes — heatmap taps
+ * and the focus reset to today alike — so the list always ends up mirroring
+ * the heatmap.
+ *
+ * Consumption is change-detection, not one-shot: the list re-anchors only
+ * when the day differs from the one it last positioned for, so flipping tabs
+ * with the day unchanged never drags a mid-list browse. Memory only — a
+ * stale day must not outlive the app.
  */
 
-let pending: string | null = null;
+let published: string | null = null;
+let applied: string | null = null;
 
-export function requestDayJump(day: string): void {
-  pending = day;
+export function publishSelectedDay(day: string): void {
+  published = day;
 }
 
-/** Returns and clears the pending day, if any. */
-export function consumeDayJump(): string | null {
-  const day = pending;
-  pending = null;
-  return day;
+/** Returns the newly selected day if the list hasn't positioned for it yet. */
+export function consumeSelectedDayChange(): string | null {
+  if (published === null || published === applied) return null;
+  applied = published;
+  return published;
 }

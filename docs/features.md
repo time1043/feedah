@@ -170,11 +170,12 @@ All behave identically:
   display in settings is a separate control).
 - The scrub bar jumps the list; the `N words` readout and the bar track the
   row in view.
-- Day handoff from stats: tapping a heatmap day opens this list at that
-  day's first completed word, and the day-review's canonical bucket order
-  (bucket, then position) picks the tab — switching it if needed. Days
-  without records change nothing. One handoff per tap, consumed once: plain
-  tab switches never re-anchor the list, so a browse is left where the user
+- Day anchor from stats: the list mirrors the heatmap's selected day. When
+  that day changes — a heatmap tap, or stats' own reset to today on focus —
+  the list opens at the day's first completed word, and the day-review's
+  canonical bucket order (bucket, then position) picks the tab, switching it
+  if needed. A day without records anchors back at the very first word. An
+  unchanged day never moves the list, so a browse is left where the user
   left it.
 
 ## Stats
@@ -182,8 +183,7 @@ All behave identically:
 - Selected day row: words, studying time, in-app time for the day tapped on
   the heatmap (defaults to today; the title shows its date). The selection
   resets to today whenever the tab regains focus — including returning from
-  a review — and a heatmap tap also hands the day to the words list (see
-  Words).
+  a review — and it is what the words list mirrors (see Words).
 - Heatmap: calendar year (switchable), month and weekday labels, Words/Minutes
   toggle, five color levels, tappable cells. Under the grid, one subordinate
   summary line for the displayed year: its cumulative words, studying time,
