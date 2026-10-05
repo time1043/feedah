@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BucketTabs } from '@/components/bucket-tabs';
 import { ProgressBar } from '@/components/progress-bar';
@@ -9,6 +9,7 @@ import { Screen } from '@/components/screen';
 import { getWords, getWordsCompletedOn, listBuckets, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { consumeSelectedDayChange } from '@/lib/day-jump';
+import { pushOnce } from '@/lib/push-once';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -95,26 +96,32 @@ export default function WordsScreen() {
       <View style={styles.jump}>
         <ProgressBar value={index} max={Math.max(words.length, 1)} interactive onScrub={jumpTo} />
       </View>
-      <FlatList
-        ref={listRef}
-        data={words}
-        keyExtractor={(word) => `${word.position}`}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/word/${item.position}?bucket=${tab}`)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Row word={item} showMeaning={settings.wordsMeaning} />
-          </Pressable>
-        )}
-        getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
-        initialNumToRender={20}
-        windowSize={7}
-        showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
-        onScrollEndDrag={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
-        style={{ backgroundColor: colors.background }}
-      />
+      {words.length === 0 ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.textTertiary} />
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={words}
+          keyExtractor={(word) => `${word.position}`}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => pushOnce(() => router.push(`/word/${item.position}?bucket=${tab}`))}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <Row word={item} showMeaning={settings.wordsMeaning} />
+            </Pressable>
+          )}
+          getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
+          initialNumToRender={20}
+          windowSize={7}
+          showsVerticalScrollIndicator={false}
+          onMomentumScrollEnd={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+          onScrollEndDrag={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+          style={{ backgroundColor: colors.background }}
+        />
+      )}
     </Screen>
   );
 }
@@ -155,6 +162,11 @@ const styles = StyleSheet.create({
   },
   jump: {
     paddingHorizontal: spacing.m,
+  },
+  loading: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   row: {
     alignItems: 'center',

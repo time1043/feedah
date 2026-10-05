@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
@@ -137,7 +137,13 @@ export default function WordPage() {
           if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height);
         }}
       >
-        {ready && viewport > 0 && (
+        {!ready || viewport <= 0 ? (
+          // The whole bucket loads before the first card can show — keep the
+          // wait visible instead of a blank page.
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.textTertiary} />
+          </View>
+        ) : (
           <FlatList
             ref={listRef}
             data={words}
@@ -204,5 +210,10 @@ const styles = StyleSheet.create({
   },
   listWrap: {
     flex: 1,
+  },
+  loading: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
 });

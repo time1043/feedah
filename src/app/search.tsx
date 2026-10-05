@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listBuckets, searchWords, type WordRow } from '@/db/repo';
+import { pushOnce } from '@/lib/push-once';
 import { onSearchReset } from '@/lib/search-reset';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
@@ -125,7 +126,9 @@ export default function SearchScreen() {
           <Pressable
             style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
             onPress={() =>
-              router.push(`/word/${item.position}?bucket=${item.bucketId}&from=search`)
+              pushOnce(() =>
+                router.push(`/word/${item.position}?bucket=${item.bucketId}&from=search`),
+              )
             }
           >
             <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
