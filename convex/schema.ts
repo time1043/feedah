@@ -69,7 +69,9 @@ export default defineSchema({
     position: v.number(),
     flagged: v.boolean(),
     flaggedAt: v.number(),
-  }).index('by_user_bucket', ['userId', 'bucketId']),
+  })
+    .index('by_user_bucket', ['userId', 'bucketId'])
+    .index('by_user_bucket_position', ['userId', 'bucketId', 'position']),
 
   // Per-user mirror of `meta` (settings). value stays an opaque JSON string.
   cloudMeta: defineTable({

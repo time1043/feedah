@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { GenericId } from 'convex/values';
 
 import { internal } from './_generated/api';
+import { Doc } from './_generated/dataModel';
 import { internalMutation, mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 import { auth } from './auth';
 
@@ -200,15 +201,32 @@ export const push = mutation({
       });
     }
 
-    for (const wf of args.wordFlags) {
-      const existing = await findWordFlag(ctx, userId, wf.bucketId, wf.position);
-      if (!existing) {
-        await ctx.db.insert('cloudWordFlag', { userId, ...wf });
-        continue;
-      }
-      // LWW by flaggedAt so an unflag on one device propagates.
-      if (wf.flaggedAt > existing.flaggedAt) {
-        await ctx.db.patch(existing._id, { flagged: wf.flagged, flaggedAt: wf.flaggedAt });
+    if (args.wordFlags.length > 0) {
+      // Pre-load the user's existing word flags into a map to prevent an O(N^2)
+      // read blowup (repeated .collect() inside a loop exceeded Convex's 32k
+      // document-read ceiling when syncing hundreds of flags).
+      const existingFlags = await ctx.db
+        .query('cloudWordFlag')
+        .withIndex('by_user_bucket', (q) => q.eq('userId', userId))
+        .collect();
+      const flagMap = new Map<string, Doc<'cloudWordFlag'>>(
+        existingFlags.map((row) => [`${row.bucketId}:${row.position}`, row]),
+      );
+
+      for (const wf of args.wordFlags) {
+        const key = `${wf.bucketId}:${wf.position}`;
+        const existing = flagMap.get(key);
+        if (!existing) {
+          const id = await ctx.db.insert('cloudWordFlag', { userId, ...wf });
+          flagMap.set(key, { _id: id, userId, ...wf, _creationTime: Date.now() });
+          continue;
+        }
+        // LWW by flaggedAt so an unflag on one device propagates.
+        if (wf.flaggedAt > existing.flaggedAt) {
+          await ctx.db.patch(existing._id, { flagged: wf.flagged, flaggedAt: wf.flaggedAt });
+          existing.flagged = wf.flagged;
+          existing.flaggedAt = wf.flaggedAt;
+        }
       }
     }
 
@@ -349,11 +367,12 @@ async function findDailyPointer(
   day: string,
   bucketId: string,
 ) {
-  const rows = await ctx.db
+  return ctx.db
     .query('cloudDailyPointer')
-    .withIndex('by_user_day_bucket', (q) => q.eq('userId', userId).eq('day', day))
-    .collect();
-  return rows.find((r) => r.bucketId === bucketId) ?? null;
+    .withIndex('by_user_day_bucket', (q) =>
+      q.eq('userId', userId).eq('day', day).eq('bucketId', bucketId),
+    )
+    .unique();
 }
 
 async function findWordFlag(
@@ -362,11 +381,12 @@ async function findWordFlag(
   bucketId: string,
   position: number,
 ) {
-  const rows = await ctx.db
+  return ctx.db
     .query('cloudWordFlag')
-    .withIndex('by_user_bucket', (q) => q.eq('userId', userId).eq('bucketId', bucketId))
-    .collect();
-  return rows.find((r) => r.position === position) ?? null;
+    .withIndex('by_user_bucket_position', (q) =>
+      q.eq('userId', userId).eq('bucketId', bucketId).eq('position', position),
+    )
+    .unique();
 }
 
 async function findMeta(ctx: MutationCtx, userId: GenericId<'users'>, key: string) {

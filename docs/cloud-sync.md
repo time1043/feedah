@@ -104,6 +104,15 @@ version column** (`updatedAt` / `flaggedAt` / `progressUpdatedAt`) or that row
 would be invisible to incremental sync after the first bootstrap — `setReached`
 and `seedBuckets` were fixed to set theirs.
 
+**`cloudWordFlag` batch pre-loading & selective index.** Pushing hundreds of
+word flags previously called `findWordFlag` in a loop, each executing
+`.withIndex('by_user_bucket').collect()` and causing an O(N²) document read
+blowup that hit Convex's 32,000 document-read limit. `push` now pre-loads the
+caller's existing `cloudWordFlag` rows once into an in-memory Map in a single
+query, cutting document reads from ~140,000+ down to exactly the caller's row
+count (e.g. 378). A `by_user_bucket_position` composite index was also added to
+`cloudWordFlag` for direct point lookups without altering existing cloud data.
+
 ## Setup
 
 ```bash
