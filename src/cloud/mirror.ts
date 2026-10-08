@@ -90,11 +90,26 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
         : local.round > p.round
           ? local.pointer
           : Math.max(local.pointer, p.pointer);
-    const startedAt = p.progressUpdatedAt > local.progressUpdatedAt ? p.startedAt : local.startedAt;
-    if (round !== local.round || pointer !== local.pointer || startedAt !== local.startedAt) {
+    const startedAt =
+      p.round > local.round
+        ? p.startedAt
+        : local.round > p.round
+          ? local.startedAt
+          : local.startedAt === 0 && p.startedAt > 0
+            ? p.startedAt
+            : p.progressUpdatedAt > local.progressUpdatedAt
+              ? p.startedAt
+              : local.startedAt;
+    const progressUpdatedAt = Math.max(local.progressUpdatedAt, p.progressUpdatedAt);
+    if (
+      round !== local.round ||
+      pointer !== local.pointer ||
+      startedAt !== local.startedAt ||
+      progressUpdatedAt !== local.progressUpdatedAt
+    ) {
       await db
         .update(bucketProgress)
-        .set({ round, pointer, startedAt })
+        .set({ round, pointer, startedAt, progressUpdatedAt })
         .where(eq(bucketProgress.bucketId, p.bucketId));
       changed = true;
     }
@@ -151,7 +166,12 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
       changed = true;
       continue;
     }
-    const startedAt = Math.min(local.startedAt, rh.startedAt);
+    const startedAt =
+      local.startedAt === 0
+        ? rh.startedAt
+        : rh.startedAt === 0
+          ? local.startedAt
+          : Math.min(local.startedAt, rh.startedAt);
     const finishedAt = Math.max(local.finishedAt, rh.finishedAt);
     const updatedAt = Math.max(local.updatedAt, rh.updatedAt);
     if (

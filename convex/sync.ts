@@ -139,8 +139,17 @@ export const push = mutation({
             ? existing.pointer
             : Math.max(existing.pointer, p.pointer);
       const startedAt =
-        p.progressUpdatedAt > existing.progressUpdatedAt ? p.startedAt : existing.startedAt;
-      await ctx.db.patch(existing._id, { round, pointer, startedAt });
+        p.round > existing.round
+          ? p.startedAt
+          : existing.round > p.round
+            ? existing.startedAt
+            : existing.startedAt === 0 && p.startedAt > 0
+              ? p.startedAt
+              : p.progressUpdatedAt > existing.progressUpdatedAt
+                ? p.startedAt
+                : existing.startedAt;
+      const progressUpdatedAt = Math.max(existing.progressUpdatedAt, p.progressUpdatedAt);
+      await ctx.db.patch(existing._id, { round, pointer, startedAt, progressUpdatedAt });
     }
 
     for (const rw of args.roundWords) {
@@ -169,8 +178,14 @@ export const push = mutation({
         await ctx.db.insert('cloudRoundHistory', { userId, ...rh });
         continue;
       }
+      const startedAt =
+        existing.startedAt === 0
+          ? rh.startedAt
+          : rh.startedAt === 0
+            ? existing.startedAt
+            : Math.min(existing.startedAt, rh.startedAt);
       await ctx.db.patch(existing._id, {
-        startedAt: Math.min(existing.startedAt, rh.startedAt),
+        startedAt,
         finishedAt: Math.max(existing.finishedAt, rh.finishedAt),
         updatedAt: Math.max(existing.updatedAt, rh.updatedAt),
       });

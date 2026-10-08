@@ -58,9 +58,9 @@ every time. A 0 watermark means "never synced" → one full bootstrap.
 
 | Data              | Rule                                                                                                                                   |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `bucket_progress` | round/pointer ride the higher round; `startedAt` last-write-wins by `progress_updated_at`                                              |
+| `bucket_progress` | round/pointer ride higher round; `startedAt` rides higher round (or LWW by `progress_updated_at` within same round)  |
 | `round_word`      | one cloud doc per round; `reached`/`flagged` are position arrays merged by **union** across devices (per-round history is append-only) |
-| `round_history`   | union; `started_at` min, `finished_at` max                                                                                             |
+| `round_history`   | union; `started_at` min (non-zero), `finished_at` max                                                                                  |
 | `daily_stat`      | per metric max (high-water beat; summing would double-count one day used on two devices)                                               |
 | `daily_pointer`   | `global_position` max (high-water snapshots)                                                                                           |
 | `word.flagged`    | last-write-wins by `flagged_at` — unflagging propagates; an unflag also clears the current round's `round_word.flagged`                |

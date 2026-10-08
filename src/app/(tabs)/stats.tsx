@@ -52,6 +52,7 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
   ]);
   const now = Date.now();
   const displays: RoundDisplay[] = [];
+  const knownRounds = new Set(history.map((h) => h.round));
 
   for (const row of history) {
     const statuses = toStatuses(await getRoundWords(bucketId, row.round), wordCount);
@@ -67,6 +68,31 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
       red: countOf(statuses, 'red'),
     });
   }
+
+  // Fallback: If earlier completed rounds (r < progress.round) are missing from
+  // history, but we have round words for them, still display them so the user
+  // never loses their historical round bars.
+  for (let r = 1; r < progress.round; r++) {
+    if (!knownRounds.has(r)) {
+      const words = await getRoundWords(bucketId, r);
+      if (words.length > 0) {
+        const statuses = toStatuses(words, wordCount);
+        displays.push({
+          round: r,
+          statuses,
+          days: 1,
+          done: true,
+          pointer: wordCount,
+          wordCount,
+          finishedAt: 0,
+          green: countOf(statuses, 'green'),
+          red: countOf(statuses, 'red'),
+        });
+      }
+    }
+  }
+
+  displays.sort((a, b) => a.round - b.round);
 
   const currentStatuses = toStatuses(await getRoundWords(bucketId, progress.round), wordCount);
   displays.push({
@@ -90,8 +116,11 @@ function formatRoundLabel(round: RoundDisplay): string {
   } · ${round.pointer}/${round.wordCount}`;
   if (!round.done) return progress;
   // The day the round was completed, next to the frozen timeline.
-  const finishedDay = todayLocalDate(new Date(round.finishedAt));
-  return `${progress} · ${formatDayLabel(finishedDay)}`;
+  if (round.finishedAt > 0) {
+    const finishedDay = todayLocalDate(new Date(round.finishedAt));
+    return `${progress} · ${formatDayLabel(finishedDay)}`;
+  }
+  return progress;
 }
 
 function toStatuses(

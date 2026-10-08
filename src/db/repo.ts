@@ -218,6 +218,7 @@ export async function startNextRound(bucketId: string): Promise<Progress> {
         round: before.round,
         startedAt: before.startedAt > 0 ? before.startedAt : now,
         finishedAt: now,
+        updatedAt: now,
       })
       .onConflictDoUpdate({
         target: [roundHistory.bucketId, roundHistory.round],

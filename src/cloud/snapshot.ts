@@ -1,4 +1,4 @@
-import { and, gt, gte } from 'drizzle-orm';
+import { and, eq, gt, gte, or } from 'drizzle-orm';
 
 import { getDb } from '@/db/index';
 import {
@@ -70,14 +70,17 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
   // freshly seeded bucket whose progressUpdatedAt has never been bumped).
   const sinceSince = since > 0 ? since : undefined;
   const [progress, history, stats, pointers, flags, metaRows] = await Promise.all([
-    db
-      .select()
-      .from(bucketProgress)
-      .where(sinceSince ? gt(bucketProgress.progressUpdatedAt, sinceSince) : undefined),
+    // Always include bucketProgress (max 3 rows) so current round, pointer, and
+    // startedAt high-water marks never go stale across devices.
+    db.select().from(bucketProgress),
     db
       .select()
       .from(roundHistory)
-      .where(sinceSince ? gt(roundHistory.updatedAt, sinceSince) : undefined),
+      .where(
+        sinceSince
+          ? or(gt(roundHistory.updatedAt, sinceSince), eq(roundHistory.updatedAt, 0))
+          : undefined,
+      ),
     db
       .select()
       .from(dailyStat)
@@ -100,6 +103,21 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
       .from(meta)
       .where(sinceSince ? gt(meta.updatedAt, sinceSince) : undefined),
   ]);
+
+  // If any local roundHistory row has updatedAt === 0 (due to an earlier bug),
+  // backfill it with finishedAt (or Date.now()) so it is stamped in SQLite and
+  // pushed to the cloud.
+  for (const h of history) {
+    if (h.updatedAt === 0) {
+      const stamp = h.finishedAt > 0 ? h.finishedAt : Date.now();
+      await db
+        .update(roundHistory)
+        .set({ updatedAt: stamp })
+        .where(and(eq(roundHistory.bucketId, h.bucketId), eq(roundHistory.round, h.round)));
+      h.updatedAt = stamp;
+    }
+  }
+
   // `round_word` is per-word locally but ships to the cloud as one compact doc
   // per round: only the positions that differ from the default (unreached,
   // unflagged) are kept, as two position arrays. Read only the rows touched
