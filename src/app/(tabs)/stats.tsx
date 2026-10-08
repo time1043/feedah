@@ -7,6 +7,7 @@ import { Heatmap } from '@/components/heatmap';
 import { RoundBar, type RoundWordStatus } from '@/components/round-bar';
 import { Screen } from '@/components/screen';
 import {
+  getDailyPointersForBucket,
   getProgress,
   getRoundHistory,
   getRoundWords,
@@ -17,9 +18,9 @@ import {
 } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily';
-import { todayLocalDate } from '@/lib/date';
+import { calendarDaysBetween, dayBounds, todayLocalDate } from '@/lib/date';
 import { publishSelectedDay } from '@/lib/day-jump';
-import { formatDayLabel, formatMinutes } from '@/lib/format';
+import { formatDayLabel, formatMinutes, formatYearMonthDay } from '@/lib/format';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
 
@@ -32,6 +33,7 @@ type RoundDisplay = {
   done: boolean;
   pointer: number;
   wordCount: number;
+  startedAt: number;
   finishedAt: number;
   green: number;
   red: number;
@@ -44,25 +46,50 @@ function countOf(statuses: RoundWordStatus[], status: RoundWordStatus): number {
   return statuses.reduce((total, s) => (s === status ? total + 1 : total), 0);
 }
 
+function findRoundStartedAt(
+  pointers: { day: string; globalPosition: number }[],
+  round: number,
+  wordCount: number,
+): number {
+  if (pointers.length === 0 || wordCount <= 0) return 0;
+  const startGlobalPos = (round - 1) * wordCount + 1;
+  for (const p of pointers) {
+    if (p.globalPosition >= startGlobalPos) {
+      return dayBounds(p.day).start;
+    }
+  }
+  return 0;
+}
+
 async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
-  const [wordCount, history, progress] = await Promise.all([
+  const [wordCount, history, progress, pointers] = await Promise.all([
     getWordCount(bucketId),
     getRoundHistory(bucketId),
     getProgress(bucketId),
+    getDailyPointersForBucket(bucketId),
   ]);
   const now = Date.now();
   const displays: RoundDisplay[] = [];
   const knownRounds = new Set(history.map((h) => h.round));
 
   for (const row of history) {
+    let startedAt = row.startedAt;
+    if (startedAt === 0 || (row.finishedAt > 0 && startedAt >= row.finishedAt)) {
+      const recovered = findRoundStartedAt(pointers, row.round, wordCount);
+      if (recovered > 0 && (row.finishedAt === 0 || recovered < row.finishedAt)) {
+        startedAt = recovered;
+      }
+    }
+    const days = calendarDaysBetween(startedAt, row.finishedAt > 0 ? row.finishedAt : now);
     const statuses = toStatuses(await getRoundWords(bucketId, row.round), wordCount);
     displays.push({
       round: row.round,
       statuses,
-      days: Math.max(1, Math.ceil((row.finishedAt - row.startedAt) / 86_400_000)),
+      days,
       done: true,
       pointer: wordCount,
       wordCount,
+      startedAt,
       finishedAt: row.finishedAt,
       green: countOf(statuses, 'green'),
       red: countOf(statuses, 'red'),
@@ -77,14 +104,22 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
       const words = await getRoundWords(bucketId, r);
       if (words.length > 0) {
         const statuses = toStatuses(words, wordCount);
+        const startedAt = findRoundStartedAt(pointers, r, wordCount);
+        const nextRoundStartedAt =
+          r + 1 === progress.round
+            ? progress.startedAt
+            : findRoundStartedAt(pointers, r + 1, wordCount);
+        const finishedAt = nextRoundStartedAt > 0 ? nextRoundStartedAt : now;
+        const days = startedAt > 0 ? calendarDaysBetween(startedAt, finishedAt) : 1;
         displays.push({
           round: r,
           statuses,
-          days: 1,
+          days,
           done: true,
           pointer: wordCount,
           wordCount,
-          finishedAt: 0,
+          startedAt,
+          finishedAt,
           green: countOf(statuses, 'green'),
           red: countOf(statuses, 'red'),
         });
@@ -94,15 +129,21 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
 
   displays.sort((a, b) => a.round - b.round);
 
+  let currentStartedAt = progress.startedAt;
+  if (currentStartedAt === 0) {
+    const recovered = findRoundStartedAt(pointers, progress.round, wordCount);
+    if (recovered > 0) currentStartedAt = recovered;
+  }
+  const currentDays = currentStartedAt > 0 ? calendarDaysBetween(currentStartedAt, now) : 1;
   const currentStatuses = toStatuses(await getRoundWords(bucketId, progress.round), wordCount);
   displays.push({
     round: progress.round,
     statuses: currentStatuses,
-    days:
-      progress.startedAt > 0 ? Math.max(1, Math.ceil((now - progress.startedAt) / 86_400_000)) : 0,
+    days: currentDays,
     done: progress.pointer >= wordCount,
     pointer: progress.pointer,
     wordCount,
+    startedAt: currentStartedAt,
     finishedAt: 0,
     green: countOf(currentStatuses, 'green'),
     red: countOf(currentStatuses, 'red'),
@@ -111,16 +152,13 @@ async function loadRounds(bucketId: string): Promise<RoundDisplay[]> {
 }
 
 function formatRoundLabel(round: RoundDisplay): string {
-  const progress = `Round ${round.round} · ${
-    round.done ? `${round.days}d` : `day ${round.days || 1}`
-  } · ${round.pointer}/${round.wordCount}`;
-  if (!round.done) return progress;
-  // The day the round was completed, next to the frozen timeline.
-  if (round.finishedAt > 0) {
-    const finishedDay = todayLocalDate(new Date(round.finishedAt));
-    return `${progress} · ${formatDayLabel(finishedDay)}`;
-  }
-  return progress;
+  const startDate =
+    round.startedAt > 0
+      ? formatYearMonthDay(round.startedAt)
+      : round.finishedAt > 0
+        ? formatYearMonthDay(round.finishedAt)
+        : formatYearMonthDay(todayLocalDate());
+  return `Round ${round.round} · ${startDate} · ${round.days}d · ${round.pointer}/${round.wordCount}`;
 }
 
 function toStatuses(
@@ -481,8 +519,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: spacing.xs,
   },
   roundLabel: {
+    flexShrink: 1,
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
   },
@@ -490,6 +530,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.s,
+    flexShrink: 0,
   },
   countGroup: {
     alignItems: 'center',

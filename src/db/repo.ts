@@ -1,6 +1,6 @@
-import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, min, or, sql } from 'drizzle-orm';
 
-import { todayLocalDate } from '@/lib/date';
+import { dayBounds, todayLocalDate } from '@/lib/date';
 
 import { getDb, withTransaction } from './index';
 import {
@@ -184,9 +184,16 @@ export async function advancePointer(bucketId: string, position: number): Promis
         target: [roundWord.bucketId, roundWord.round, roundWord.position],
         set: { reached: true, reachedAt: settledAt, updatedAt: settledAt },
       });
+    const progressUpdate: { pointer: number; progressUpdatedAt: number; startedAt?: number } = {
+      pointer: position,
+      progressUpdatedAt: settledAt,
+    };
+    if (before.startedAt === 0) {
+      progressUpdate.startedAt = settledAt;
+    }
     await tx
       .update(bucketProgress)
-      .set({ pointer: position, progressUpdatedAt: settledAt })
+      .set(progressUpdate)
       .where(eq(bucketProgress.bucketId, bucketId));
     await tx
       .insert(dailyPointer)
@@ -197,7 +204,7 @@ export async function advancePointer(bucketId: string, position: number): Promis
       });
   });
 
-  return { ...before, pointer: position };
+  return { ...before, pointer: position, startedAt: before.startedAt > 0 ? before.startedAt : settledAt };
 }
 
 /** Moves to the next round after the previous one was fully walked through. */
@@ -456,6 +463,57 @@ export async function listDailyStats(): Promise<DailyStatRow[]> {
 export async function listDailyPointers(): Promise<DailyPointerRow[]> {
   const db = await getDb();
   return db.select().from(dailyPointer).orderBy(dailyPointer.day);
+}
+
+export async function getDailyPointersForBucket(bucketId: string): Promise<DailyPointerRow[]> {
+  const db = await getDb();
+  return db
+    .select()
+    .from(dailyPointer)
+    .where(eq(dailyPointer.bucketId, bucketId))
+    .orderBy(dailyPointer.day);
+}
+
+/**
+ * Recovers the start timestamp of a round from historical word settlements
+ * or daily pointer snapshots, used to repair missing or zero startedAt.
+ */
+export async function recoverRoundStartedAt(
+  bucketId: string,
+  round: number,
+  wordCount: number,
+): Promise<number> {
+  const db = await getDb();
+  const earliestWord = await db
+    .select({ reachedAt: min(roundWord.reachedAt) })
+    .from(roundWord)
+    .where(
+      and(
+        eq(roundWord.bucketId, bucketId),
+        eq(roundWord.round, round),
+        eq(roundWord.reached, true),
+        gt(roundWord.reachedAt, 0),
+      ),
+    )
+    .get();
+  if (earliestWord?.reachedAt && earliestWord.reachedAt > 0) {
+    return earliestWord.reachedAt;
+  }
+
+  const startGlobalPos = (round - 1) * wordCount + 1;
+  const pointers = await db
+    .select({ day: dailyPointer.day, globalPosition: dailyPointer.globalPosition })
+    .from(dailyPointer)
+    .where(eq(dailyPointer.bucketId, bucketId))
+    .orderBy(dailyPointer.day);
+
+  for (const p of pointers) {
+    if (p.globalPosition >= startGlobalPos) {
+      return dayBounds(p.day).start;
+    }
+  }
+
+  return 0;
 }
 
 export async function getDailyStat(day: string): Promise<DailyStatRow | null> {

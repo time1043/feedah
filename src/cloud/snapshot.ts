@@ -1,6 +1,7 @@
 import { and, eq, gt, gte, or } from 'drizzle-orm';
 
 import { getDb } from '@/db/index';
+import { getWordCount, recoverRoundStartedAt } from '@/db/repo';
 import {
   bucketProgress,
   dailyPointer,
@@ -104,10 +105,41 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
       .where(sinceSince ? gt(meta.updatedAt, sinceSince) : undefined),
   ]);
 
-  // If any local roundHistory row has updatedAt === 0 (due to an earlier bug),
-  // backfill it with finishedAt (or Date.now()) so it is stamped in SQLite and
-  // pushed to the cloud.
+  // If any bucketProgress has startedAt === 0 but has reached words (pointer > 0),
+  // recover its startedAt so the cloud and other devices get the true round start date.
+  for (const p of progress) {
+    if (p.startedAt === 0 && p.pointer > 0) {
+      const wordCount = await getWordCount(p.bucketId);
+      const recovered = await recoverRoundStartedAt(p.bucketId, p.round, wordCount);
+      if (recovered > 0) {
+        const stamp = Date.now();
+        await db
+          .update(bucketProgress)
+          .set({ startedAt: recovered, progressUpdatedAt: stamp })
+          .where(eq(bucketProgress.bucketId, p.bucketId));
+        p.startedAt = recovered;
+        p.progressUpdatedAt = stamp;
+      }
+    }
+  }
+
+  // If any local roundHistory row has startedAt === 0 or startedAt >= finishedAt
+  // (caused by a previous bug where startNextRound defaulted startedAt to now),
+  // recover the true start date from historical daily pointers / word settlements.
   for (const h of history) {
+    if (h.startedAt === 0 || (h.finishedAt > 0 && h.startedAt >= h.finishedAt)) {
+      const wordCount = await getWordCount(h.bucketId);
+      const recovered = await recoverRoundStartedAt(h.bucketId, h.round, wordCount);
+      if (recovered > 0 && (h.finishedAt === 0 || recovered < h.finishedAt)) {
+        const stamp = Date.now();
+        await db
+          .update(roundHistory)
+          .set({ startedAt: recovered, updatedAt: stamp })
+          .where(and(eq(roundHistory.bucketId, h.bucketId), eq(roundHistory.round, h.round)));
+        h.startedAt = recovered;
+        h.updatedAt = stamp;
+      }
+    }
     if (h.updatedAt === 0) {
       const stamp = h.finishedAt > 0 ? h.finishedAt : Date.now();
       await db
