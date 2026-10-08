@@ -158,8 +158,9 @@ function formatRoundLabel(round: RoundDisplay): string {
       : round.finishedAt > 0
         ? formatYearMonthDay(round.finishedAt)
         : formatYearMonthDay(todayLocalDate());
-  return `Round ${round.round} · ${startDate} · ${round.days}d · ${round.pointer}/${round.wordCount}`;
+  return `Round ${round.round} · ${startDate} · ${round.days}d · ${round.pointer}`;
 }
+
 
 function toStatuses(
   words: { position: number; reached: boolean; flagged: boolean }[],
