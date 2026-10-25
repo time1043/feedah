@@ -34,8 +34,17 @@ type SyncContextValue = {
 const SyncContext = createContext<SyncContextValue | null>(null);
 
 // Module-level mutex: a sync must not run concurrently with itself, whichever
-// trigger fired first.
+// trigger fired first. It is set synchronously before any await — foregrounding
+// raises AppState and a NetInfo re-check in the same tick, and a mutex set
+// after an await would let both run full cycles concurrently. A trigger that
+// arrives mid-run registers one follow-up pass instead of racing.
 let syncing = false;
+let pendingSync = false;
+
+// Foreground / network-regain syncs are deferred by this much so the first
+// taps after returning to the app are not queued behind the sync burst on the
+// JS thread. Manual `syncNow` and the auth-ready trigger stay immediate.
+const RESUME_SYNC_DELAY_MS = 1500;
 
 /**
  * Cloud sync engine. Runs only when a deployment URL is configured and a
@@ -67,28 +76,37 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     boundRef.current = settingsReady && !!settings.accountEmail;
   }, [settingsReady, settings.accountEmail]);
 
+  const runSyncRef = useRef<() => void>(() => {});
   const runSync = useCallback(async () => {
-    if (syncing || !convex || !authedRef.current || !boundRef.current) return;
-    const net = await NetInfo.fetch();
-    if (!net.isConnected) {
-      setStatus('offline');
+    if (syncing) {
+      pendingSync = true;
       return;
     }
+    if (!convex || !authedRef.current || !boundRef.current) return;
     syncing = true;
-    setStatus('syncing');
     try {
       // Pull only what changed after the last successful pull, then push only
       // what changed after the last successful push. Each side's watermark is
       // advanced to the timestamp the server stamped on its response. A 0
       // watermark (first sync) yields a full bootstrap; the merge rules are
       // idempotent so a duplicate full sync converges.
+      const net = await NetInfo.fetch();
+      if (!net.isConnected) {
+        setStatus('offline');
+        return;
+      }
+      setStatus('syncing');
       const pullCursor = await getPullCursor();
       const cloud = await convex.query(api.sync.pull, { since: pullCursor });
       const { metaChanged } = await applyCloudState(cloud);
+      // Advance the pull cursor as soon as the pull is merged, independent of
+      // the push: if the push fails, its snapshot is re-sent next cycle
+      // (idempotent server merge), but leaving the pull cursor stale would
+      // re-pull and re-run the whole merge on every foreground.
+      await setPullCursor(cloud.pulledAt);
       const pushCursor = await getPushCursor();
       const snapshot = await readLocalSnapshot(pushCursor);
       const { pushedAt } = await convex.mutation(api.sync.push, snapshot);
-      await setPullCursor(cloud.pulledAt);
       await setPushCursor(pushedAt);
       if (metaChanged) await reload();
       setLastSyncedAt(Date.now());
@@ -100,12 +118,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       setStatus('error');
     } finally {
       syncing = false;
+      if (pendingSync) {
+        pendingSync = false;
+        void runSyncRef.current();
+      }
     }
   }, [reload]);
 
   // Triggers sample the callback through a ref: `reload` gets a fresh identity
   // on every settings render, and the triggers must not re-arm each time.
-  const runSyncRef = useRef(runSync);
   useEffect(() => {
     runSyncRef.current = runSync;
   }, [runSync]);
@@ -120,16 +141,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     trigger();
   }, [isLoading, isAuthenticated, settingsReady, settings.accountEmail, trigger]);
 
-  // Network regain and app foreground both trigger a catch-up sync.
+  // Network regain and app foreground both trigger a catch-up sync, deferred
+  // by RESUME_SYNC_DELAY_MS so the first taps after returning to the app are
+  // not queued behind the sync burst. Deferring also coalesces the
+  // near-simultaneous AppState and NetInfo fires on foreground into one run.
   useEffect(() => {
     if (!CONVEX_URL) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(trigger, RESUME_SYNC_DELAY_MS);
+    };
     const unsubNet = NetInfo.addEventListener((state) => {
-      if (state.isConnected) trigger();
+      if (state.isConnected) schedule();
     });
     const appSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') trigger();
+      if (state === 'active') schedule();
     });
     return () => {
+      if (timer) clearTimeout(timer);
       unsubNet();
       appSub.remove();
     };
