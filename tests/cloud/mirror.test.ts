@@ -1,4 +1,4 @@
-jest.mock('@/db/index', () => require('../../db/__tests__/harness').dbIndex());
+jest.mock('@/db/index', () => require('../db/harness').dbIndex());
 jest.mock('@/db/seed', () => ({ DEFAULT_BUCKET_ID: '2050' }));
 
 import { eq } from 'drizzle-orm';
@@ -18,7 +18,7 @@ import {
   word,
 } from '@/db/schema';
 
-import { resetDb, seedBucket, seedWords } from '../../db/__tests__/harness';
+import { resetDb, seedBucket, seedWords } from '../db/harness';
 
 beforeEach(() => {
   resetDb();

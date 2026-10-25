@@ -5,15 +5,10 @@ process.env.TZ = 'UTC';
 module.exports = {
   preset: 'jest-expo',
 
-  // Logic tests only, colocated in __tests__. Component tests (*.test.tsx)
-  // and the convex/ backend are deliberately out of scope.
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts'],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '<rootDir>/convex/',
-    '<rootDir>/android/',
-    '<rootDir>/dist/',
-  ],
+  // Suites live in tests/, mirroring the src/ tree (tests/lib/date.test.ts
+  // covers src/lib/date.ts). Component tests (*.test.tsx) and the convex/
+  // backend are deliberately out of scope.
+  testMatch: ['<rootDir>/tests/**/*.test.ts'],
 
   clearMocks: true,
 

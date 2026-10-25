@@ -24,7 +24,7 @@ function createDb(): HarnessDb {
   // FK enforcement off: expo-sqlite runs with SQLite's default (no PRAGMA
   // foreign_keys in src/db/index.ts), and the app relies on seeded parents.
   const sqlite = new DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
-  const migrationsDir = path.join(__dirname, '..', '..', '..', 'drizzle');
+  const migrationsDir = path.join(__dirname, '..', '..', 'drizzle');
   const dirs = fs
     .readdirSync(migrationsDir)
     .filter((name) => /^\d{14}_/.test(name))
