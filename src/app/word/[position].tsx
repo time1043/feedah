@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { WordCard } from '@/components/word-card';
-import { getWords, setFlag, type WordRow } from '@/db/repo';
+import { getProgress, getWords, setFlag, type WordRow } from '@/db/repo';
+import { isUnflagLocked, parseRoundParam } from '@/lib/flag-scope';
 import { useSettings } from '@/db/settings';
 import { requestSearchReset } from '@/lib/search-reset';
 import { speakWord } from '@/lib/speech';
@@ -21,7 +22,12 @@ import { spacing } from '@/theme/tokens';
 export default function WordPage() {
   const { colors } = useTheme();
   const { settings } = useSettings();
-  const params = useLocalSearchParams<{ position: string; bucket?: string; from?: string }>();
+  const params = useLocalSearchParams<{
+    position: string;
+    bucket?: string;
+    from?: string;
+    round?: string;
+  }>();
   const requested = Number(params.position);
   // The bucket is pinned by the opener (word list passes its tab); search
   // omits it and the active bucket is used.
@@ -32,9 +38,14 @@ export default function WordPage() {
   // Search results mark this page `from=search`; the search icon then returns
   // to that search instead of opening another one.
   const fromSearch = params.from === 'search';
+  // The round context forwarded by the opener's search: flags here belong to
+  // that round's list (search guards bucket match; without it this is the
+  // home-search fallback and flags go to the current round).
+  const contextRound = parseRoundParam(params.round);
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
+  const [currentRound, setCurrentRound] = useState(0);
   const [current, setCurrent] = useState(0);
   // Measured viewport height; cards must match it exactly for page snapping.
   const [viewport, setViewport] = useState(0);
@@ -45,11 +56,17 @@ export default function WordPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const list = await getWords(bucketId);
+      // Card bookmarks show the context round's list membership (current
+      // round on fallback surfaces): the toggle acts on that list.
+      const [list, progress] = await Promise.all([
+        getWords(bucketId, contextRound),
+        getProgress(bucketId),
+      ]);
       if (cancelled) return;
       const initial =
         Number.isInteger(requested) && requested > 0 ? Math.min(requested, list.length) - 1 : 0;
       setWords(list);
+      setCurrentRound(progress.round);
       setCurrent(initial);
       setReady(true);
       if (settings.autoPronounce && list[initial]) {
@@ -59,7 +76,7 @@ export default function WordPage() {
     return () => {
       cancelled = true;
     };
-  }, [bucketId, requested]);
+  }, [bucketId, requested, contextRound]);
 
   // Alignment insurance: whenever the layout settles, land exactly on a card.
   useEffect(() => {
@@ -84,8 +101,11 @@ export default function WordPage() {
   const toggleFlagged = async (index: number) => {
     const word = words[index];
     if (!word) return;
+    // Past-round membership cannot be unflagged (append-only across sync);
+    // the card disables the toggle — this guard is the backstop.
+    if (isUnflagLocked(contextRound, currentRound, word.flagged)) return;
     const next = !word.flagged;
-    await setFlag(bucketId, word.position, next);
+    await setFlag(bucketId, word.position, next, contextRound);
     setWords((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
@@ -157,6 +177,7 @@ export default function WordPage() {
                   forms={item.forms}
                   ipa={item.ipa}
                   flagged={item.flagged}
+                  flagLocked={isUnflagLocked(contextRound, currentRound, item.flagged)}
                   meaningMode={settings.meaningMode}
                   onReplay={() => speakWord(item.text, settings.speechRate)}
                   onToggleFlagged={() => void toggleFlagged(index)}

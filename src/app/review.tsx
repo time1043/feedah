@@ -9,6 +9,7 @@ import { WordCard } from '@/components/word-card';
 import {
   clearReviewCursor,
   getFlaggedWords,
+  getProgress,
   getReviewCursor,
   getRoundFlaggedWords,
   getWordsCompletedOn,
@@ -18,6 +19,7 @@ import {
 } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
+import { isUnflagLocked } from '@/lib/flag-scope';
 import { formatDayLabel } from '@/lib/format';
 import { speakWord } from '@/lib/speech';
 import { useTheme } from '@/theme/context';
@@ -62,6 +64,7 @@ export default function ReviewScreen() {
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
+  const [currentRound, setCurrentRound] = useState(0);
   const [startIndex, setStartIndex] = useState(0);
   const [current, setCurrent] = useState(0);
   const [viewport, setViewport] = useState(0);
@@ -73,12 +76,16 @@ export default function ReviewScreen() {
     if (!settingsReady) return;
     let cancelled = false;
     void (async () => {
-      const list = hasRound
-        ? await getRoundFlaggedWords(bucketId, round)
-        : day !== ''
-          ? await getWordsCompletedOn(day)
-          : await getFlaggedWords(bucketId);
+      const [list, progress] = await Promise.all([
+        hasRound
+          ? getRoundFlaggedWords(bucketId, round)
+          : day !== ''
+            ? await getWordsCompletedOn(day)
+            : await getFlaggedWords(bucketId),
+        getProgress(bucketId),
+      ]);
       if (cancelled) return;
+      setCurrentRound(progress.round);
       // Resume at the furthest card settled last time; a finished or stale
       // cursor (past the queue's end) restarts from the top.
       const resume = await getReviewCursor(sessionKey);
@@ -180,8 +187,12 @@ export default function ReviewScreen() {
   const toggleFlagged = async (index: number) => {
     const word = queue[index];
     if (!word) return;
+    // Round review attributes to that round — the round the user entered
+    // from. Bookmark and day review have no round context and fall back to
+    // each word's current round (today's semantics).
+    if (isUnflagLocked(hasRound ? round : undefined, currentRound, word.flagged)) return;
     const next = !word.flagged;
-    await setFlag(word.bucketId, word.position, next);
+    await setFlag(word.bucketId, word.position, next, hasRound ? round : undefined);
     setQueue((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
@@ -239,7 +250,11 @@ export default function ReviewScreen() {
             {currentWord ? ` · ${currentWord.bucketId}` : ''}
           </Text>
           <Pressable
-            onPress={() => router.push('/search')}
+            onPress={() =>
+              hasRound
+                ? router.push(`/search?ctxBucket=${bucketId}&round=${round}`)
+                : router.push('/search')
+            }
             hitSlop={12}
             accessibilityLabel="Search words"
           >
@@ -273,6 +288,11 @@ export default function ReviewScreen() {
                     forms={item.word.forms}
                     ipa={item.word.ipa}
                     flagged={item.word.flagged}
+                    flagLocked={isUnflagLocked(
+                      hasRound ? round : undefined,
+                      currentRound,
+                      item.word.flagged,
+                    )}
                     meaningMode={settings.meaningMode}
                     onReplay={() => speakWord(item.word.text, settings.speechRate)}
                     onToggleFlagged={() => void toggleFlagged(index)}

@@ -443,6 +443,12 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
 
   // Word flags are few; merge them row-at-a-time, but read the existing rows
   // per bucket in one query instead of one query per flag.
+  //
+  // This block must stay AFTER the round_word merge above: a fresh bootstrap
+  // imports flagged=true rows from the cloud round arrays first, then the
+  // bookmark tombstone (LWW) clears the current round's copy. Reordering the
+  // two blocks would resurrect unflagged words on every bootstrap, because
+  // the union merge cannot express the removal the tombstone carries.
   if (cloud.wordFlags.length > 0) {
     const bucketIds = [...new Set(cloud.wordFlags.map((wf) => wf.bucketId))];
     const progressRows = await db

@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listBuckets, searchWords, type WordRow } from '@/db/repo';
+import { forwardRoundParam, parseRoundParam } from '@/lib/flag-scope';
 import { pushOnce } from '@/lib/push-once';
 import { onSearchReset } from '@/lib/search-reset';
 import { useTheme } from '@/theme/context';
@@ -17,12 +18,30 @@ import { fontSize, spacing } from '@/theme/tokens';
  * feed it is pinned to that feed's bucket. Results open the word page pinned
  * to the result's bucket, marked `from=search` so that page's search icon
  * comes back here instead of stacking another search.
+ *
+ * The opener's round context (`round` + `ctxBucket`) rides along: the word
+ * page attributes flags to that round — but only for results of the context
+ * bucket, since round numbers are per-bucket (see forwardRoundParam).
  */
 export default function SearchScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ bucket?: string }>();
+  const params = useLocalSearchParams<{
+    bucket?: string;
+    round?: string;
+    ctxBucket?: string;
+  }>();
   const pinnedBucket =
     typeof params.bucket === 'string' && params.bucket.length > 0 ? params.bucket : '';
+  const contextRound = parseRoundParam(params.round);
+  // The feed pins the scope and carries its round in one push (`bucket` +
+  // `round`); a round review keeps the all-bucket scope and passes its
+  // context bucket separately (`ctxBucket` + `round`).
+  const ctxBucket =
+    typeof params.ctxBucket === 'string' && params.ctxBucket.length > 0
+      ? params.ctxBucket
+      : contextRound !== undefined && pinnedBucket !== ''
+        ? pinnedBucket
+        : undefined;
   const [scopes, setScopes] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WordRow[]>([]);
@@ -122,23 +141,29 @@ export default function SearchScreen() {
         data={results}
         keyExtractor={(word, i) => `${word.bucketId}-${word.position}-${i}`}
         keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => (
-          <Pressable
-            style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-            onPress={() =>
-              pushOnce(() =>
-                router.push(`/word/${item.position}?bucket=${item.bucketId}&from=search`),
-              )
-            }
-          >
-            <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
-            {item.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}
-            <Text style={[styles.word, { color: colors.text }]} numberOfLines={1}>
-              {item.text}
-            </Text>
-            <Text style={[styles.bucket, { color: colors.textTertiary }]}>{item.bucketId}</Text>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const round = forwardRoundParam(ctxBucket, contextRound, item.bucketId);
+          return (
+            <Pressable
+              style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+              onPress={() =>
+                pushOnce(() =>
+                  router.push(
+                    `/word/${item.position}?bucket=${item.bucketId}&from=search` +
+                      (round !== undefined ? `&round=${round}&ctxBucket=${item.bucketId}` : ''),
+                  ),
+                )
+              }
+            >
+              <Text style={[styles.position, { color: colors.textTertiary }]}>{item.position}</Text>
+              {item.flagged && <View style={[styles.dot, { backgroundColor: colors.danger }]} />}
+              <Text style={[styles.word, { color: colors.text }]} numberOfLines={1}>
+                {item.text}
+              </Text>
+              <Text style={[styles.bucket, { color: colors.textTertiary }]}>{item.bucketId}</Text>
+            </Pressable>
+          );
+        }}
       />
     </SafeAreaView>
   );

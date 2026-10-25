@@ -1,6 +1,7 @@
 import { and, count, desc, eq, gt, inArray, min, or, sql } from 'drizzle-orm';
 
 import { dayBounds, todayLocalDate } from '@/lib/date';
+import { resolveFlagRound } from '@/lib/flag-scope';
 
 import { getDb, withTransaction } from './index';
 import {
@@ -75,9 +76,24 @@ export async function getWord(bucketId: string, position: number): Promise<WordR
   return row ?? null;
 }
 
-export async function getWords(bucketId: string): Promise<WordRow[]> {
+export async function getWords(bucketId: string, round?: number): Promise<WordRow[]> {
   const db = await getDb();
-  return db.select().from(word).where(eq(word.bucketId, bucketId)).orderBy(word.position);
+  const rows = await db
+    .select()
+    .from(word)
+    .where(eq(word.bucketId, bucketId))
+    .orderBy(word.position);
+  // Without a round the rows carry the cross-round bookmark state (dots and
+  // the Review · N queue read it). With a round, `flagged` reports that
+  // round's list membership instead — the study surfaces toggle the round's
+  // list, not the bookmark.
+  if (round === undefined) return rows;
+  const roundRows = await db
+    .select({ position: roundWord.position, flagged: roundWord.flagged })
+    .from(roundWord)
+    .where(and(eq(roundWord.bucketId, bucketId), eq(roundWord.round, round)));
+  const flaggedByPosition = new Map(roundRows.map((row) => [row.position, row.flagged]));
+  return rows.map((row) => ({ ...row, flagged: flaggedByPosition.get(row.position) ?? false }));
 }
 
 /**
@@ -155,16 +171,10 @@ export async function searchWords(
  * handled separately by startNextRound.
  */
 export async function advancePointer(bucketId: string, position: number): Promise<Progress> {
-  const db = await getDb();
   const before = await getProgress(bucketId);
   if (position <= before.pointer) return before;
 
   const wordCount = await getWordCount(bucketId);
-  const flaggedRow = await db
-    .select({ flagged: word.flagged })
-    .from(word)
-    .where(and(eq(word.bucketId, bucketId), eq(word.position, position)))
-    .get();
   const settledAt = Date.now();
   const globalPosition = (before.round - 1) * wordCount + position;
 
@@ -176,7 +186,10 @@ export async function advancePointer(bucketId: string, position: number): Promis
         round: before.round,
         position,
         reached: true,
-        flagged: flaggedRow?.flagged ?? false,
+        // Settles never seed flags: a round's list only holds words flagged
+        // into that round. Cross-round carry lives in the bookmark (word
+        // flagged), which the Review · N queue reads.
+        flagged: false,
         reachedAt: settledAt,
         updatedAt: settledAt,
       })
@@ -244,10 +257,22 @@ export async function startNextRound(bucketId: string): Promise<Progress> {
   return { round: before.round + 1, pointer: 0, startedAt: now };
 }
 
-/** Toggles the flag on a word and records it against the current round. */
-export async function setFlag(bucketId: string, position: number, flagged: boolean): Promise<void> {
+/**
+ * Toggles the flag on a word against the given round. Omitting the round
+ * falls back to the bucket's current round — the home-search fallback. The
+ * round is captured at action time so the flag lands in the flag list of
+ * the round context the user entered from (see src/lib/flag-scope.ts);
+ * rounds keep independent lists.
+ */
+export async function setFlag(
+  bucketId: string,
+  position: number,
+  flagged: boolean,
+  round?: number,
+): Promise<void> {
   const db = await getDb();
-  const { round } = await getProgress(bucketId);
+  const { round: currentRound } = await getProgress(bucketId);
+  const target = resolveFlagRound(round, currentRound);
   const now = Date.now();
 
   await withTransaction(async (tx) => {
@@ -258,7 +283,7 @@ export async function setFlag(bucketId: string, position: number, flagged: boole
     if (flagged) {
       await tx
         .insert(roundWord)
-        .values({ bucketId, round, position, reached: false, flagged: true, updatedAt: now })
+        .values({ bucketId, round: target, position, reached: false, flagged: true, updatedAt: now })
         .onConflictDoUpdate({
           target: [roundWord.bucketId, roundWord.round, roundWord.position],
           set: { flagged: true, updatedAt: now },
@@ -270,7 +295,7 @@ export async function setFlag(bucketId: string, position: number, flagged: boole
         .where(
           and(
             eq(roundWord.bucketId, bucketId),
-            eq(roundWord.round, round),
+            eq(roundWord.round, target),
             eq(roundWord.position, position),
           ),
         )
@@ -281,7 +306,7 @@ export async function setFlag(bucketId: string, position: number, flagged: boole
           .where(
             and(
               eq(roundWord.bucketId, bucketId),
-              eq(roundWord.round, round),
+              eq(roundWord.round, target),
               eq(roundWord.position, position),
             ),
           );
@@ -292,7 +317,7 @@ export async function setFlag(bucketId: string, position: number, flagged: boole
           .where(
             and(
               eq(roundWord.bucketId, bucketId),
-              eq(roundWord.round, round),
+              eq(roundWord.round, target),
               eq(roundWord.position, position),
             ),
           );
@@ -310,7 +335,9 @@ export async function getFlaggedWords(bucketId: string): Promise<WordRow[]> {
     .orderBy(word.position);
 }
 
-/** Words that were flagged during a specific round (historical snapshot). */
+/** Words in a specific round's flag list — that round's membership, not the
+ * cross-round bookmark, so the card toggle in round review acts on the right
+ * bit (a word can be in round 1's list and not round 2's). */
 export async function getRoundFlaggedWords(bucketId: string, round: number): Promise<WordRow[]> {
   const db = await getDb();
   return db
@@ -321,7 +348,7 @@ export async function getRoundFlaggedWords(bucketId: string, round: number): Pro
       ipa: word.ipa,
       meaning: word.meaning,
       forms: word.forms,
-      flagged: word.flagged,
+      flagged: roundWord.flagged,
       flaggedAt: word.flaggedAt,
     })
     .from(word)

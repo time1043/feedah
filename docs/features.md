@@ -11,15 +11,49 @@ rules is a product change, not a refactor.
 - Review entry: `Review · N` (N = currently flagged words in the bucket),
   disabled while N is 0.
 
+## Flag attribution (round-scoped)
+
+- Every flag belongs to the flag list of the **(bucket, round)** it was made
+  from — "from wherever you enter, that's the list affected". The same word
+  can sit in round 1's list and not in round 2's; the lists are independent.
+- **Entry contexts**: the feed and a round review establish the round
+  context, and their search carries it to the word page — flags there (and on
+  swiped-to neighbors) land in that round's list. A round review's search
+  keeps the all-bucket scope but attaches its round only to results of its
+  own bucket, since round numbers are per-bucket.
+- **Fallback**: surfaces without a round context — home search, the words
+  tab's word page, day review — write to the bucket's **current round** at
+  the moment of the toggle.
+- **Past rounds are add-only**: flagging into a historical round (from its
+  review's search or word page) is allowed and durable; unflagging a past
+  round is not offered (the bookmark renders disabled), because per-round
+  flag history is append-only in the cloud — such an unflag could not survive
+  sync. The current round keeps the full toggle; its unflag rides the
+  cross-round bookmark tombstone and does propagate to other devices.
+- **What the bookmark shows**: on feed and word-page cards it reflects the
+  context round's list membership; list dots (search results, words tab) and
+  the `Review · N` queue reflect the cross-round bookmark — "flagged in some
+  round and not yet dismissed". A word flagged only in round 1 therefore
+  shows a red dot in searches while its round-2 card bookmark is unfilled;
+  toggling it in round 2 adds it to round 2's list.
+- **Review · N and round inheritance**: the cross-round bookmark is the
+  review set that carries forward — flagging anywhere turns it on, unflagging
+  on any current-round surface turns it off. Settling a word never seeds
+  flags into a round's list: a round's red counts only words actually
+  flagged into that round. (Before round-scoped attribution, settling
+  re-flagged bookmarked words into the new round's heatmap.)
+
 ## Review pass
 
 Three review flavors share one screen:
 
 - **Live set** (default, `Review · N` on home): the bucket's currently flagged
   words — the set that round inheritance carries forward.
-- **Round review** (red count entries): the words flagged during one specific
-  round (a historical snapshot). Entered by tapping a red count — the current
-  round's on home, or any round's in the stats list.
+- **Round review** (red count entries): the words in one specific round's
+  flag list. Entered by tapping a red count — the current round's on home, or
+  any round's in the stats list. Its search attributes flags to that round;
+  in a past round the bookmark is add-only (unflag disabled — see Flag
+  attribution).
 - **Day review** (stats, tap the words number): the distinct words completed
   on the selected local day, across all buckets. Great as a daily wrap-up.
   The queue is rebuilt from the daily pointer deltas — the same rule the
@@ -35,9 +69,10 @@ All behave identically:
   as its anchor number. The title's bucket suffix is the bucket of the word
   currently on screen — a day review can span several buckets, and the label
   switches as the queue crosses into the next bucket.
-- The queue is snapshotted on entry. Unflagging during the session updates the
-  word and the current round immediately, but the queue keeps the word until
-  the next pass, and historical rounds are never rewritten.
+- The queue is snapshotted on entry. Unflagging during the session updates
+  the word and its round list immediately, but the queue keeps the word until
+  the next pass, and past rounds are never rewritten — in a past round's
+  review the bookmark is add-only (unflag disabled, see Flag attribution).
 - The end card lingers for two seconds, then leaves the session.
 - Nothing is recorded: no pointer movement, no rounds, no word counts. The
   time spent counts as studying.
@@ -65,7 +100,8 @@ All behave identically:
   meanings (1-2 senses, e.g. "change" → "v. n. 改变、n. 零钱") and meanings
   that are a single group stay on one line.
 - Tap the word → replay pronunciation. Tap anywhere else → toggle meaning and
-  forms. Bookmark → flag the word as unfamiliar.
+  forms. Bookmark → flag the word as unfamiliar; the flag lands in this feed
+  round's list (see Flag attribution).
 - **Counting**: studying counts a card when you swipe **past** it — landing on
   a card completes the previous one, so the card on screen is still in
   progress and exiting there loses nothing. The newly shown card speaks (if
@@ -140,7 +176,10 @@ All behave identically:
   it only widens what matches. The same `%` / `_` / `|` rules apply.
 
 - Every result row shows which bucket it came from; tapping a result opens the
-  word page pinned to that bucket and position.
+  word page pinned to that bucket and position. When the opener carried a
+  round context (feed, round review), the word page inherits it and its flags
+  attribute to that round — cross-bucket results fall back to the current
+  round (see Flag attribution).
 - A result opens the **word page**: a full bucket browser. Swipe up/down to
   move through words, scrub the progress bar (default on) to any position,
   replay, reveal, and flag all work.
@@ -192,8 +231,8 @@ All behave identically:
 - Rounds: one tab per bucket that has been started (defaults to the active
   bucket; never-started buckets do not appear). Each round shows its position
   progress, the completion date for finished rounds, green/red word counts,
-  and a pixel-column timeline — red = flagged, green = hand-settled, gray =
-  skipped or not reached.
+  and a pixel-column timeline — red = flagged into that round, green =
+  hand-settled, gray = skipped or not reached.
 
 ## Settings
 

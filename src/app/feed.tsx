@@ -77,7 +77,9 @@ export default function FeedScreen() {
     let cancelled = false;
     void (async () => {
       const progress = await getProgress(bucketId);
-      const list = await getWords(bucketId);
+      // Card bookmarks show the feed round's list membership: this feed is
+      // the round context flags are attributed to.
+      const list = await getWords(bucketId, progress.round);
       if (cancelled) return;
       setWords(list);
       setRound(progress.round);
@@ -169,6 +171,9 @@ export default function FeedScreen() {
           const progress = await startNextRound(bucketId);
           setRound(progress.round);
           setPointer(progress.pointer);
+          // The new round's flag lists start clean: reload so card bookmarks
+          // reflect the round the feed just entered.
+          setWords(await getWords(bucketId, progress.round));
           // Let the completion page linger, then open the new round.
           roundAdvanceTimer.current = setTimeout(() => {
             roundAdvanceTimer.current = null;
@@ -196,7 +201,9 @@ export default function FeedScreen() {
   const toggleFlagged = async (index: number) => {
     const word = words[index];
     const next = !word.flagged;
-    await setFlag(bucketId, word.position, next);
+    // The feed is the entered round's context: its flags belong to that
+    // round's list, even if the round advances elsewhere mid-session.
+    await setFlag(bucketId, word.position, next, round);
     setWords((prev) => prev.map((w, i) => (i === index ? { ...w, flagged: next } : w)));
   };
 
@@ -250,7 +257,7 @@ export default function FeedScreen() {
           )}
           {settings.feedSearch && (
             <Pressable
-              onPress={() => router.push(`/search?bucket=${bucketId}`)}
+              onPress={() => router.push(`/search?bucket=${bucketId}&round=${round}`)}
               hitSlop={12}
               accessibilityLabel="Search words"
             >

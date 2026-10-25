@@ -69,6 +69,14 @@ every time. A 0 watermark means "never synced" → one full bootstrap.
 The timestamp columns (`updated_at`, `flagged_at`, `progress_updated_at`)
 exist solely for these rules; local behavior never reads them.
 
+**Flag attribution is write-time data, not sync-time derivation.** A flag's
+round is captured when the user acts (see docs/features.md "Flag
+attribution"), so a flag made offline during round 2 syncs with round 2
+attached even if round 3 has started by then. Per-round flag history stays
+append-only (union merge) — only the current round's flag bit is clearable
+through the bookmark tombstone, which is why the UI offers unflagging only in
+the current round (past rounds are add-only).
+
 ## Decisions & trade-offs
 
 **`cloudRoundWord` is one array doc per round, not one row per word.** The

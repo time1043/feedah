@@ -48,6 +48,9 @@ type WordCardProps = {
   forms: string[];
   ipa?: string;
   flagged: boolean;
+  /** The toggle cannot act: the word sits in a past round's list, which is
+   * append-only across sync, so unflagging there is not offered. */
+  flagLocked?: boolean;
   /** hidden: tap to show · shown: tap to hide · always: pinned visible. */
   meaningMode?: MeaningMode;
   onReplay: () => void;
@@ -69,6 +72,7 @@ export function WordCard({
   forms,
   ipa,
   flagged,
+  flagLocked = false,
   meaningMode = 'hidden',
   onReplay,
   onToggleFlagged,
@@ -141,8 +145,9 @@ export function WordCard({
       </Pressable>
 
       <Pressable
-        style={styles.flag}
+        style={[styles.flag, flagLocked && styles.flagLocked]}
         onPress={onToggleFlagged}
+        disabled={flagLocked}
         hitSlop={16}
         accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}
       >
@@ -228,5 +233,8 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
+  },
+  flagLocked: {
+    opacity: 0.3,
   },
 });
