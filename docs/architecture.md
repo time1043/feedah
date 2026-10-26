@@ -19,11 +19,13 @@ src/
     _layout.tsx       providers + root stack (tabs group, fullscreen feed)
     (tabs)/           home, words, stats, settings
     feed.tsx          fullscreen swipe feed
+    buckets.tsx       bucket management: import/replace/delete, study mode, records export
     search.tsx        word search
     word/[position]   single card page (opened from search)
   components/       reusable UI: word-card, progress-bar, heatmap, round-bar, screen
   db/               sqlite: schema, seed, repo, settings store, usage tracker
   cloud/            convex client, sync engine, cloud→sqlite mirror
+  modes/            study-mode plugins: registry + card components (flip, choice)
   lib/              pure helpers: date, format, daily aggregation, speech, color
   theme/            palette, tokens, provider
 convex/             convex deployment: auth, schema, sync push/pull (cloud_* tables)
@@ -41,6 +43,11 @@ data/               local word buckets (gitignored, bundled at build)
 - `cloud/` never blocks the UI: sync runs in the background and the app reads
   SQLite only. See docs/cloud-sync.md for the merge rules.
 - `lib/` contains pure functions only — no React, no I/O.
+- `modes/` holds the study-mode plugins. The feed owns the queue, paging and
+  the universal recording path; a plugin owns its card body and reports
+  `ModeResult`s. The registry is a static list (`MODES`) - Metro cannot
+  resolve dynamic requires - and the active mode is a synced `studyMode`
+  setting resolved per bucket kind.
 
 ## Principles
 

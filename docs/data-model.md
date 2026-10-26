@@ -16,10 +16,10 @@ never reads them (see docs/cloud-sync.md for the mirror and merge rules).
 
 | Table             | Purpose                                                               |
 | ----------------- | --------------------------------------------------------------------- |
-| `bucket`          | id (`2050` / `700` / `370`) and word count                            |
+| `bucket`          | id, word count, `source` (builtin/custom), `name`, `kind` (word/qa), `language`, `created_at` |
 | `word`            | bucket, position (1-based), text, ipa, meaning, forms (JSON), flagged |
 | `bucket_progress` | per bucket: current `round`, `pointer`, round `started_at`            |
-| `round_word`      | per (bucket, round, position): `reached`, `flagged`, `reached_at`     |
+| `round_word`      | per (bucket, round, position): `reached`, `flagged`, `wrong`, `reached_at` |
 | `round_history`   | finished rounds: started_at, finished_at                              |
 | `daily_stat`      | per day: `feed_seconds`, `app_seconds`                                |
 | `daily_pointer`   | per (day, bucket): end-of-day global position snapshot                |
@@ -43,6 +43,21 @@ the current round's rows — finished rounds are never rewritten.
 **Rounds** — `startNextRound` is idempotent and only advances from a fully
 walked-through round (`pointer == word_count`); it writes a `round_history`
 row and resets the pointer to 0.
+
+**wrong** — answer-driven modes (multiple choice) record their judgement on
+the round's row: `wrong = 1` when the first-pass answer was incorrect. A
+plain settle never rewrites it, so re-visiting a card cannot downgrade it.
+It syncs as a third per-round position array with the same union merge as
+`reached`/`flagged`.
+
+**Custom buckets** — imported on the buckets page (`src/lib/bucket-file.ts`
+parses and validates the JSON). A replace renumbers positions, so every
+position-keyed row would point at different content: `round_word`,
+`round_history` and the bucket's review cursors reset and progress goes back
+to round 1, while day-scoped `daily_stat`/`daily_pointer` stay. The bucket's
+cloud rows are wiped first (`sync.wipeMyBucketData`) - the merge rules are
+monotonic, so a local-only reset would be resurrected by the next pull.
+Deleting a custom bucket cascades the same rows plus the bucket itself.
 
 **Daily word count** — never derived from per-card events. Each pointer
 advance upserts the day's `daily_pointer` snapshot; a day's count is the

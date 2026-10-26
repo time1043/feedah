@@ -232,3 +232,30 @@ All behave identically:
 - Local daily notifications are scheduled through expo-notifications (one
   request per enabled reminder, rescheduled on every change and on app launch).
 - Nothing about reminders touches study statistics.
+
+## Buckets & study modes
+
+The buckets page (settings → "Buckets & study mode", or the "+" chip on the
+home bucket row) manages everything content-shaped:
+
+- **Bucket list** — built-in and imported buckets with word counts and round
+  progress; tapping activates. Custom rows can be deleted (built-ins cannot).
+- **Import** — a JSON file (document picker) or pasted JSON.
+  `src/lib/bucket-file.ts` validates and normalizes: both legacy bundled
+  shape `{position, word, ipa, meaning, forms}` and the newer
+  `{term, meaning}` / qa `{question, answer, explanation}` items; optional
+  `kind` ("word" | "qa", inferred from question-shaped items), `language`
+  (e.g. "ko" — drives pronunciation and badges), `id` (derived from the
+  filename; built-in ids are reserved). Importing an existing custom id
+  replaces its words and resets that bucket's round-scoped progress (cloud
+  copy is wiped first so the sync cannot resurrect it).
+- **Study mode** — the active mode plugin (`src/modes/`): "Flip" (tap to
+  reveal, swipe to record) or "Quiz" (four options, answer recorded as
+  reached + wrong when incorrect, auto-advance after feedback). The choice is
+  a synced setting and safe to change mid-round: both modes write the same
+  rows.
+- **Export** — learning records for every bucket (progress, round history,
+  compacted round state, flags, daily snapshots; custom buckets include their
+  words) as a shareable JSON file shaped like the cloud sync state, so a
+  future restore can replay it through the same merge rules.
+
