@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { BucketKind } from '@/db/schema';
 import type { MeaningMode } from '@/db/settings';
 
+import { meaningLines } from '@/lib/meaning';
 import { useTheme } from '@/theme/context';
 import { fontSize, spacing } from '@/theme/tokens';
 
@@ -14,33 +16,6 @@ const FORMS_COLUMNS = 2;
 const FORMS_ROWS = 6;
 const FORMS_GRID_CELLS = FORMS_COLUMNS * FORMS_ROWS;
 
-// Matches a leading part-of-speech tag: n. / v. / adj. / prep. / conj. …
-const POS_TAG = /^[a-z]+\./i;
-
-/**
- * Groups a meaning's "、"-separated senses by part of speech: a sense that
- * starts with a POS tag opens a new line, and any following bare senses join
- * it with "、" so one POS group stays together.
- *   "prep. 为了……、对于……、conj. 因为"
- *     -> ["prep. 为了……、对于……", "conj. 因为"]
- * Returns null when no break is needed: the meaning is short (1-2 senses), or
- * every sense belongs to the same POS group.
- */
-function meaningLines(meaning: string): string[] | null {
-  const senses = meaning
-    .split('、')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  if (senses.length < 3) return null;
-  const lines: string[] = [];
-  for (const sense of senses) {
-    if (lines.length === 0 || POS_TAG.test(sense)) lines.push(sense);
-    else lines[lines.length - 1] += `、${sense}`;
-  }
-  // One group (e.g. "n. 形式、表格、外观") needs no break.
-  return lines.length > 1 ? lines : null;
-}
-
 type WordCardProps = {
   position: number;
   text: string;
@@ -48,6 +23,8 @@ type WordCardProps = {
   forms: string[];
   ipa?: string;
   flagged: boolean;
+  /** Content shape: picks the back-text line grouping. */
+  kind?: BucketKind;
   /** hidden: tap to show · shown: tap to hide · always: pinned visible. */
   meaningMode?: MeaningMode;
   onReplay: () => void;
@@ -69,6 +46,7 @@ export function WordCard({
   forms,
   ipa,
   flagged,
+  kind = 'word',
   meaningMode = 'hidden',
   onReplay,
   onToggleFlagged,
@@ -81,9 +59,9 @@ export function WordCard({
     setRevealed((v) => !v);
   };
 
-  // Long meanings break onto one line per part-of-speech group; short ones
-  // stay on a single line.
-  const lines = meaningLines(meaning);
+  // Long backs break onto grouped lines (word kind: POS groups, qa kind:
+  // answer/explanation paragraphs); short ones stay on a single line.
+  const lines = meaningLines(meaning, kind);
 
   return (
     <View style={styles.root}>

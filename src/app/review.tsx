@@ -12,8 +12,10 @@ import {
   getReviewCursor,
   getRoundFlaggedWords,
   getWordsCompletedOn,
+  listBuckets,
   saveReviewCursor,
   setFlag,
+  type Bucket,
   type WordRow,
 } from '@/db/repo';
 import { useSettings } from '@/db/settings';
@@ -62,6 +64,9 @@ export default function ReviewScreen() {
 
   const [ready, setReady] = useState(false);
   const [queue, setQueue] = useState<WordRow[]>([]);
+  // Day reviews span buckets; card rendering and speech follow each word's
+  // own bucket kind and language.
+  const [bucketMap, setBucketMap] = useState<Map<string, Bucket>>(new Map());
   const [startIndex, setStartIndex] = useState(0);
   const [current, setCurrent] = useState(0);
   const [viewport, setViewport] = useState(0);
@@ -73,22 +78,27 @@ export default function ReviewScreen() {
     if (!settingsReady) return;
     let cancelled = false;
     void (async () => {
-      const list = hasRound
-        ? await getRoundFlaggedWords(bucketId, round)
-        : day !== ''
-          ? await getWordsCompletedOn(day)
-          : await getFlaggedWords(bucketId);
+      const [list, buckets] = await Promise.all([
+        hasRound
+          ? getRoundFlaggedWords(bucketId, round)
+          : day !== ''
+            ? getWordsCompletedOn(day)
+            : getFlaggedWords(bucketId),
+        listBuckets(),
+      ]);
       if (cancelled) return;
+      const bMap = new Map(buckets.map((bucket) => [bucket.id, bucket]));
       // Resume at the furthest card settled last time; a finished or stale
       // cursor (past the queue's end) restarts from the top.
       const resume = await getReviewCursor(sessionKey);
       const start = resume > 0 && resume < list.length ? resume : 0;
       setQueue(list);
+      setBucketMap(bMap);
       setStartIndex(start);
       setCurrent(start);
       setReady(true);
       if (settings.autoPronounce && list[start]) {
-        speakWord(list[start].text, settings.speechRate);
+        speakWord(list[start].text, settings.speechRate, bMap.get(list[start].bucketId)?.language);
       }
     })();
     return () => {
@@ -172,7 +182,11 @@ export default function ReviewScreen() {
     setCurrent(index);
     void saveReviewCursor(sessionKey, index);
     if (settings.autoPronounce) {
-      speakWord(queue[index].text, settings.speechRate);
+      speakWord(
+        queue[index].text,
+        settings.speechRate,
+        bucketMap.get(queue[index].bucketId)?.language,
+      );
     }
     void flushUsage();
   };
@@ -263,8 +277,9 @@ export default function ReviewScreen() {
               item.kind === 'word' ? `${item.word.bucketId}-${item.word.position}` : 'review-end'
             }
             initialScrollIndex={startIndex}
-            renderItem={({ item, index }) =>
-              item.kind === 'word' ? (
+            renderItem={({ item, index }) => {
+              const wordBucket = item.kind === 'word' ? bucketMap.get(item.word.bucketId) : null;
+              return item.kind === 'word' ? (
                 <View style={{ height: viewport }}>
                   <WordCard
                     position={item.word.position}
@@ -273,8 +288,11 @@ export default function ReviewScreen() {
                     forms={item.word.forms}
                     ipa={item.word.ipa}
                     flagged={item.word.flagged}
+                    kind={wordBucket?.kind ?? 'word'}
                     meaningMode={settings.meaningMode}
-                    onReplay={() => speakWord(item.word.text, settings.speechRate)}
+                    onReplay={() =>
+                      speakWord(item.word.text, settings.speechRate, wordBucket?.language)
+                    }
                     onToggleFlagged={() => void toggleFlagged(index)}
                   />
                 </View>
@@ -285,8 +303,8 @@ export default function ReviewScreen() {
                     Swipe up to finish
                   </Text>
                 </View>
-              )
-            }
+              );
+            }}
             pagingEnabled
             showsVerticalScrollIndicator={false}
             initialNumToRender={2}

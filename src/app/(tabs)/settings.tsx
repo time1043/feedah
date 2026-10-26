@@ -2,7 +2,7 @@ import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -404,6 +404,10 @@ export default function SettingsScreen() {
         </Group>
 
         <Group title="General">
+          <Pressable style={styles.row} onPress={() => router.push('/buckets')}>
+            <Text style={[styles.label, { color: colors.text }]}>Buckets &amp; study mode</Text>
+            <Text style={[styles.value, { color: colors.textTertiary }]}>Manage</Text>
+          </Pressable>
           <SwitchRow
             label="Today time readout"
             value={settings.todayReadout}

@@ -50,8 +50,11 @@ export async function seedBuckets(db: Db): Promise<void> {
     await withTransaction(async (tx) => {
       await tx
         .insert(bucket)
-        .values({ id: file.name, wordCount: file.words.length })
-        .onConflictDoUpdate({ target: bucket.id, set: { wordCount: file.words.length } });
+        .values({ id: file.name, wordCount: file.words.length, name: file.name })
+        .onConflictDoUpdate({
+          target: bucket.id,
+          set: { wordCount: file.words.length, name: file.name },
+        });
       if (existing) {
         await tx.delete(word).where(eq(word.bucketId, file.name));
       }

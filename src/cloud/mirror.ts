@@ -28,6 +28,7 @@ export type CloudState = {
     round: number;
     reached: number[];
     flagged: number[];
+    wrong: number[];
     updatedAt: number;
   }[];
   roundHistory: {
@@ -177,15 +178,19 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
       position: number;
       reached: boolean;
       flagged: boolean;
+      wrong: boolean;
       updatedAt: number;
     }[] = [];
     for (const rw of cloud.roundWords) {
       const reachedSet = new Set(rw.reached);
       const flaggedSet = new Set(rw.flagged);
-      const positions = new Set<number>([...rw.reached, ...rw.flagged]);
+      // Docs written before the wrong bit existed lack the field.
+      const wrongSet = new Set(rw.wrong ?? []);
+      const positions = new Set<number>([...rw.reached, ...rw.flagged, ...(rw.wrong ?? [])]);
       for (const pos of positions) {
         const reached = reachedSet.has(pos);
         const flagged = flaggedSet.has(pos);
+        const wrong = wrongSet.has(pos);
         const local = existing.get(`${rw.bucketId}|${rw.round}|${pos}`);
         if (!local) {
           inserts.push({
@@ -194,6 +199,7 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
             position: pos,
             reached,
             flagged,
+            wrong,
             reachedAt: rw.updatedAt,
             updatedAt: rw.updatedAt,
           });
@@ -202,13 +208,19 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
         }
         const newReached = local.reached || reached;
         const newFlagged = local.flagged || flagged;
-        if (newReached !== local.reached || newFlagged !== local.flagged) {
+        const newWrong = local.wrong || wrong;
+        if (
+          newReached !== local.reached ||
+          newFlagged !== local.flagged ||
+          newWrong !== local.wrong
+        ) {
           updates.push({
             bucketId: rw.bucketId,
             round: rw.round,
             position: pos,
             reached: newReached,
             flagged: newFlagged,
+            wrong: newWrong,
             updatedAt: rw.updatedAt,
           });
           changed = true;
@@ -218,8 +230,8 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
     // A local write can land between the bulk read and these inserts — the
     // deferral schedules syncs into exactly the window where the user resumes
     // studying. Union-merge on conflict instead of skipping, so a cloud
-    // reached/flagged bit cannot be dropped by the race; the row keeps its
-    // local timestamps, so the merged state still rides the next push.
+    // reached/flagged/wrong bit cannot be dropped by the race; the row keeps
+    // its local timestamps, so the merged state still rides the next push.
     for (const part of chunkRows(inserts)) {
       await db
         .insert(roundWord)
@@ -229,13 +241,19 @@ export async function applyCloudState(cloud: CloudState): Promise<ApplyResult> {
           set: {
             reached: sql`max(excluded."reached", ${roundWord.reached})`,
             flagged: sql`max(excluded."flagged", ${roundWord.flagged})`,
+            wrong: sql`max(excluded."wrong", ${roundWord.wrong})`,
           },
         });
     }
     for (const u of updates) {
       await db
         .update(roundWord)
-        .set({ reached: u.reached, flagged: u.flagged, updatedAt: u.updatedAt })
+        .set({
+          reached: u.reached,
+          flagged: u.flagged,
+          wrong: u.wrong,
+          updatedAt: u.updatedAt,
+        })
         .where(
           and(
             eq(roundWord.bucketId, u.bucketId),

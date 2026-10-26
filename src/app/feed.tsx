@@ -14,18 +14,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
-import { WordCard } from '@/components/word-card';
 import {
   advancePointer,
+  getBucket,
   getProgress,
   getWords,
   setFlag,
   startNextRound,
+  type Bucket,
   type WordRow,
 } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { flushUsage, pauseFeedUsage, startFeedUsage } from '@/db/usage';
 import { speakWord } from '@/lib/speech';
+import { getMode, type ModeResult } from '@/modes';
 import { useTheme } from '@/theme/context';
 import { fontSize, radius, spacing } from '@/theme/tokens';
 
@@ -49,6 +51,7 @@ export default function FeedScreen() {
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
+  const [bucketMeta, setBucketMeta] = useState<Bucket | null>(null);
   const [round, setRound] = useState(1);
   const [pointer, setPointer] = useState(0);
   const [current, setCurrent] = useState(0);
@@ -62,10 +65,14 @@ export default function FeedScreen() {
   const suppressSettle = useRef(false);
   // While the round-complete page lingers, gestures record nothing.
   const roundAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // While an answered card lingers before the mode's auto-advance, a manual
+  // swipe cancels the queued scroll.
+  const answerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
       if (roundAdvanceTimer.current) clearTimeout(roundAdvanceTimer.current);
+      if (answerTimer.current) clearTimeout(answerTimer.current);
     },
     [],
   );
@@ -78,8 +85,10 @@ export default function FeedScreen() {
     void (async () => {
       const progress = await getProgress(bucketId);
       const list = await getWords(bucketId);
+      const meta = await getBucket(bucketId);
       if (cancelled) return;
       setWords(list);
+      setBucketMeta(meta);
       setRound(progress.round);
       setPointer(progress.pointer);
       setCurrent(Math.min(progress.pointer, list.length));
@@ -88,7 +97,7 @@ export default function FeedScreen() {
       // Speak the card the feed opens on; other cards speak on settle.
       const initial = Math.min(progress.pointer, list.length);
       if (settings.autoPronounce && list[initial]) {
-        speakWord(list[initial].text, settings.speechRate);
+        speakWord(list[initial].text, settings.speechRate, meta?.language);
       }
     })();
     return () => {
@@ -151,17 +160,35 @@ export default function FeedScreen() {
   }
 
   const items: FeedItem[] = [...words.map((word) => ({ kind: 'word' as const, word })), FOOTER];
+  const plugin = getMode(settings.studyMode, bucketMeta?.kind ?? 'word');
+  const bucketInfo = {
+    id: bucketId,
+    kind: bucketMeta?.kind ?? ('word' as const),
+    language: bucketMeta?.language ?? 'en',
+  };
 
   const handleSettle = async (index: number) => {
     // The round-complete page lingers for two seconds; gestures in that
-    // window record nothing.
+    // window record nothing. A manual swipe also cancels a queued mode
+    // auto-advance — the user took over navigation.
     if (roundAdvanceTimer.current) return;
+    if (answerTimer.current) {
+      clearTimeout(answerTimer.current);
+      answerTimer.current = null;
+    }
     // Studying counts the card you just LEFT BEHIND: landing on a card
     // completes the previous one, so the card on screen is still in progress
     // and exiting there loses nothing.
     if (items[index]?.kind === 'roundEnd') {
-      // The footer is only reachable by swiping past the last card.
-      if (mode === 'study' && pointer >= words.length - 1 && index > pointer) {
+      // The footer is only reachable by swiping past the last card. The
+      // `pointer === words.length` arm covers answer-driven modes: they
+      // record the last card when it is answered, so the pointer already
+      // sits at the full count when the footer settles.
+      if (
+        mode === 'study' &&
+        pointer >= words.length - 1 &&
+        (index > pointer || pointer === words.length)
+      ) {
         setCurrent(index);
         const next = await advancePointer(bucketId, index);
         setPointer(next.pointer);
@@ -188,7 +215,37 @@ export default function FeedScreen() {
     }
     setCurrent(index);
     if (settings.autoPronounce) {
-      speakWord(words[index].text, settings.speechRate);
+      speakWord(words[index].text, settings.speechRate, bucketInfo.language);
+    }
+    void flushUsage();
+  };
+
+  /** Mode-reported result: record the answer, then let the card advance. */
+  const handleResult = (index: number, result: ModeResult) => {
+    if (result.kind !== 'answered') return;
+    if (mode === 'study' && index + 1 > pointer) {
+      void advancePointer(bucketId, index + 1, { correct: result.correct }).then((next) => {
+        setPointer(next.pointer);
+      });
+    }
+    if (plugin.autoAdvanceMs != null) {
+      if (answerTimer.current) clearTimeout(answerTimer.current);
+      answerTimer.current = setTimeout(() => {
+        answerTimer.current = null;
+        advanceFromCard(index);
+      }, plugin.autoAdvanceMs);
+    }
+  };
+
+  /** Card-initiated advance (mode auto-advance or a future Next button). */
+  const advanceFromCard = (index: number) => {
+    const target = Math.min(index + 1, items.length - 1);
+    // Landing on the footer must still settle so the round can complete.
+    suppressSettle.current = target < items.length - 1;
+    listRef.current?.scrollToIndex({ index: target, animated: false });
+    setCurrent(target);
+    if (words[target] && settings.autoPronounce) {
+      speakWord(words[target].text, settings.speechRate, bucketInfo.language);
     }
     void flushUsage();
   };
@@ -277,16 +334,16 @@ export default function FeedScreen() {
             renderItem={({ item, index }) =>
               item.kind === 'word' ? (
                 <View style={{ height: viewport }}>
-                  <WordCard
-                    position={item.word.position}
-                    text={item.word.text}
-                    meaning={item.word.meaning}
-                    forms={item.word.forms}
-                    ipa={item.word.ipa}
+                  <plugin.Card
+                    item={item.word}
+                    bucket={bucketInfo}
+                    pool={words}
+                    round={round}
+                    settings={settings}
                     flagged={item.word.flagged}
-                    meaningMode={settings.meaningMode}
-                    onReplay={() => speakWord(item.word.text, settings.speechRate)}
+                    onResult={(result) => handleResult(index, result)}
                     onToggleFlagged={() => void toggleFlagged(index)}
+                    requestAdvance={() => advanceFromCard(index)}
                   />
                 </View>
               ) : (

@@ -21,8 +21,9 @@ import { auth } from './auth';
 //
 // Merge rules (see docs/cloud-sync.md):
 //   bucket_progress  round/pointer ride the higher round, startedAt by LWW
-//   round_word       one cloud doc per round; reached/flagged are position
-//                    arrays merged by union across devices (history appends)
+//   round_word       one cloud doc per round; reached/flagged/wrong are
+//                    position arrays merged by union across devices (history
+//                    appends)
 //   round_history    union, startedAt = min, finishedAt = max
 //   daily_stat       per metric max (a high-water beat; summing would
 //                    double-count the same day across devices)
@@ -82,6 +83,8 @@ export const push = mutation({
         round: v.number(),
         reached: v.array(v.number()),
         flagged: v.array(v.number()),
+        // Optional: clients that predate the wrong bit push without it.
+        wrong: v.optional(v.array(v.number())),
         updatedAt: v.number(),
       }),
     ),
@@ -161,6 +164,7 @@ export const push = mutation({
           round: rw.round,
           reached: rw.reached,
           flagged: rw.flagged,
+          wrong: rw.wrong ?? [],
           updatedAt: rw.updatedAt,
         });
         continue;
@@ -168,6 +172,7 @@ export const push = mutation({
       await ctx.db.patch(existing._id, {
         reached: unionPositions(existing.reached, rw.reached),
         flagged: unionPositions(existing.flagged, rw.flagged),
+        wrong: unionPositions(existing.wrong ?? [], rw.wrong ?? []),
         updatedAt: Math.max(existing.updatedAt, rw.updatedAt),
       });
     }
@@ -272,6 +277,19 @@ export const wipeMyData = mutation({
   },
 });
 
+/** Drops one bucket's cloud rows for the signed-in user — the cloud half of
+ * replacing or deleting a custom bucket. The merge rules above are monotonic
+ * (round = max, arrays = union), so a local-only reset would be resurrected
+ * by the next pull. Unauthenticated callers are a silent no-op. */
+export const wipeMyBucketData = mutation({
+  args: { bucketId: v.string() },
+  handler: async (ctx, { bucketId }) => {
+    const user = await auth.getUserId(ctx);
+    if (!user) return;
+    await ctx.runMutation(internal.sync.wipeBucket, { userId: user, bucketId });
+  },
+});
+
 /** Dev only: erases every auth and cloud row, resetting the deployment to a
  * clean slate (orphans included). Never call from app code — invoke it from
  * the CLI: `npx convex run sync:resetAll '{}'`. Devices keep their cached
@@ -314,6 +332,41 @@ export const wipe = internalMutation({
       for (const row of await ctx.db.query(table).collect()) {
         if (row.userId === userId) await ctx.db.delete(row._id);
       }
+    }
+  },
+});
+
+/** Wipes one bucket's user rows on the signed-in user (wired to
+ * wipeMyBucketData). daily_stat is day-scoped, not bucket-scoped, so it
+ * stays. */
+export const wipeBucket = internalMutation({
+  args: { userId: v.id('users'), bucketId: v.string() },
+  handler: async (ctx, { userId, bucketId }) => {
+    const progressRows = await ctx.db
+      .query('cloudBucketProgress')
+      .withIndex('by_user_bucket', (q) => q.eq('userId', userId).eq('bucketId', bucketId))
+      .collect();
+    const roundWordRows = await ctx.db
+      .query('cloudRoundWord')
+      .withIndex('by_user_bucket_round', (q) => q.eq('userId', userId).eq('bucketId', bucketId))
+      .collect();
+    const historyRows = await ctx.db
+      .query('cloudRoundHistory')
+      .withIndex('by_user_bucket_round', (q) => q.eq('userId', userId).eq('bucketId', bucketId))
+      .collect();
+    const flags = await ctx.db
+      .query('cloudWordFlag')
+      .withIndex('by_user_bucket', (q) => q.eq('userId', userId).eq('bucketId', bucketId))
+      .collect();
+    // No (userId, bucketId) index on daily pointers; the per-user index
+    // narrows the scan and the filter drops other buckets' rows.
+    const pointers = await ctx.db
+      .query('cloudDailyPointer')
+      .withIndex('by_user_day_bucket', (q) => q.eq('userId', userId))
+      .filter((q) => q.eq(q.field('bucketId'), bucketId))
+      .collect();
+    for (const row of [...progressRows, ...roundWordRows, ...historyRows, ...flags, ...pointers]) {
+      await ctx.db.delete(row._id);
     }
   },
 });

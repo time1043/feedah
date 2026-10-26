@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressBar } from '@/components/progress-bar';
 import { WordCard } from '@/components/word-card';
-import { getWords, setFlag, type WordRow } from '@/db/repo';
+import { getBucket, getWords, setFlag, type Bucket, type WordRow } from '@/db/repo';
 import { useSettings } from '@/db/settings';
 import { requestSearchReset } from '@/lib/search-reset';
 import { speakWord } from '@/lib/speech';
@@ -35,6 +35,7 @@ export default function WordPage() {
 
   const [ready, setReady] = useState(false);
   const [words, setWords] = useState<WordRow[]>([]);
+  const [meta, setMeta] = useState<Bucket | null>(null);
   const [current, setCurrent] = useState(0);
   // Measured viewport height; cards must match it exactly for page snapping.
   const [viewport, setViewport] = useState(0);
@@ -45,15 +46,16 @@ export default function WordPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const list = await getWords(bucketId);
+      const [list, bucketRow] = await Promise.all([getWords(bucketId), getBucket(bucketId)]);
       if (cancelled) return;
       const initial =
         Number.isInteger(requested) && requested > 0 ? Math.min(requested, list.length) - 1 : 0;
       setWords(list);
+      setMeta(bucketRow);
       setCurrent(initial);
       setReady(true);
       if (settings.autoPronounce && list[initial]) {
-        speakWord(list[initial].text, settings.speechRate);
+        speakWord(list[initial].text, settings.speechRate, bucketRow?.language);
       }
     })();
     return () => {
@@ -71,7 +73,7 @@ export default function WordPage() {
   const handleSettle = (index: number) => {
     setCurrent(index);
     if (settings.autoPronounce) {
-      speakWord(words[index].text, settings.speechRate);
+      speakWord(words[index].text, settings.speechRate, meta?.language);
     }
   };
 
@@ -157,8 +159,9 @@ export default function WordPage() {
                   forms={item.forms}
                   ipa={item.ipa}
                   flagged={item.flagged}
+                  kind={meta?.kind ?? 'word'}
                   meaningMode={settings.meaningMode}
-                  onReplay={() => speakWord(item.text, settings.speechRate)}
+                  onReplay={() => speakWord(item.text, settings.speechRate, meta?.language)}
                   onToggleFlagged={() => void toggleFlagged(index)}
                 />
               </View>

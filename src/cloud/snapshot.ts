@@ -27,6 +27,7 @@ export type LocalSnapshot = {
     round: number;
     reached: number[];
     flagged: number[];
+    wrong: number[];
     updatedAt: number;
   }[];
   roundHistory: {
@@ -152,7 +153,7 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
 
   // `round_word` is per-word locally but ships to the cloud as one compact doc
   // per round: only the positions that differ from the default (unreached,
-  // unflagged) are kept, as two position arrays. Read only the rows touched
+  // unflagged, right) are kept, as position arrays. Read only the rows touched
   // since `since`; rounds with no recent change are skipped.
   const roundWordRows = await db
     .select()
@@ -165,6 +166,7 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
       round: number;
       reached: Set<number>;
       flagged: Set<number>;
+      wrong: Set<number>;
       updatedAt: number;
     }
   >();
@@ -177,12 +179,14 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
         round: r.round,
         reached: new Set(),
         flagged: new Set(),
+        wrong: new Set(),
         updatedAt: 0,
       };
       byRound.set(key, agg);
     }
     if (r.reached) agg.reached.add(r.position);
     if (r.flagged) agg.flagged.add(r.position);
+    if (r.wrong) agg.wrong.add(r.position);
     if (r.updatedAt > agg.updatedAt) agg.updatedAt = r.updatedAt;
   }
   const roundWords = Array.from(byRound.values()).map((a) => ({
@@ -190,6 +194,7 @@ export async function readLocalSnapshot(since = 0): Promise<LocalSnapshot> {
     round: a.round,
     reached: Array.from(a.reached).sort((x, y) => x - y),
     flagged: Array.from(a.flagged).sort((x, y) => x - y),
+    wrong: Array.from(a.wrong).sort((x, y) => x - y),
     updatedAt: a.updatedAt,
   }));
 

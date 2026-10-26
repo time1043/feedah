@@ -4,6 +4,21 @@ import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlit
 export const bucket = sqliteTable('bucket', {
   id: text('id').primaryKey(),
   wordCount: integer('word_count').notNull(),
+  // 'builtin' buckets re-seed from the bundled JSON on every cold start;
+  // 'custom' buckets arrive via user import and are managed (replaced,
+  // deleted) on the buckets page.
+  source: text('source').notNull().default('builtin').$type<'builtin' | 'custom'>(),
+  // Display label; '' renders the id instead.
+  name: text('name').notNull().default(''),
+  // Content shape: 'word' rows carry term/ipa/meaning/forms, 'qa' rows carry
+  // question in `text` and answer (plus optional explanation) in `meaning`.
+  // Cards and modes branch on this; progress/sync only ever see positions.
+  kind: text('kind').notNull().default('word').$type<BucketKind>(),
+  // Target language as a BCP47 base code ('en', 'ko', ...). '' means the
+  // import omitted it: speech falls back to en-US and badges hide it.
+  language: text('language').notNull().default('en'),
+  // Import time of custom buckets; 0 for builtins.
+  createdAt: integer('created_at').notNull().default(0),
 });
 
 export const word = sqliteTable(
@@ -45,9 +60,11 @@ export const bucketProgress = sqliteTable('bucket_progress', {
 // Per-round per-word state. reached=true means the card was settled by hand
 // in that round (jump targets never count). flagged=true marks the flag was
 // on at some point during the round; rows may exist with reached=false when
-// the word was flagged without being reached (e.g. from search). reachedAt
-// records the settle time (informational only — not synced; the day review
-// reads daily_pointer deltas instead).
+// the word was flagged without being reached (e.g. from search). wrong=true
+// marks the answer-driven modes judged the card wrong on its first pass;
+// like reached/flagged it syncs as a per-round position array (union merge).
+// reachedAt records the settle time (informational only — not synced; the day
+// review reads daily_pointer deltas instead).
 export const roundWord = sqliteTable(
   'round_word',
   {
@@ -56,6 +73,7 @@ export const roundWord = sqliteTable(
     position: integer('position').notNull(),
     reached: integer('reached', { mode: 'boolean' }).notNull().default(false),
     flagged: integer('flagged', { mode: 'boolean' }).notNull().default(false),
+    wrong: integer('wrong', { mode: 'boolean' }).notNull().default(false),
     reachedAt: integer('reached_at').notNull().default(0),
     updatedAt: integer('updated_at').notNull().default(0),
   },
@@ -109,6 +127,8 @@ export const reviewCursor = sqliteTable('review_cursor', {
   key: text('key').primaryKey(),
   position: integer('position').notNull().default(0),
 });
+
+export type BucketKind = 'word' | 'qa';
 
 export type BucketRow = typeof bucket.$inferSelect;
 export type WordSelect = typeof word.$inferSelect;

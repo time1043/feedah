@@ -9,6 +9,9 @@ export type SpeechRate = 'slow' | 'normal' | 'fast';
 /** How cards treat the meaning: hidden until tapped, shown until tapped, or always shown. */
 export type MeaningMode = 'hidden' | 'shown' | 'always';
 
+/** The study interaction a feed session uses; ids come from the mode registry. */
+export type StudyModeId = string;
+
 /** One user-configurable reminder. */
 export type Reminder = {
   id: string;
@@ -24,6 +27,8 @@ export type Settings = {
   autoPronounce: boolean;
   speechRate: SpeechRate;
   meaningMode: MeaningMode;
+  /** Registered mode plugin id ('flip' by default; resolved via src/modes). */
+  studyMode: StudyModeId;
   progressBar: boolean;
   progressBarDrag: boolean;
   wordProgressBar: boolean;
@@ -44,6 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoPronounce: true,
   speechRate: 'normal',
   meaningMode: 'hidden',
+  studyMode: 'flip',
   progressBar: false,
   progressBarDrag: true,
   wordProgressBar: true,

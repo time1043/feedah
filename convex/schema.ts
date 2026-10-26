@@ -31,6 +31,7 @@ export default defineSchema({
     round: v.number(),
     reached: v.array(v.number()),
     flagged: v.array(v.number()),
+    wrong: v.array(v.number()),
     updatedAt: v.number(),
   }).index('by_user_bucket_round', ['userId', 'bucketId', 'round']),
 

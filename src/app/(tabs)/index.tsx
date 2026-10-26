@@ -68,7 +68,12 @@ export default function HomeScreen() {
 
   return (
     <Screen>
-      <BucketTabs buckets={buckets} activeId={activeId} onSelect={selectBucket} />
+      <BucketTabs
+        buckets={buckets}
+        activeId={activeId}
+        onSelect={selectBucket}
+        onManage={() => router.push('/buckets')}
+      />
 
       <Pressable
         style={[styles.search, { backgroundColor: colors.surface }]}
