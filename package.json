@@ -1,7 +1,18 @@
 {
   "name": "feedah",
-  "main": "expo-router/entry",
   "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "android": "expo start --android",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "ios": "expo start --ios",
+    "lint": "expo lint",
+    "reset-project": "node ./scripts/reset-project.js",
+    "start": "expo start",
+    "web": "expo start --web"
+  },
   "dependencies": {
     "@expo/ui": "~57.0.14",
     "expo": "~57.0.18",
@@ -31,16 +42,5 @@
     "@types/react": "~19.2.2",
     "oxfmt": "^0.74.0",
     "typescript": "~6.0.3"
-  },
-  "scripts": {
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
-  },
-  "private": true
+  }
 }
