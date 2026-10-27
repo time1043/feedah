@@ -29,11 +29,17 @@ export type RoundSummary = {
   /** 0 while the round is still the probe's current one. */
   finishedAt: number
   done: boolean
+  /** The round's reach frontier: wordCount when done, the probe otherwise. */
+  pointer: number
   /** Green = reached (pointer swept over it) and not flagged; red = flagged. */
   green: number
   red: number
+  /** Flag positions of this round, ascending — the red cells of the bar. */
+  flags: number[]
   /** Completed review walk-throughs of this round's flag list. */
   reviewTimes: number
+  /** True when an uncounted draft session exists for this round. */
+  hasDraft: boolean
 }
 
 const DEFAULT_PROGRESS: Progress = { round: 1, pointer: 0, roundStartedAt: 0 }
@@ -191,7 +197,7 @@ export async function countRoundFlags(bucketId: string, round: number): Promise<
  */
 export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[]> {
   const db = await getDb()
-  const [wordCount, history, probe, flagRows, badges] = await Promise.all([
+  const [wordCount, history, probe, flagRows, badges, drafts] = await Promise.all([
     readWordCount(db, bucketId),
     db
       .select()
@@ -211,6 +217,16 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
       .from(reviewSession)
       .where(and(eq(reviewSession.bucketId, bucketId), eq(reviewSession.counted, true)))
       .groupBy(reviewSession.round),
+    db
+      .select({ round: reviewSession.round })
+      .from(reviewSession)
+      .where(
+        and(
+          eq(reviewSession.bucketId, bucketId),
+          eq(reviewSession.counted, false),
+          isNull(reviewSession.finishedAt),
+        ),
+      ),
   ])
 
   const flagsByRound = new Map<number, number[]>()
@@ -220,6 +236,7 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
     else flagsByRound.set(row.round, [row.position])
   }
   const badgeByRound = new Map(badges.map((row) => [row.round, row.times ?? 0]))
+  const draftByRound = new Map(drafts.map((row) => [row.round, true]))
 
   const greenOf = (round: number, frontier: number): number => {
     const flags = flagsByRound.get(round) ?? []
@@ -231,9 +248,12 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
     startedAt: row.startedAt,
     finishedAt: row.finishedAt,
     done: true,
+    pointer: wordCount,
     green: greenOf(row.round, wordCount),
     red: (flagsByRound.get(row.round) ?? []).length,
+    flags: flagsByRound.get(row.round) ?? [],
     reviewTimes: badgeByRound.get(row.round) ?? 0,
+    hasDraft: draftByRound.get(row.round) ?? false,
   }))
 
   const roundNumbers = new Set(history.map((row) => row.round))
@@ -243,9 +263,12 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
       startedAt: probe.roundStartedAt,
       finishedAt: 0,
       done: false,
+      pointer: probe.pointer,
       green: greenOf(probe.round, probe.pointer),
       red: (flagsByRound.get(probe.round) ?? []).length,
+      flags: flagsByRound.get(probe.round) ?? [],
       reviewTimes: badgeByRound.get(probe.round) ?? 0,
+      hasDraft: draftByRound.get(probe.round) ?? false,
     })
   }
   return summaries.sort((a, b) => a.round - b.round)
