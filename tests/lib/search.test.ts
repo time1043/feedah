@@ -90,6 +90,6 @@ describe('searchWords', () => {
   })
 
   it('keeps results in bucket order', () => {
-    expect(searchWords(words, 'a').map((word) => word.position)).toEqual([2, 3, 4])
+    expect(searchWords(words, 'a').map((word) => word.position)).toEqual([2, 3])
   })
 })

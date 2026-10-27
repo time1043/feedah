@@ -59,12 +59,15 @@ function wordMatches(word: Word, pattern: string, matchMeaning: boolean): boolea
   // words starting with ter).
   const hasWildcard = pattern.includes('%') || pattern.includes('_')
   if (likeMatches(word.word, pattern, !hasWildcard)) return true
-  // Forms and meanings always match as substrings: forms carry part-of-speech
-  // suffixes ("changing v.") and meanings open with a POS tag, so an anchored
-  // pattern would almost never hit.
+  // Forms are matched on their word part (the POS suffix stripped), with the
+  // same semantics: a query may name any inflected form ("donate") and the
+  // hit is the headword that owns it ("donation").
   for (const form of word.forms) {
-    if (likeMatches(form, pattern, true)) return true
+    const formWord = form.trim().split(/\s+/)[0] ?? ''
+    if (formWord.length > 0 && likeMatches(formWord, pattern, !hasWildcard)) return true
   }
+  // Meanings are free text starting with a POS tag, so they always match as
+  // substrings.
   if (matchMeaning && likeMatches(word.meaning, pattern, true)) return true
   return false
 }
