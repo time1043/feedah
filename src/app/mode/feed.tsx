@@ -99,6 +99,7 @@ export default function FeedScreen() {
             </Text>
           ) : undefined
         }
+        onSearch={() => router.push({ pathname: '/mode/search', params: { bucket: bucketName } })}
         onClose={() => router.back()}
         scrubbable={progress.pointer > 0}
         headerCenter={

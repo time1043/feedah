@@ -572,3 +572,69 @@ export async function listDailyPointers() {
   const db = await getDb()
   return db.select().from(dailyPointer).orderBy(dailyPointer.day)
 }
+
+// --- search ---------------------------------------------------------------
+
+/**
+ * Translates user input into a SQL LIKE pattern, matching SQL semantics:
+ *   %  any run of zero or more characters
+ *   _  exactly one character
+ * A query with no wildcard characters is wrapped as a contains-match
+ * (%query%), so a plain word search still finds substrings. Examples:
+ * `ter%` matches words starting with ter, `%ter` ending with ter, `wo%rd`
+ * exactly starting with wo and ending with rd.
+ */
+function toLikePattern(query: string): string {
+  let out = ''
+  let hasWildcard = false
+  for (const ch of query) {
+    if (ch === '%') {
+      out += '%'
+      hasWildcard = true
+    } else if (ch === '_') {
+      out += '_'
+      hasWildcard = true
+    } else {
+      out += ch
+    }
+  }
+  return hasWildcard ? out : `%${out}%`
+}
+
+export type SearchResult = Word & { bucketId: string }
+
+/**
+ * Case-insensitive lookup over the word, its inflected forms (a JSON column
+ * LIKE'd as text — the row returned is always the headword) and, optionally,
+ * the Chinese meaning. `|` splits the query into alternatives whose results
+ * are unioned (`scene|sense`), each keeping the %/_ rules.
+ */
+export async function searchWords(
+  bucketId: string,
+  query: string,
+  options: { matchMeaning?: boolean; limit?: number } = {},
+): Promise<SearchResult[]> {
+  const { matchMeaning = true, limit = 100 } = options
+  const db = await getDb()
+  const trimmed = query.trim()
+  const alternatives = trimmed
+    .split('|')
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+  const parts = alternatives.length > 0 ? alternatives : [trimmed]
+  const conditions = parts.map((part) => {
+    const pattern = toLikePattern(part)
+    const textMatch = sql`lower(${word.text}) LIKE lower(${pattern}) ESCAPE '\\'
+      OR lower(${word.forms}) LIKE lower(${pattern}) ESCAPE '\\'`
+    return matchMeaning
+      ? sql`(${textMatch} OR lower(${word.meaning}) LIKE lower(${pattern}) ESCAPE '\\')`
+      : sql`(${textMatch})`
+  })
+  const rows = await db
+    .select()
+    .from(word)
+    .where(and(eq(word.bucketId, bucketId), sql.join(conditions, sql` OR `)))
+    .orderBy(word.position)
+    .limit(limit)
+  return rows.map((row) => ({ ...mapWord(row), bucketId: row.bucketId }))
+}

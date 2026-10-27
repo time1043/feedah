@@ -135,6 +135,12 @@ export default function ReviewScreen() {
           })
           void setRoundFlag(bucketName, session.round, word.position, flagged)
         }}
+        onSearch={() =>
+          router.push({
+            pathname: '/mode/search',
+            params: { bucket: bucketName, round: String(session.round) },
+          })
+        }
         onClose={() => router.back()}
         scrubbable
         headerCenter={

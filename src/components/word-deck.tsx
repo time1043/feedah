@@ -56,6 +56,8 @@ type WordDeckProps = {
   onToggleFlag?: (word: DeckWord) => void
   /** Center of the header row (mode pill, title, …). */
   headerCenter?: ReactNode
+  /** Opens search from the header (review and feed pin their bucket). */
+  onSearch?: () => void
   /** Quiet footer slots on the bookmark line (page number, round/time). */
   hudLeft?: ReactNode
   hudRight?: ReactNode
@@ -94,6 +96,7 @@ export function WordDeck({
   onScrub,
   onToggleFlag,
   headerCenter,
+  onSearch,
   hudLeft,
   hudRight,
   onClose,
@@ -228,7 +231,18 @@ export function WordDeck({
             />
           </Pressable>
           <View className="flex-1 items-center">{headerCenter}</View>
-          <View className="w-8" />
+          {onSearch ? (
+            <Pressable
+              className="w-8 items-end"
+              onPress={onSearch}
+              hitSlop={12}
+              accessibilityLabel="Search words"
+            >
+              <Ionicons name="search" size={20} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
+            </Pressable>
+          ) : (
+            <View className="w-8" />
+          )}
         </View>
         <ProgressBar value={index} max={itemCount} scrubbable={scrubbable} onScrub={scrubTo} />
       </View>

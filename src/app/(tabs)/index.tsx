@@ -70,6 +70,13 @@ export default function Index() {
 
         <Pressable
           className="rounded-lg border-gray-300 p-3 dark:border-gray-700 items-center border"
+          onPress={() => router.push('/mode/search')}
+        >
+          <Text className="text-black dark:text-white">Search words</Text>
+        </Pressable>
+
+        <Pressable
+          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 items-center border"
           onPress={() =>
             router.push({ pathname: '/mode/browse/[position]', params: { position: '1' } })
           }
