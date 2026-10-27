@@ -361,7 +361,7 @@ export function dailyFeedRanges(
   const { bucketId, wordCount } = params
   const perBucket: [string, number][] = Object.entries(state.dailyPointers)
     .filter(([, perBucket]) => perBucket[bucketId] !== undefined)
-    .map(([day, perBucket]) => [day, perBucket[bucketId]])
+    .map(([day, perBucket]) => [day, perBucket[bucketId]] as [string, number])
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
 
   const ranges: DailyFeedRange[] = []
