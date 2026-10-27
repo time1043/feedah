@@ -14,7 +14,7 @@ if (Platform.OS === 'android') {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
+      <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['top']}>
         <StatusBar style="auto" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
