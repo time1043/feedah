@@ -79,6 +79,3 @@ export const toggleFlagAtom = atom(null, (_get, set, params: { bucket: string; w
     return { ...map, [key]: !map[key] }
   })
 })
-
-/** Whether the word list shows the meaning column (default hidden). */
-export const wordsMeaningAtom = storedAtom('feedah.words-meaning', false)

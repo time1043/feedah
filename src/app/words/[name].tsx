@@ -7,9 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import type { Word } from '@/types/word'
 
-import { flagsAtom, flagKey, wordsMeaningAtom } from '@/atoms/study'
 import { ProgressBar } from '@/components/progress-bar'
 import { findBucketByName } from '@/mock/data'
+import { currentRound, roundFlagPositions } from '@/study/logic'
+import { wordsMeaningAtom } from '@/study/settings'
+import { studyStateAtom } from '@/study/store'
 
 const ROW_HEIGHT = 52
 
@@ -24,8 +26,11 @@ export default function WordsScreen() {
   const { name } = useLocalSearchParams<{ name: string }>()
   const bucketName = Array.isArray(name) ? name[0] : name
   const bucket = findBucketByName(bucketName)
-  const flags = useAtomValue(flagsAtom)
+  const state = useAtomValue(studyStateAtom)
   const [showMeaning, setShowMeaning] = useAtom(wordsMeaningAtom)
+
+  // Red dots reflect the bucket's current round — the default flag context.
+  const flagSet = new Set(roundFlagPositions(state, bucketName, currentRound(state, bucketName)))
 
   // The top visible row, mirrored by the progress bar.
   const [index, setIndex] = useState(0)
@@ -110,7 +115,7 @@ export default function WordsScreen() {
           >
             <Row
               word={item}
-              flagged={!!flags[flagKey(bucketName, item)]}
+              flagged={flagSet.has(item.position)}
               showMeaning={showMeaning}
             />
           </Pressable>
