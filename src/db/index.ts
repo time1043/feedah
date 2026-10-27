@@ -41,6 +41,10 @@ export function getDb(): Promise<Db> {
       rawDb = raw
       currentDb = buildDb(raw)
       await raw.execAsync('PRAGMA journal_mode = WAL')
+      // Enforce the declared foreign keys (off by default in SQLite) and
+      // tolerate brief lock contention between concurrent writes.
+      await raw.execAsync('PRAGMA foreign_keys = ON')
+      await raw.execAsync('PRAGMA busy_timeout = 3000')
       await migrate(currentDb, migrations)
       await seedBuckets(currentDb)
       return currentDb

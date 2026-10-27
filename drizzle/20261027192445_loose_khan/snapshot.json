@@ -1,0 +1,609 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "07435030-90fd-4200-b641-8c02b9de6ffa",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "ddl": [
+    {
+      "name": "bucket",
+      "entityType": "tables"
+    },
+    {
+      "name": "bucket_progress",
+      "entityType": "tables"
+    },
+    {
+      "name": "daily_pointer",
+      "entityType": "tables"
+    },
+    {
+      "name": "daily_stat",
+      "entityType": "tables"
+    },
+    {
+      "name": "review_session",
+      "entityType": "tables"
+    },
+    {
+      "name": "round_flag",
+      "entityType": "tables"
+    },
+    {
+      "name": "round_history",
+      "entityType": "tables"
+    },
+    {
+      "name": "word",
+      "entityType": "tables"
+    },
+    {
+      "table": "bucket",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket",
+      "name": "word_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "round",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "pointer",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "round_started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "day",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "global_position",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_stat",
+      "name": "day",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_stat",
+      "name": "feed_seconds",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_stat",
+      "name": "app_seconds",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "daily_stat",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "round",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "counted",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "number",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "queue",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "last_position",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "finished_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_flag",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_flag",
+      "name": "round",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_flag",
+      "name": "position",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_flag",
+      "name": "flagged_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_flag",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_history",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_history",
+      "name": "round",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_history",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_history",
+      "name": "finished_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "round_history",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "bucket_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "position",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "text",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "ipa",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "meaning",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "word",
+      "name": "forms",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "review_session",
+      "name": "idx_review_session_round",
+      "columns": [
+        {
+          "value": "bucket_id",
+          "isExpression": false
+        },
+        {
+          "value": "round",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "review_session",
+      "name": "review_session_draft_unique",
+      "columns": [
+        {
+          "value": "bucket_id",
+          "isExpression": false
+        },
+        {
+          "value": "round",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "counted = 0",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "fk_bucket_progress_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "fk_daily_pointer_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "review_session",
+      "name": "fk_review_session_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "round_flag",
+      "name": "fk_round_flag_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "round_history",
+      "name": "fk_round_history_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "word",
+      "name": "fk_word_bucket_id_bucket_id_fk",
+      "columns": ["bucket_id"],
+      "tableTo": "bucket",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "daily_pointer",
+      "name": "daily_pointer_pk",
+      "columns": ["day", "bucket_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "round_flag",
+      "name": "round_flag_pk",
+      "columns": ["bucket_id", "round", "position"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "round_history",
+      "name": "round_history_pk",
+      "columns": ["bucket_id", "round"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "word",
+      "name": "word_pk",
+      "columns": ["bucket_id", "position"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "bucket",
+      "name": "bucket_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "bucket_progress",
+      "name": "bucket_progress_pk",
+      "columns": ["bucket_id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "daily_stat",
+      "name": "daily_stat_pk",
+      "columns": ["day"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "review_session",
+      "name": "review_session_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}
