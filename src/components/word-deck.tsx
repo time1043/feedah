@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react'
-import { FlatList, Pressable, View, useColorScheme } from 'react-native'
+import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 
 import type { DeckWord } from '@/types/word'
 
@@ -17,6 +17,18 @@ import { WordCard } from '@/components/word-card'
 
 /** How long the end page lingers before performing its action. */
 const END_LINGER_MS = 2000
+
+/** The styling of a bottom-corner study readout: quiet, tabular numbers. */
+export function DeckReadout({ children }: { children: ReactNode }) {
+  return (
+    <Text
+      className="text-gray-400 dark:text-gray-500 text-[11px]"
+      style={{ fontVariant: ['tabular-nums'] }}
+    >
+      {children}
+    </Text>
+  )
+}
 
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
@@ -56,6 +68,12 @@ type WordDeckProps = {
   onToggleFlag?: (word: DeckWord) => void
   /** Center of the header row (mode pill, title, …). */
   headerCenter?: ReactNode
+  /** Right end of the header row (search icon, …). */
+  headerRight?: ReactNode
+  /** Bottom-corner readouts, on the flag bookmark's row. Optional and subtle
+   * by design; consumers pass study-state text (round/time, position). */
+  footerLeft?: ReactNode
+  footerRight?: ReactNode
   onClose: () => void
   /** Whether the progress bar can be grabbed and scrubbed. */
   scrubbable?: boolean
@@ -91,6 +109,9 @@ export function WordDeck({
   onScrub,
   onToggleFlag,
   headerCenter,
+  headerRight,
+  footerLeft,
+  footerRight,
   onClose,
   scrubbable = false,
   end,
@@ -223,7 +244,7 @@ export function WordDeck({
             />
           </Pressable>
           <View className="flex-1 items-center">{headerCenter}</View>
-          <View className="w-8" />
+          <View className="w-8 items-end">{headerRight}</View>
         </View>
         <ProgressBar value={index} max={itemCount} scrubbable={scrubbable} onScrub={scrubTo} />
       </View>
@@ -238,8 +259,7 @@ export function WordDeck({
         }}
       >
         {viewport > 0 && itemCount > 0 && (
-          <FlatList
-            ref={listRef}
+          <FlatList            ref={listRef}
             key={resetKey}
             data={items}
             keyExtractor={(item, i) =>
@@ -287,6 +307,16 @@ export function WordDeck({
           />
         )}
       </View>
+
+      {(footerLeft || footerRight) && (
+        <View
+          pointerEvents="none"
+          className="absolute bottom-9 left-0 right-0 flex-row items-center justify-between px-6"
+        >
+          <View>{footerLeft}</View>
+          <View>{footerRight}</View>
+        </View>
+      )}
     </View>
   )
 }
