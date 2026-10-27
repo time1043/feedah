@@ -1,0 +1,26 @@
+{
+  "name": "370",
+  "words": [
+    {
+      "position": 1,
+      "word": "abolish",
+      "ipa": "/əˈbɒlɪʃ/ /əˈbɑlɪʃ/",
+      "meaning": "v. 废除、废止",
+      "forms": []
+    },
+    {
+      "position": 2,
+      "word": "abortion",
+      "ipa": "/əˈbɔrʃn/",
+      "meaning": "n. 流产、放弃、中止",
+      "forms": ["abort v."]
+    },
+    {
+      "position": 3,
+      "word": "accelerate",
+      "ipa": "/əkˈsɛləˌreɪt/ /ɪkˈsɛləˌreɪt/",
+      "meaning": "v. 加速",
+      "forms": ["acceleration n."]
+    }
+  ]
+}

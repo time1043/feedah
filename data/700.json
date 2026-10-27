@@ -1,0 +1,33 @@
+{
+  "name": "700",
+  "words": [
+    {
+      "position": 1,
+      "word": "a.m.",
+      "ipa": "/ˌeɪ ˈem/",
+      "meaning": "n. 午前、上午",
+      "forms": []
+    },
+    {
+      "position": 2,
+      "word": "afternoon",
+      "ipa": "/ˌɑːftəˈnuːn/ /ˌæftərˈnun/",
+      "meaning": "n. 下午",
+      "forms": []
+    },
+    {
+      "position": 3,
+      "word": "alcohol",
+      "ipa": "/ˈælkəhɒl/ /ˈælkəhɔl/",
+      "meaning": "n. 酒精、酒",
+      "forms": ["alcoholic adj."]
+    },
+    {
+      "position": 4,
+      "word": "alley",
+      "ipa": "/ˈæli/",
+      "meaning": "n. 小巷、胡同",
+      "forms": []
+    }
+  ]
+}

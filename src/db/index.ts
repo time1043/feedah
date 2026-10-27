@@ -17,6 +17,11 @@ function buildDb(raw: SQLite.SQLiteDatabase) {
 
 export type Db = ReturnType<typeof buildDb>
 
+/** The raw expo-sqlite handle behind drizzle; used by the dev studio plugin. */
+export function getRawDb(): SQLite.SQLiteDatabase | null {
+  return rawDb
+}
+
 /**
  * Runs async drizzle statements inside one native transaction. Drizzle's own
  * `db.transaction` commits before an async callback resolves, so the raw

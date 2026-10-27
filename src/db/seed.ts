@@ -1,34 +1,62 @@
 import { eq } from 'drizzle-orm'
 
-import { buckets } from '@/mock/data'
-
-import type { Db } from './index'
-
+import raw370 from '../../data/370.json'
+import raw700 from '../../data/700.json'
+import raw2050 from '../../data/2050.json'
+import { withTransaction, type Db } from './index'
 import { bucket, word } from './schema'
 
-/**
- * Seeds bundled buckets into the database. Idempotent: a bucket is re-seeded
- * only when it is missing or its word count changed (a data update) — study
- * state is never touched.
- */
+export type SeedWord = {
+  position: number
+  word: string
+  ipa: string
+  meaning: string
+  forms: string[]
+}
+
+export type SeedFile = { name: string; words: SeedWord[] }
+
+// Each bucket JSON is imported here and bundled into the app at build time.
+// Seeding runs on the first DB open and on every later cold start; it is
+// idempotent against the stored bucket.word_count, so a bundle that changes
+// a bucket's word count re-seeds that bucket on the device, while an
+// unchanged bundle leaves existing data untouched.
+export const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
+
+// Rows per batched INSERT; keeps the statement far below SQLite's bound
+// parameter limit once a bucket holds thousands of words.
+const SEED_CHUNK = 500
+
+/** Idempotent: inserts missing buckets, refreshes words when the data changed. */
 export async function seedBuckets(db: Db): Promise<void> {
-  for (const data of buckets) {
-    const row = await db.select().from(bucket).where(eq(bucket.id, data.name)).get()
-    if (row && row.wordCount === data.words.length) continue
-    await db.delete(word).where(eq(word.bucketId, data.name))
-    await db.insert(word).values(
-      data.words.map((w) => ({
-        bucketId: data.name,
-        position: w.position,
-        text: w.word,
-        ipa: w.ipa,
-        meaning: w.meaning,
-        forms: w.forms,
-      })),
-    )
-    await db
-      .insert(bucket)
-      .values({ id: data.name, wordCount: data.words.length })
-      .onConflictDoUpdate({ target: bucket.id, set: { wordCount: data.words.length } })
+  for (const file of BUNDLED_BUCKETS) {
+    const existing = await db
+      .select({ wordCount: bucket.wordCount })
+      .from(bucket)
+      .where(eq(bucket.id, file.name))
+      .get()
+    if (existing && existing.wordCount === file.words.length) continue
+
+    await withTransaction(async (tx) => {
+      await tx
+        .insert(bucket)
+        .values({ id: file.name, wordCount: file.words.length })
+        .onConflictDoUpdate({ target: bucket.id, set: { wordCount: file.words.length } })
+      if (existing) {
+        await tx.delete(word).where(eq(word.bucketId, file.name))
+      }
+      for (let i = 0; i < file.words.length; i += SEED_CHUNK) {
+        await tx.insert(word).values(
+          file.words.slice(i, i + SEED_CHUNK).map((w) => ({
+            bucketId: file.name,
+            position: w.position,
+            text: w.word,
+            ipa: w.ipa,
+            meaning: w.meaning,
+            forms: w.forms,
+          })),
+        )
+      }
+    })
   }
 }
