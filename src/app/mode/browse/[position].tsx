@@ -17,8 +17,13 @@ import { findBucketByName } from '@/mock/data'
  * moves the pointer, or records anything.
  */
 export default function BrowseScreen() {
-  const { position } = useLocalSearchParams<{ position: string }>()
-  const bucketName = useAtomValue(activeBucketAtom)
+  const { position, bucket: bucketParam } = useLocalSearchParams<{
+    position: string
+    bucket?: string
+  }>()
+  // The opener can pin a bucket (the word list); otherwise the active one.
+  const activeName = useAtomValue(activeBucketAtom)
+  const bucketName = bucketParam ?? activeName
   const flags = useAtomValue(flagsAtom)
   const toggleFlag = useSetAtom(toggleFlagAtom)
   const bucket = findBucketByName(bucketName)
