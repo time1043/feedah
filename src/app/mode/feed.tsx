@@ -16,6 +16,7 @@ import {
   type WordWithFlag,
 } from '@/db/repo'
 import { speakWord } from '@/lib/speech'
+import { useStudyUsage } from '@/lib/use-study-usage'
 
 type FeedState = { words: WordWithFlag[]; progress: Progress }
 
@@ -29,6 +30,7 @@ export default function FeedScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
   const [loaded, setLoaded] = useState<FeedState | null>(null)
   const [browsing, setBrowsing] = useState(false)
+  useStudyUsage()
   const deckRef = useRef<WordDeckHandle>(null)
 
   // Reloads on every focus: a review pushed on top may have re-flagged words.

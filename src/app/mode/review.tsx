@@ -20,6 +20,7 @@ import {
   type ReviewSessionRow,
 } from '@/db/repo'
 import { speakWord } from '@/lib/speech'
+import { useStudyUsage } from '@/lib/use-study-usage'
 
 type ReviewState = {
   session: ReviewSessionRow
@@ -42,6 +43,7 @@ export default function ReviewScreen() {
 
   const [loaded, setLoaded] = useState<ReviewState | null>(null)
   const [empty, setEmpty] = useState(false)
+  useStudyUsage()
 
   useEffect(() => {
     let cancelled = false
