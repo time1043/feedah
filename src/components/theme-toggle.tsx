@@ -1,11 +1,10 @@
-import { useState } from 'react'
+import { useAtom } from 'jotai'
 import { Appearance, Platform, Pressable, Text, View } from 'react-native'
 
-const themes = ['system', 'light', 'dark'] as const
-type Theme = (typeof themes)[number]
+import { currentThemeAtom, type Theme, themes } from '@/atoms/theme'
 
 export default function ThemeToggle() {
-  const [currentTheme, setCurrentTheme] = useState<Theme>('system')
+  const [currentTheme, setCurrentTheme] = useAtom(currentThemeAtom)
 
   function hanleChangeTheme(theme: Theme) {
     setCurrentTheme(theme)
