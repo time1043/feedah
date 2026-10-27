@@ -2,32 +2,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, Text, View, useColorScheme } from 'react-native'
 
+import { meaningLines } from '@/lib/meaning'
+
 // Word forms render in a fixed 2×6 grid (12 cells); empty cells keep the
 // layout, so the card height is constant across words.
 const FORMS_GRID_CELLS = 12
-
-// Matches a leading part-of-speech tag: n. / v. / adj. / prep. / conj. …
-const POS_TAG = /^[a-z]+\./i
-
-/**
- * Groups a meaning's "、"-separated senses by part of speech: a sense that
- * starts with a POS tag opens a new line, and any following bare senses join
- * it with "、" so one POS group stays together. Returns null when no break
- * is needed: the meaning is short, or every sense belongs to one group.
- */
-function meaningLines(meaning: string): string[] | null {
-  const senses = meaning
-    .split('、')
-    .map((sense) => sense.trim())
-    .filter((sense) => sense.length > 0)
-  if (senses.length < 3) return null
-  const lines: string[] = []
-  for (const sense of senses) {
-    if (lines.length === 0 || POS_TAG.test(sense)) lines.push(sense)
-    else lines[lines.length - 1] += `、${sense}`
-  }
-  return lines.length > 1 ? lines : null
-}
 
 type WordCardProps = {
   position: number
