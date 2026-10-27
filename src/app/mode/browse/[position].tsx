@@ -44,7 +44,7 @@ export default function BrowseScreen() {
         scrubbable
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-            {bucketName}
+            Browse · {bucketName}
           </Text>
         }
         onClose={() => router.back()}

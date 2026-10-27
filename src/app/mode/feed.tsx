@@ -74,7 +74,11 @@ export default function FeedScreen() {
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>
               <Text className="font-semibold text-white text-[13px]">Resume studying</Text>
             </Pressable>
-          ) : undefined
+          ) : (
+            <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
+              Feed · {bucketName}
+            </Text>
+          )
         }
         end={{
           render: () => (
