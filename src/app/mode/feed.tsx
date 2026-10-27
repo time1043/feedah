@@ -1,51 +1,58 @@
-import { router } from 'expo-router'
-import { useAtomValue, useSetAtom } from 'jotai'
-import { useMemo, useRef, useState } from 'react'
+import { router, useFocusEffect } from 'expo-router'
+import { useAtomValue } from 'jotai'
+import { useCallback, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { DeckWord } from '@/types/word'
-
-import {
-  DEFAULT_PROGRESS,
-  activeBucketAtom,
-  flagKey,
-  flagsAtom,
-  nextRoundAtom,
-  progressAtom,
-  settlePointerAtom,
-  toggleFlagAtom,
-} from '@/atoms/study'
+import { activeBucketAtom } from '@/atoms/settings'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
+import {
+  completeRound,
+  getProgress,
+  getWordsWithRoundFlag,
+  settleCard,
+  setRoundFlag,
+  type Progress,
+  type WordWithFlag,
+} from '@/db/repo'
 import { speakWord } from '@/lib/speech'
-import { findBucketByName } from '@/mock/data'
+
+type FeedState = { words: WordWithFlag[]; progress: Progress }
 
 /**
- * The study feed: swiping through the active bucket records progress. The
+ * The study feed: swiping through the active bucket records the probe. The
  * header pill appears once the user scrubs away from the frontier — browsing
  * records nothing — and returns to the first unlearned card on tap. Reaching
- * the end page starts the next round, back at the first card.
+ * the end page completes the round and starts the next one.
  */
 export default function FeedScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
-  const progress = useAtomValue(progressAtom)[bucketName] ?? DEFAULT_PROGRESS
-  const flags = useAtomValue(flagsAtom)
-  const settlePointer = useSetAtom(settlePointerAtom)
-  const startNextRound = useSetAtom(nextRoundAtom)
-  const toggleFlag = useSetAtom(toggleFlagAtom)
-
-  const bucket = findBucketByName(bucketName)
-  // Flag state rides on the word list so cards re-render when it flips; the
-  // list identity is stable otherwise.
-  const words: DeckWord[] = useMemo(
-    () => bucket.words.map((word) => ({ ...word, flagged: !!flags[flagKey(bucketName, word)] })),
-    [bucket, bucketName, flags],
-  )
-
+  const [loaded, setLoaded] = useState<FeedState | null>(null)
   const [browsing, setBrowsing] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
 
+  // Reloads on every focus: a review pushed on top may have re-flagged words.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+      void (async () => {
+        const progress = await getProgress(bucketName)
+        const words = await getWordsWithRoundFlag(bucketName, progress.round)
+        if (!cancelled) setLoaded({ words, progress })
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [bucketName]),
+  )
+
+  if (!loaded) {
+    return <View className="bg-white dark:bg-black flex-1" />
+  }
+  const { words, progress } = loaded
   const frontier = Math.min(progress.pointer, words.length)
+
+  const patch = (changes: Partial<FeedState>) => setLoaded({ words, progress, ...changes })
 
   const resumeStudying = () => {
     setBrowsing(false)
@@ -61,12 +68,16 @@ export default function FeedScreen() {
         initialIndex={frontier}
         onSpeak={(word) => speakWord(word.word)}
         onSettle={(_, index) => {
-          if (!browsing && index > progress.pointer) {
-            settlePointer({ bucket: bucketName, pointer: index })
-          }
+          if (browsing || index <= progress.pointer) return
+          patch({ progress: { ...progress, pointer: index } })
+          void settleCard(bucketName, index)
         }}
         onScrub={() => setBrowsing(true)}
-        onToggleFlag={(word) => toggleFlag({ bucket: bucketName, word })}
+        onToggleFlag={(word) => {
+          const flagged = !word.flagged
+          patch({ words: words.map((w) => (w.position === word.position ? { ...w, flagged } : w)) })
+          void setRoundFlag(bucketName, progress.round, word.position, flagged)
+        }}
         onClose={() => router.back()}
         scrubbable={progress.pointer > 0}
         headerCenter={
@@ -95,8 +106,15 @@ export default function FeedScreen() {
             // Completing a round requires having walked the whole bucket in
             // study mode; scrubbing to the end records nothing.
             if (browsing || progress.pointer < words.length - 1) return false
-            startNextRound(bucketName)
+            const round = progress.round + 1
+            patch({ progress: { ...progress, round, pointer: 0, roundStartedAt: Date.now() } })
             setBrowsing(false)
+            void completeRound(bucketName)
+            // The new round starts with an empty flag list: reload the cards
+            // so the bookmarks reflect it.
+            void getWordsWithRoundFlag(bucketName, round).then((fresh) => {
+              setLoaded((prev) => (prev ? { ...prev, words: fresh } : prev))
+            })
           },
           action: 'reset',
         }}

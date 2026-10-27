@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, isNotNull, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull, isNotNull, sql } from 'drizzle-orm'
 import * as Crypto from 'expo-crypto'
 
 import type { Word } from '@/types/word'
@@ -20,6 +20,8 @@ import {
 export type Progress = { round: number; pointer: number; roundStartedAt: number }
 
 export type WordWithFlag = Word & { flagged: boolean }
+
+export type { ReviewSessionRow } from './schema'
 
 export type RoundSummary = {
   round: number
@@ -71,6 +73,52 @@ async function readWordCount(db: Db, bucketId: string): Promise<number> {
 }
 
 // --- reads ---------------------------------------------------------------
+
+export async function listBuckets() {
+  const db = await getDb()
+  return db.select().from(bucket).orderBy(bucket.id)
+}
+
+export type BucketCard = {
+  id: string
+  wordCount: number
+  round: number
+  pointer: number
+  flagCount: number
+}
+
+/** One row per bucket for list screens: the probe plus the current round's flags. */
+export async function getBucketCards(): Promise<BucketCard[]> {
+  const db = await getDb()
+  const rows = await db.select().from(bucket).orderBy(bucket.id)
+  return Promise.all(
+    rows.map(async (row) => {
+      const probe = await readProbe(db, row.id)
+      const flagCount = await countRoundFlags(row.id, probe.round)
+      return {
+        id: row.id,
+        wordCount: row.wordCount,
+        round: probe.round,
+        pointer: probe.pointer,
+        flagCount,
+      }
+    }),
+  )
+}
+
+/** The given words, in the order the positions were passed in. */
+export async function getWordsByPositions(bucketId: string, positions: number[]): Promise<Word[]> {
+  const db = await getDb()
+  const rows = await db
+    .select()
+    .from(word)
+    .where(and(eq(word.bucketId, bucketId), inArray(word.position, positions)))
+  const byPosition = new Map(rows.map((row) => [row.position, row]))
+  return positions.flatMap((position) => {
+    const row = byPosition.get(position)
+    return row ? [mapWord(row)] : []
+  })
+}
 
 export async function getProgress(bucketId: string): Promise<Progress> {
   const db = await getDb()

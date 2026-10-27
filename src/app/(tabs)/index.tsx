@@ -1,21 +1,26 @@
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
+import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
-import { DEFAULT_PROGRESS, activeBucketAtom, flagKey, flagsAtom, progressAtom } from '@/atoms/study'
+import { activeBucketAtom } from '@/atoms/settings'
 import ThemeToggle from '@/components/theme-toggle'
-import { buckets, findBucketByName } from '@/mock/data'
+import { getBucketCards, type BucketCard } from '@/db/repo'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
   const setActiveName = useSetAtom(activeBucketAtom)
-  const progress = useAtomValue(progressAtom)
-  const flags = useAtomValue(flagsAtom)
+  const [cards, setCards] = useState<BucketCard[]>([])
 
-  const bucket = findBucketByName(activeName)
-  const { round, pointer } = progress[activeName] ?? DEFAULT_PROGRESS
-  const flaggedCount = bucket.words.filter((word) => flags[flagKey(activeName, word)]).length
-  const started = pointer > 0 || round > 1
+  useFocusEffect(
+    useCallback(() => {
+      void getBucketCards().then(setCards)
+    }, []),
+  )
+
+  // The active card drives the readout; it may not be loaded yet on first frame.
+  const active = cards.find((card) => card.id === activeName)
+  const started = active ? active.pointer > 0 || active.round > 1 : false
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
@@ -23,29 +28,29 @@ export default function Index() {
 
       <View className="max-w-sm gap-3 w-full">
         <View className="gap-2 flex-row">
-          {buckets.map((entry) => (
+          {cards.map((card) => (
             <Pressable
-              key={entry.name}
-              onPress={() => setActiveName(entry.name)}
+              key={card.id}
+              onPress={() => setActiveName(card.id)}
               className={`rounded-lg p-3 flex-1 items-center border ${
-                entry.name === activeName
+                card.id === activeName
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                   : 'border-gray-300 dark:border-gray-700'
               }`}
             >
-              <Text className="text-black dark:text-white">{entry.name}</Text>
+              <Text className="text-black dark:text-white">{card.id}</Text>
             </Pressable>
           ))}
         </View>
 
         <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
-          Round {round}
+          Round {active?.round ?? 1}
         </Text>
         <Text
           className="font-extrabold text-black dark:text-white text-center text-[40px]"
           style={{ fontVariant: ['tabular-nums'] }}
         >
-          {pointer} / {bucket.words.length}
+          {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
         </Text>
 
         <Pressable
@@ -56,11 +61,11 @@ export default function Index() {
         </Pressable>
 
         <Pressable
-          disabled={flaggedCount === 0}
+          disabled={!active || active.flagCount === 0}
           className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
           onPress={() => router.push('/mode/review')}
         >
-          <Text className="font-semibold text-blue-500">Review · {flaggedCount}</Text>
+          <Text className="font-semibold text-blue-500">Review · {active?.flagCount ?? 0}</Text>
         </Pressable>
 
         <Pressable

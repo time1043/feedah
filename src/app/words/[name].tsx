@@ -1,49 +1,61 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router, useLocalSearchParams } from 'expo-router'
-import { useAtom, useAtomValue } from 'jotai'
-import { useRef, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useAtom } from 'jotai'
+import { useCallback, useRef, useState } from 'react'
 import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { Word } from '@/types/word'
-
-import { flagsAtom, flagKey, wordsMeaningAtom } from '@/atoms/study'
+import { wordsMeaningAtom } from '@/atoms/settings'
 import { ProgressBar } from '@/components/progress-bar'
-import { findBucketByName } from '@/mock/data'
+import { getProgress, getWordsWithRoundFlag, type WordWithFlag } from '@/db/repo'
 
 const ROW_HEIGHT = 52
 
 /**
- * The word list of one bucket: every word in order, flagged words marked
- * with a red dot, the meaning column behind the eye toggle. Scrub the
- * progress bar or scroll freely; tapping a row opens the word in the browse
- * deck. Pure lookup — nothing here is recorded.
+ * The word list of one bucket: every word in order, flagged words (in the
+ * bucket's current round) marked with a red dot, the meaning column behind
+ * the eye toggle. Scrub the progress bar or scroll freely; tapping a row
+ * opens the word in the browse deck. Pure lookup — nothing is recorded.
  */
 export default function WordsScreen() {
   const scheme = useColorScheme() ?? 'light'
   const { name } = useLocalSearchParams<{ name: string }>()
   const bucketName = Array.isArray(name) ? name[0] : name
-  const bucket = findBucketByName(bucketName)
-  const flags = useAtomValue(flagsAtom)
   const [showMeaning, setShowMeaning] = useAtom(wordsMeaningAtom)
 
   // The top visible row, mirrored by the progress bar.
   const [index, setIndex] = useState(0)
-  const listRef = useRef<FlatList<Word> | null>(null)
+  const [words, setWords] = useState<WordWithFlag[] | null>(null)
+  const listRef = useRef<FlatList<WordWithFlag> | null>(null)
   // Row taps can double-fire while the next screen is pushing.
   const navigating = useRef(false)
 
+  // Reloads on every focus: the flag dots follow the bucket's current round.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+      void (async () => {
+        const progress = await getProgress(bucketName)
+        const loaded = await getWordsWithRoundFlag(bucketName, progress.round)
+        if (!cancelled) setWords(loaded)
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [bucketName]),
+  )
+
   const jumpTo = (target: number) => {
-    const clamped = Math.max(0, Math.min(target, bucket.words.length - 1))
+    const clamped = Math.max(0, Math.min(target, (words?.length ?? 1) - 1))
     setIndex(clamped)
     listRef.current?.scrollToIndex({ index: clamped, animated: false })
   }
 
   const trackScroll = (offsetY: number) => {
-    setIndex(Math.max(0, Math.min(bucket.words.length - 1, Math.round(offsetY / ROW_HEIGHT))))
+    setIndex(Math.max(0, Math.min((words?.length ?? 1) - 1, Math.round(offsetY / ROW_HEIGHT))))
   }
 
-  const openWord = (word: Word) => {
+  const openWord = (word: WordWithFlag) => {
     if (navigating.current) return
     navigating.current = true
     router.push({
@@ -96,45 +108,40 @@ export default function WordsScreen() {
       </View>
 
       <View className="px-4">
-        <ProgressBar value={index} max={bucket.words.length} scrubbable onScrub={jumpTo} />
+        <ProgressBar
+          value={index}
+          max={Math.max(words?.length ?? 0, 1)}
+          scrubbable
+          onScrub={jumpTo}
+        />
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={bucket.words}
-        keyExtractor={(word) => String(word.position)}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => openWord(item)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Row
-              word={item}
-              flagged={!!flags[flagKey(bucketName, item)]}
-              showMeaning={showMeaning}
-            />
-          </Pressable>
-        )}
-        getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
-        initialNumToRender={20}
-        windowSize={7}
-        showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
-        onScrollEndDrag={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
-      />
+      {words && (
+        <FlatList
+          ref={listRef}
+          data={words}
+          keyExtractor={(word) => String(word.position)}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => openWord(item)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <Row word={item} showMeaning={showMeaning} />
+            </Pressable>
+          )}
+          getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
+          initialNumToRender={20}
+          windowSize={7}
+          showsVerticalScrollIndicator={false}
+          onMomentumScrollEnd={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+          onScrollEndDrag={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+        />
+      )}
     </SafeAreaView>
   )
 }
 
-function Row({
-  word,
-  flagged,
-  showMeaning,
-}: {
-  word: Word
-  flagged: boolean
-  showMeaning: boolean
-}) {
+function Row({ word, showMeaning }: { word: WordWithFlag; showMeaning: boolean }) {
   return (
     <View
       className="border-gray-200 px-4 dark:border-gray-800 flex-row items-center border-b"
@@ -146,7 +153,7 @@ function Row({
       >
         {word.position}
       </Text>
-      {flagged && <View className="mr-1.5 h-1.5 w-1.5 rounded-sm bg-red-500" />}
+      {word.flagged && <View className="mr-1.5 h-1.5 w-1.5 rounded-sm bg-red-500" />}
       <Text
         numberOfLines={1}
         className={`mr-2 font-semibold text-black dark:text-white text-[15px] ${
