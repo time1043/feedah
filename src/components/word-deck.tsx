@@ -56,6 +56,9 @@ type WordDeckProps = {
   onToggleFlag?: (word: DeckWord) => void
   /** Center of the header row (mode pill, title, …). */
   headerCenter?: ReactNode
+  /** Quiet footer slots on the bookmark line (page number, round/time). */
+  hudLeft?: ReactNode
+  hudRight?: ReactNode
   onClose: () => void
   /** Whether the progress bar can be grabbed and scrubbed. */
   scrubbable?: boolean
@@ -91,6 +94,8 @@ export function WordDeck({
   onScrub,
   onToggleFlag,
   headerCenter,
+  hudLeft,
+  hudRight,
   onClose,
   scrubbable = false,
   end,
@@ -287,6 +292,8 @@ export function WordDeck({
           />
         )}
       </View>
+      {hudLeft && <View className="bottom-8 left-6 absolute">{hudLeft}</View>}
+      {hudRight && <View className="bottom-8 right-6 absolute">{hudRight}</View>}
     </View>
   )
 }

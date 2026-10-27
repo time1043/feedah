@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { activeBucketAtom } from '@/atoms/settings'
+import { activeBucketAtom, hudPageAtom } from '@/atoms/settings'
 import { WordDeck } from '@/components/word-deck'
 import { getProgress, getWordsWithRoundFlag, setRoundFlag, type WordWithFlag } from '@/db/repo'
 import { speakWord } from '@/lib/speech'
@@ -29,37 +29,41 @@ export default function BrowseScreen() {
   // The opener can pin a bucket (the word list); otherwise the active one.
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = bucketParam ?? activeName
+  const showPage = useAtomValue(hudPageAtom)
 
-  const [words, setWords] = useState<WordWithFlag[] | null>(null)
-  const [round, setRound] = useState(0)
+  const [loaded, setLoaded] = useState<{
+    words: WordWithFlag[]
+    round: number
+    seen: number
+  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    setWords(null)
+    setLoaded(null)
     void (async () => {
       const requested = Number(roundParam)
       const target =
         Number.isInteger(requested) && requested > 0
           ? requested
           : (await getProgress(bucketName)).round
-      const loaded = await getWordsWithRoundFlag(bucketName, target)
+      const words = await getWordsWithRoundFlag(bucketName, target)
       if (cancelled) return
-      setRound(target)
-      setWords(loaded)
+      setLoaded({ words, round: target, seen: 1 })
     })()
     return () => {
       cancelled = true
     }
   }, [bucketName, roundParam])
 
+  if (!loaded) {
+    return <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']} />
+  }
+
+  const { words, round, seen } = loaded
   // Route param is a 1-based word position.
   const requested = Number(position)
   const initial =
-    Number.isInteger(requested) && requested > 0 ? Math.min(requested, words?.length ?? 1) - 1 : 0
-
-  if (!words) {
-    return <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']} />
-  }
+    Number.isInteger(requested) && requested > 0 ? Math.min(requested, words.length) - 1 : 0
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -68,9 +72,18 @@ export default function BrowseScreen() {
         resetKey={`${bucketName}:${round}:${initial}`}
         initialIndex={initial}
         onSpeak={(word) => speakWord(word.word)}
+        onSettle={(_, index) => {
+          setLoaded({ ...loaded, seen: index + 1 })
+        }}
+        onScrub={(index) => {
+          setLoaded({ ...loaded, seen: index + 1 })
+        }}
         onToggleFlag={(word) => {
           const flagged = !word.flagged
-          setWords(words.map((w) => (w.position === word.position ? { ...w, flagged } : w)))
+          setLoaded({
+            ...loaded,
+            words: words.map((w) => (w.position === word.position ? { ...w, flagged } : w)),
+          })
           void setRoundFlag(bucketName, round, word.position, flagged)
         }}
         scrubbable
@@ -78,6 +91,16 @@ export default function BrowseScreen() {
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
             Browse · {bucketName}
           </Text>
+        }
+        hudRight={
+          showPage ? (
+            <Text
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {Math.min(seen, words.length)}/{words.length}
+            </Text>
+          ) : undefined
         }
         onClose={() => router.back()}
       />

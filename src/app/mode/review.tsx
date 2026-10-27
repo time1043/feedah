@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom } from '@/atoms/settings'
+import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
 import { WordDeck } from '@/components/word-deck'
 import {
   countedReviewCount,
@@ -27,6 +27,10 @@ type ReviewState = {
   queue: DeckWord[]
   /** Real walk-throughs before this one; drafts display countedCount + 1. */
   countedCount: number
+  /** Card to resume from: the first queue word at or after the watermark. */
+  startIndex: number
+  /** Cards seen, for the footer page number. */
+  seen: number
 }
 
 /**
@@ -40,10 +44,11 @@ export default function ReviewScreen() {
   const params = useLocalSearchParams<{ bucket?: string; round?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
+  const showPage = useAtomValue(hudPageAtom)
+  const showRound = useAtomValue(hudRoundAtom)
 
   const [loaded, setLoaded] = useState<ReviewState | null>(null)
   const [empty, setEmpty] = useState(false)
-  useStudyUsage()
 
   useEffect(() => {
     let cancelled = false
@@ -71,7 +76,9 @@ export default function ReviewScreen() {
       const countedCount = session.counted
         ? (session.number ?? 1) - 1
         : await countedReviewCount(bucketName, round)
-      if (!cancelled) setLoaded({ session, queue, countedCount })
+      const rawStart = queue.findIndex((word) => word.position >= session.lastPosition)
+      const startIndex = rawStart < 0 ? 0 : rawStart
+      if (!cancelled) setLoaded({ session, queue, countedCount, startIndex, seen: startIndex + 1 })
     })()
     return () => {
       cancelled = true
@@ -100,19 +107,25 @@ export default function ReviewScreen() {
     return <View className="bg-white dark:bg-black flex-1" />
   }
 
-  const { session, queue, countedCount } = loaded
+  const { session, queue, countedCount, startIndex, seen } = loaded
   const timeLabel = session.counted
     ? `time ${session.number}`
     : `time ${countedCount + 1} · uncounted`
+  const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <WordDeck
         words={queue}
         resetKey={`${bucketName}:${session.round}:${session.id}`}
+        initialIndex={startIndex}
         onSpeak={(word) => speakWord(word.word)}
-        onSettle={(word) => {
+        onSettle={(word, index) => {
           void settleReview(session.id, word.position)
+          setLoaded({ ...loaded, seen: index + 1 })
+        }}
+        onScrub={(index) => {
+          setLoaded({ ...loaded, seen: index + 1 })
         }}
         onToggleFlag={(word) => {
           const flagged = !word.flagged
@@ -128,6 +141,14 @@ export default function ReviewScreen() {
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
             Review {bucketName} {session.round}
           </Text>
+        }
+        hudLeft={showRound ? <Text className={hudTextClass}>{timeLabel}</Text> : undefined}
+        hudRight={
+          showPage ? (
+            <Text className={hudTextClass} style={{ fontVariant: ['tabular-nums'] }}>
+              {Math.min(seen, queue.length)}/{queue.length}
+            </Text>
+          ) : undefined
         }
         end={{
           render: () => (

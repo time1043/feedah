@@ -24,3 +24,7 @@ export const activeBucketAtom = storedAtom<string>('feedah.active-bucket', '2050
 
 /** Whether the word list shows the meaning column (default hidden). */
 export const wordsMeaningAtom = storedAtom<boolean>('feedah.words-meaning', false)
+
+/** The deck footers: current page number (bottom right) and round/time (bottom left). */
+export const hudPageAtom = storedAtom<boolean>('feedah.hud-page', true)
+export const hudRoundAtom = storedAtom<boolean>('feedah.hud-round', true)

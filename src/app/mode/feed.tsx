@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { activeBucketAtom } from '@/atoms/settings'
+import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import {
   completeRound,
@@ -28,6 +28,8 @@ type FeedState = { words: WordWithFlag[]; progress: Progress }
  */
 export default function FeedScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
+  const showPage = useAtomValue(hudPageAtom)
+  const showRound = useAtomValue(hudRoundAtom)
   const [loaded, setLoaded] = useState<FeedState | null>(null)
   const [browsing, setBrowsing] = useState(false)
   useStudyUsage()
@@ -80,6 +82,23 @@ export default function FeedScreen() {
           patch({ words: words.map((w) => (w.position === word.position ? { ...w, flagged } : w)) })
           void setRoundFlag(bucketName, progress.round, word.position, flagged)
         }}
+        hudLeft={
+          showRound ? (
+            <Text className="text-gray-400 dark:text-gray-500 text-[13px]">
+              round {progress.round}
+            </Text>
+          ) : undefined
+        }
+        hudRight={
+          showPage ? (
+            <Text
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {progress.pointer}/{words.length}
+            </Text>
+          ) : undefined
+        }
         onClose={() => router.back()}
         scrubbable={progress.pointer > 0}
         headerCenter={
