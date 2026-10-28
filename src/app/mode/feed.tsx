@@ -131,12 +131,13 @@ export default function FeedScreen() {
             const round = progress.round + 1
             patch({ progress: { ...progress, round, pointer: 0, roundStartedAt: Date.now() } })
             setBrowsing(false)
-            void completeRound(bucketName)
-            // The new round starts with an empty flag list: reload the cards
-            // so the bookmarks reflect it.
-            void getWordsWithRoundFlag(bucketName, round).then((fresh) => {
+            void (async () => {
+              // The reload must wait for the advance transaction: it carries
+              // the finished round's flags into the new one (回显).
+              await completeRound(bucketName)
+              const fresh = await getWordsWithRoundFlag(bucketName, round)
               setLoaded((prev) => (prev ? { ...prev, words: fresh } : prev))
-            })
+            })()
           },
           action: 'reset',
         }}

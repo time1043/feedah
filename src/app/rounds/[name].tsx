@@ -4,10 +4,11 @@ import { useCallback, useState } from 'react'
 import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { RoundBar, type RoundWordStatus } from '@/components/round-bar'
+import { RoundBar } from '@/components/round-bar'
 import { getRoundSummaries, getWordCount, type RoundSummary } from '@/db/repo'
 import { calendarDaysBetween } from '@/lib/date'
 import { formatYearMonthDay } from '@/lib/format'
+import { roundStatuses } from '@/lib/round-status'
 
 /**
  * The round list of one bucket: every feed round with its start time,
@@ -88,16 +89,9 @@ function RoundRow({
   bucketName: string
 }) {
   const scheme = useColorScheme() ?? 'light'
-  // Red wins over green (flagged beats reached); everything else is gray
-  // until the pointer sweeps over it.
-  const flagSet = new Set(round.flags)
-  const frontier = round.done ? wordCount : round.pointer
-  const statuses: RoundWordStatus[] = Array.from({ length: wordCount }, (_, i) => {
-    const position = i + 1
-    if (flagSet.has(position)) return 'red'
-    return position <= frontier ? 'green' : 'gray'
-  })
+  const statuses = roundStatuses(wordCount, round)
   const days = calendarDaysBetween(round.startedAt, round.finishedAt || Date.now())
+  const started = round.startedAt > 0
 
   return (
     <Pressable
@@ -109,7 +103,8 @@ function RoundRow({
       }
     >
       <Text className="font-semibold text-black dark:text-white text-[15px]">
-        Round {round.round} · {formatYearMonthDay(round.startedAt || round.finishedAt)} · {days}d
+        Round {round.round}
+        {started ? ` · ${formatYearMonthDay(round.startedAt)} · ${days}d` : ' · not started yet'}
       </Text>
       <View className="mt-2">
         <RoundBar statuses={statuses} />

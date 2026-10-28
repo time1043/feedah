@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { View, useColorScheme } from 'react-native'
 
-export type RoundWordStatus = 'green' | 'red' | 'gray'
+import type { RoundWordStatus } from '@/lib/round-status'
+
+export type { RoundWordStatus }
 
 type RoundBarProps = {
   /** One entry per word in bucket order. */

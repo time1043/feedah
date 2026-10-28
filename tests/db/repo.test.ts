@@ -19,6 +19,7 @@ import {
   settleReview,
   setRoundFlag,
 } from '@/db/repo'
+import { roundStatuses } from '@/lib/round-status'
 
 const BUCKET = '2050'
 
@@ -63,6 +64,49 @@ describe('probe', () => {
     // The new round starts pre-flagged (回显), the finished one stays frozen.
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
     expect(await countRoundFlags(BUCKET, 1)).toBe(2)
+  })
+})
+
+describe('the round-advance chain (user scenario)', () => {
+  it('round 1 flags 2,4 → round 2 carries them; sweeping 1..4 turns 1,3 green', async () => {
+    await setRoundFlag(BUCKET, 1, 2, true)
+    await setRoundFlag(BUCKET, 1, 4, true)
+    await finishFeedRound()
+
+    // The carried round: flags present, nothing swept yet — flags red,
+    // everything else still gray.
+    const fresh = (await getRoundSummaries(BUCKET)).find((r) => !r.done)!
+    expect(fresh.pointer).toBe(0)
+    expect(fresh.flags).toEqual([2, 4])
+    const wordCount = await getWordCount(BUCKET)
+    expect(roundStatuses(wordCount, fresh)[1]).toBe('red')
+
+    // The user walks past position 4: the sweep turns 1,3 green.
+    await settleCard(BUCKET, 1)
+    await settleCard(BUCKET, 2)
+    await settleCard(BUCKET, 3)
+    await settleCard(BUCKET, 4)
+    const current = (await getRoundSummaries(BUCKET)).find((r) => !r.done)!
+    expect(current.round).toBe(2)
+    expect(current.pointer).toBe(4)
+    expect(current.flags).toEqual([2, 4])
+    expect(current.red).toBe(2)
+    expect(current.green).toBe(2)
+    const statuses = roundStatuses(wordCount, current)
+    expect(statuses[0]).toBe('green')
+    expect(statuses[1]).toBe('red')
+    expect(statuses[2]).toBe('green')
+    expect(statuses[3]).toBe('red')
+    expect(statuses[4]).toBe('gray')
+  })
+
+  it('the feed deck sees the carried flags after the round advances', async () => {
+    await setRoundFlag(BUCKET, 1, 2, true)
+    await finishFeedRound()
+    const round = (await getProgress(BUCKET)).round
+    const words = await getWordsWithRoundFlag(BUCKET, round)
+    expect(words.find((w) => w.position === 2)?.flagged).toBe(true)
+    expect(words.find((w) => w.position === 1)?.flagged).toBe(false)
   })
 })
 
