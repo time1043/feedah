@@ -2,11 +2,11 @@ import '@/global.css'
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppState, Platform, StatusBar as RNStatusBar } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { getRawDb } from '@/db/index'
+import { getDb, getRawDb } from '@/db/index'
 import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage'
 import ThemeProvider from '@/providers/theme-provider'
 
@@ -17,7 +17,19 @@ if (Platform.OS === 'android') {
 
 /** Dev-only bridge that exposes the app's database to Drizzle Studio. */
 function DrizzleStudioBridge() {
-  useDrizzleStudio(getRawDb())
+  const [db, setDb] = useState(() => getRawDb())
+
+  useEffect(() => {
+    let mounted = true
+    void getDb().then(() => {
+      if (mounted) setDb(getRawDb())
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useDrizzleStudio(db)
   return null
 }
 

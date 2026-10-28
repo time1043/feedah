@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 
+import type { Db } from './index'
+
 import raw370 from '../../data/370.json'
 import raw700 from '../../data/700.json'
 import raw2050 from '../../data/2050.json'
-import { withTransaction, type Db } from './index'
 import { bucket, word } from './schema'
 
 export type SeedWord = {
@@ -27,8 +28,11 @@ export const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
 // parameter limit once a bucket holds thousands of words.
 const SEED_CHUNK = 500
 
+export type TxRunner = <T>(fn: (tx: Db) => Promise<T>) => Promise<T>
+
 /** Idempotent: inserts missing buckets, refreshes words when the data changed. */
-export async function seedBuckets(db: Db): Promise<void> {
+export async function seedBuckets(db: Db, txRunner?: TxRunner): Promise<void> {
+  const runTx = txRunner ?? (async (fn) => fn(db))
   for (const file of BUNDLED_BUCKETS) {
     const existing = await db
       .select({ wordCount: bucket.wordCount })
@@ -37,7 +41,7 @@ export async function seedBuckets(db: Db): Promise<void> {
       .get()
     if (existing && existing.wordCount === file.words.length) continue
 
-    await withTransaction(async (tx) => {
+    await runTx(async (tx) => {
       await tx
         .insert(bucket)
         .values({ id: file.name, wordCount: file.words.length })

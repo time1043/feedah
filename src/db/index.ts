@@ -60,20 +60,27 @@ async function prepareDb(): Promise<Db> {
   }
 
   let { raw, db } = await open()
+  let verified = false
   try {
     await migrate(db, migrations)
     const probe = (await db.get(
       sql`SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'review_session'`,
     )) as { ok: number } | undefined
-    if (probe?.ok) return db
+    if (probe?.ok) {
+      verified = true
+    }
   } catch {
     // Migration failed outright — fall through to the recreate path.
   }
-  await raw.closeAsync().catch(() => {})
-  await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
-  ;({ raw, db } = await open())
-  await migrate(db, migrations)
-  await seedBuckets(db)
+
+  if (!verified) {
+    await raw.closeAsync().catch(() => {})
+    await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
+    ;({ raw, db } = await open())
+    await migrate(db, migrations)
+  }
+
+  await seedBuckets(db, withTransaction)
   return db
 }
 
