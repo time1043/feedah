@@ -1,5 +1,3 @@
-import { calendarDaysBetween, todayLocalDate } from '@/lib/date'
-
 import type {
   BucketProgress,
   DailyFeedRange,
@@ -11,6 +9,8 @@ import type {
   StudyState,
 } from '@/study/types'
 
+import { calendarDaysBetween, todayLocalDate } from '@/lib/date'
+
 export const DEFAULT_PROGRESS: BucketProgress = { round: 1, pointer: 0, startedAt: 0 }
 
 /** Global position across rounds: round 2 of a 2050-word bucket starts at 2051. */
@@ -19,7 +19,10 @@ export function globalPosition(round: number, position: number, wordCount: numbe
 }
 
 /** Splits a global position back into its round and 1-based position. */
-export function splitGlobalPosition(gp: number, wordCount: number): {
+export function splitGlobalPosition(
+  gp: number,
+  wordCount: number,
+): {
   round: number
   position: number
 } {
@@ -312,7 +315,11 @@ export function roundRecords(
   const records: RoundRecord[] = []
   for (let round = 1; round <= progress.round; round++) {
     const history = state.roundHistory[bucketId]?.[round]
-    const startedAt = history ? history.startedAt : round === progress.round ? progress.startedAt : 0
+    const startedAt = history
+      ? history.startedAt
+      : round === progress.round
+        ? progress.startedAt
+        : 0
     const finishedAt = history ? history.finishedAt : null
     const { green, red } = roundCounts(state, bucketId, round, wordCount)
     records.push({

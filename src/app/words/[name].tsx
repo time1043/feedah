@@ -113,11 +113,7 @@ export default function WordsScreen() {
             onPress={() => openWord(item)}
             style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
           >
-            <Row
-              word={item}
-              flagged={flagSet.has(item.position)}
-              showMeaning={showMeaning}
-            />
+            <Row word={item} flagged={flagSet.has(item.position)} showMeaning={showMeaning} />
           </Pressable>
         )}
         getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}

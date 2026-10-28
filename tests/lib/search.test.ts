@@ -1,5 +1,6 @@
-import { searchWords, toLikePattern } from '@/lib/search'
 import type { Word } from '@/types/word'
+
+import { searchWords, toLikePattern } from '@/lib/search'
 
 const words: Word[] = [
   {

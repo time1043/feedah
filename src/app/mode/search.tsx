@@ -5,14 +5,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable, Text, TextInput, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { onSearchReset } from '@/lib/search-reset'
-import { searchWords } from '@/lib/search'
-import { buckets, findBucketByName } from '@/mock/data'
-import { activeBucketAtom } from '@/atoms/study'
-import { currentRound } from '@/study/logic'
-import { bucketLocalSearchAtom, globalSearchBucketsAtom } from '@/study/settings'
-import { useStudyState } from '@/study/store'
 import type { Word } from '@/types/word'
+
+import { searchWords } from '@/lib/search'
+import { onSearchReset } from '@/lib/search-reset'
+import { buckets, findBucketByName } from '@/mock/data'
+import { currentRound } from '@/study/logic'
+import { activeBucketAtom, bucketLocalSearchAtom, globalSearchBucketsAtom } from '@/study/settings'
+import { useStudyState } from '@/study/store'
 
 interface SearchHit extends Word {
   bucketId: string
@@ -56,9 +56,12 @@ export default function SearchScreen() {
 
   // A pinned bucket searches locally when the setting allows; everything
   // else falls back to the configured global scope.
-  const pinned = bucketParam ?? activeName
   const local = bucketParam != null && localSearch
-  const scopes = local ? [pinned] : (globalScope ?? buckets.map((bucket) => bucket.name))
+  const scopes = useMemo(
+    () =>
+      local ? [bucketParam ?? activeName] : (globalScope ?? buckets.map((bucket) => bucket.name)),
+    [local, bucketParam, activeName, globalScope],
+  )
   const flagRound = flagRoundParam ? Number(flagRoundParam) : null
 
   const hits: SearchHit[] = useMemo(() => {
@@ -96,7 +99,7 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <View className="min-h-11 px-4 py-2 flex-row items-center gap-2">
+      <View className="min-h-11 px-4 py-2 gap-2 flex-row items-center">
         <Pressable className="w-8 items-start" onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={iconColor} />
         </Pressable>
@@ -149,7 +152,10 @@ export default function SearchScreen() {
               >
                 {item.word}
               </Text>
-              <Text numberOfLines={1} className="text-gray-400 dark:text-gray-500 flex-1 text-[13px]">
+              <Text
+                numberOfLines={1}
+                className="text-gray-400 dark:text-gray-500 flex-1 text-[13px]"
+              >
                 {item.meaning}
               </Text>
               {!local && (

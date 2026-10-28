@@ -25,7 +25,9 @@ export default function BucketScreen() {
           <Pressable
             key={bucket.name}
             className="rounded-2xl border-gray-300 p-4 dark:border-gray-700 flex-row items-center border"
-            onPress={() => router.push({ pathname: '/bucket/[name]', params: { name: bucket.name } })}
+            onPress={() =>
+              router.push({ pathname: '/bucket/[name]', params: { name: bucket.name } })
+            }
           >
             <View className="flex-1">
               <Text className="font-semibold text-black dark:text-white text-[17px]">
@@ -46,11 +48,7 @@ export default function BucketScreen() {
                 router.push({ pathname: '/words/[name]', params: { name: bucket.name } })
               }
             >
-              <Ionicons
-                name="list"
-                size={22}
-                color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-              />
+              <Ionicons name="list" size={22} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
             </Pressable>
           </Pressable>
         )

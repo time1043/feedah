@@ -8,11 +8,13 @@ import {
   isRoundComplete,
   nextReviewTime,
   progressOf,
+  reviewCursorOf,
   reviewTimesOf,
   roundCounts,
   roundFlagPositions,
   roundRecords,
   roundStatuses,
+  saveReviewCursor,
   setRoundFlag,
   settleCard,
   splitGlobalPosition,
@@ -132,7 +134,7 @@ describe('settleCard', () => {
     let state = settleCard(EMPTY_STUDY_STATE, {
       bucketId: BUCKET,
       wordCount: WORDS,
-      position: 4,
+      position: 5,
       at: OCT_27_0831,
     })
 
@@ -222,7 +224,6 @@ describe('review sessions and the time counter', () => {
       round: 1,
       wordCount: WORDS,
       listSize: 2,
-      position: 2,
       startedAt: OCT_27_0831,
       finishedAt: OCT_27_1034,
     })
@@ -244,7 +245,6 @@ describe('review sessions and the time counter', () => {
       round: 1,
       wordCount: WORDS,
       listSize: 1,
-      position: 1,
       startedAt: OCT_27_0831,
       finishedAt: OCT_27_1034,
     })
@@ -264,7 +264,6 @@ describe('review sessions and the time counter', () => {
       round: 1,
       wordCount: WORDS,
       listSize: 3,
-      position: 3,
       startedAt: OCT_27_1034,
       finishedAt: OCT_28_0900,
     })
@@ -286,7 +285,6 @@ describe('review sessions and the time counter', () => {
       round: 1,
       wordCount: WORDS,
       listSize: 1,
-      position: 1,
       startedAt: OCT_27_0831,
       finishedAt: OCT_27_1034,
     })
@@ -297,7 +295,6 @@ describe('review sessions and the time counter', () => {
       round: 1,
       wordCount: WORDS,
       listSize: 1,
-      position: 1,
       startedAt: OCT_28_0900,
       finishedAt: NOV_02_1200,
     })
@@ -336,7 +333,12 @@ describe('round records', () => {
     expect(records[0].statuses[2]).toBe('green')
     expect(records[0].statuses[5]).toBe('gray')
 
-    state = settleCard(state, { bucketId: BUCKET, wordCount: WORDS, position: WORDS, at: OCT_28_0900 })
+    state = settleCard(state, {
+      bucketId: BUCKET,
+      wordCount: WORDS,
+      position: WORDS,
+      at: OCT_28_0900,
+    })
     state = settleCard(state, { bucketId: BUCKET, wordCount: WORDS, position: 1, at: OCT_28_0900 })
 
     records = roundRecords(state, { bucketId: BUCKET, wordCount: WORDS, now: NOV_02_1200 })
@@ -415,7 +417,12 @@ describe('dailyFeedRanges', () => {
       position: 9,
       at: OCT_27_0831,
     })
-    state = settleCard(state, { bucketId: BUCKET, wordCount: WORDS, position: WORDS, at: OCT_28_0900 })
+    state = settleCard(state, {
+      bucketId: BUCKET,
+      wordCount: WORDS,
+      position: WORDS,
+      at: OCT_28_0900,
+    })
     state = settleCard(state, { bucketId: BUCKET, wordCount: WORDS, position: 2, at: OCT_28_0900 })
 
     expect(dailyFeedRanges(state, { bucketId: BUCKET, wordCount: WORDS })).toEqual([
@@ -453,5 +460,41 @@ describe('roundStatuses', () => {
     expect(statuses[0]).toBe('gray')
     expect(statuses[9]).toBe('gray')
     expect(roundCounts(state, BUCKET, 1, WORDS)).toEqual({ green: 1, red: 1 })
+  })
+})
+
+describe('review cursors', () => {
+  it('only moves forward and clears on a completed pass', () => {
+    let state = saveReviewCursor(EMPTY_STUDY_STATE, { bucketId: BUCKET, round: 1, index: 2 })
+    expect(reviewCursorOf(state, BUCKET, 1)).toBe(2)
+
+    state = saveReviewCursor(state, { bucketId: BUCKET, round: 1, index: 1 })
+    expect(reviewCursorOf(state, BUCKET, 1)).toBe(2)
+
+    state = settleCard(state, {
+      bucketId: BUCKET,
+      wordCount: WORDS,
+      position: WORDS,
+      at: OCT_27_0831,
+    })
+    state = completeReviewSession(state, {
+      bucketId: BUCKET,
+      round: 1,
+      wordCount: WORDS,
+      listSize: 1,
+      startedAt: OCT_27_0831,
+      finishedAt: OCT_27_1034,
+    })
+    expect(reviewCursorOf(state, BUCKET, 1)).toBe(0)
+  })
+
+  it('keeps cursors per bucket and round', () => {
+    let state = saveReviewCursor(EMPTY_STUDY_STATE, { bucketId: BUCKET, round: 1, index: 3 })
+    state = saveReviewCursor(state, { bucketId: BUCKET, round: 2, index: 5 })
+    state = saveReviewCursor(state, { bucketId: '700', round: 1, index: 1 })
+
+    expect(reviewCursorOf(state, BUCKET, 1)).toBe(3)
+    expect(reviewCursorOf(state, BUCKET, 2)).toBe(5)
+    expect(reviewCursorOf(state, '700', 1)).toBe(1)
   })
 })

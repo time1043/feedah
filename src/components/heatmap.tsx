@@ -105,7 +105,10 @@ export function Heatmap({
                 key={index}
                 style={[
                   styles.monthLabel,
-                  { color: TRACK[scheme] === TRACK.light ? '#9A9EA6' : '#7A7E86', left: GUTTER + index * (cellSize + gap) },
+                  {
+                    color: TRACK[scheme] === TRACK.light ? '#9A9EA6' : '#7A7E86',
+                    left: GUTTER + index * (cellSize + gap),
+                  },
                 ]}
               >
                 {label}
@@ -140,7 +143,12 @@ export function Heatmap({
               <View key={weekIndex} style={{ gap }}>
                 {days.map((day, dayIndex) => {
                   if (day === null) {
-                    return <View key={`empty-${dayIndex}`} style={{ height: cellSize, width: cellSize }} />
+                    return (
+                      <View
+                        key={`empty-${dayIndex}`}
+                        style={{ height: cellSize, width: cellSize }}
+                      />
+                    )
                   }
                   const selected = day === selectedDay
                   return (

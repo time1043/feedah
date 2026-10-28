@@ -2,20 +2,19 @@ import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useMemo, useState } from 'react'
-import { Pressable, Text, View, useColorScheme } from 'react-native'
+import { Pressable, Text, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import type { StudyState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom } from '@/atoms/study'
 import { DeckReadout, WordDeck } from '@/components/word-deck'
 import { requestSearchReset } from '@/lib/search-reset'
 import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/data'
 import { currentRound, roundFlagPositions } from '@/study/logic'
-import { studyReadoutsAtom } from '@/study/settings'
+import { activeBucketAtom, studyReadoutsAtom } from '@/study/settings'
 import { setRoundFlagAtom, useStudyState } from '@/study/store'
-import type { StudyState } from '@/study/types'
 
 /**
  * Word browser: swipe up/down through the whole bucket, scrub with the
@@ -28,13 +27,17 @@ import type { StudyState } from '@/study/types'
  * header search icon hands control back to the search instead.
  */
 export default function BrowseScreen() {
-  const { position, bucket: bucketParam, flagRound: flagRoundParam, from } =
-    useLocalSearchParams<{
-      position: string
-      bucket?: string
-      flagRound?: string
-      from?: string
-    }>()
+  const {
+    position,
+    bucket: bucketParam,
+    flagRound: flagRoundParam,
+    from,
+  } = useLocalSearchParams<{
+    position: string
+    bucket?: string
+    flagRound?: string
+    from?: string
+  }>()
   // The opener can pin a bucket (the word list); otherwise the active one.
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = bucketParam ?? activeName

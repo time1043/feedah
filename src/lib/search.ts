@@ -88,5 +88,7 @@ export function searchWords(words: Word[], query: string, options: SearchOptions
   if (alternatives.length === 0) return []
 
   const patterns = alternatives.map(toLikePattern)
-  return words.filter((word) => patterns.some((pattern) => wordMatches(word, pattern, matchMeaning)))
+  return words.filter((word) =>
+    patterns.some((pattern) => wordMatches(word, pattern, matchMeaning)),
+  )
 }

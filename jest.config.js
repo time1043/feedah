@@ -1,6 +1,6 @@
 // Fixed TZ so date-dependent logic (local calendar days) is deterministic
 // across developer machines; assertions are written against UTC.
-process.env.TZ = 'UTC';
+process.env.TZ = 'UTC'
 
 module.exports = {
   preset: 'jest-expo',
@@ -13,4 +13,4 @@ module.exports = {
 
   // Coverage tracks logic only; React screens (.tsx) cannot run under jest.
   collectCoverageFrom: ['src/study/**/*.ts', 'src/lib/**/*.ts', '!src/**/*.tsx'],
-};
+}

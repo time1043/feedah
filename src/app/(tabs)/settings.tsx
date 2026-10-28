@@ -2,13 +2,13 @@ import { useAtom } from 'jotai'
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { buckets } from '@/mock/data'
 import {
   bucketLocalSearchAtom,
   globalSearchBucketsAtom,
   studyReadoutsAtom,
   wordsMeaningAtom,
 } from '@/study/settings'
-import { buckets } from '@/mock/data'
 
 /**
  * Preferences. The search section configures scope: whether searching from
@@ -68,7 +68,7 @@ export default function SettingsScreen() {
             {buckets.map((bucket) => (
               <Pressable
                 key={bucket.name}
-                className="flex-row items-center justify-between py-2"
+                className="py-2 flex-row items-center justify-between"
                 onPress={() => toggleGlobalBucket(bucket.name)}
               >
                 <Text className="text-black dark:text-white text-[15px]">{bucket.name}</Text>
@@ -111,7 +111,7 @@ function ToggleRow({
   onChange: (value: boolean) => void
 }) {
   return (
-    <View className="p-3 flex-row items-center gap-3">
+    <View className="p-3 gap-3 flex-row items-center">
       <View className="flex-1">
         <Text className="text-black dark:text-white text-[15px]">{title}</Text>
         <Text className="text-gray-400 dark:text-gray-500 text-[12px]">{detail}</Text>

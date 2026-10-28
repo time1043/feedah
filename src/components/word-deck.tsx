@@ -259,7 +259,8 @@ export function WordDeck({
         }}
       >
         {viewport > 0 && itemCount > 0 && (
-          <FlatList            ref={listRef}
+          <FlatList
+            ref={listRef}
             key={resetKey}
             data={items}
             keyExtractor={(item, i) =>
@@ -311,7 +312,7 @@ export function WordDeck({
       {(footerLeft || footerRight) && (
         <View
           pointerEvents="none"
-          className="absolute bottom-9 left-0 right-0 flex-row items-center justify-between px-6"
+          className="bottom-9 left-0 right-0 px-6 absolute flex-row items-center justify-between"
         >
           <View>{footerLeft}</View>
           <View>{footerRight}</View>

@@ -5,27 +5,21 @@ import { useMemo, useState } from 'react'
 import { Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import type { StudyState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom } from '@/atoms/study'
 import { DeckReadout, WordDeck } from '@/components/word-deck'
+import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/data'
-import {
-  currentRound,
-  nextReviewTime,
-  reviewCursorOf,
-  roundFlagPositions,
-} from '@/study/logic'
-import { studyReadoutsAtom } from '@/study/settings'
+import { currentRound, nextReviewTime, reviewCursorOf, roundFlagPositions } from '@/study/logic'
+import { activeBucketAtom, studyReadoutsAtom } from '@/study/settings'
 import {
   completeReviewSessionAtom,
   saveReviewCursorAtom,
   setRoundFlagAtom,
   useStudyState,
 } from '@/study/store'
-import type { StudyState } from '@/study/types'
 import { useStudySeconds } from '@/study/usage'
-import { speakWord } from '@/lib/speech'
 
 /**
  * Review is derived from one round: it walks that round's flag list. The
@@ -46,9 +40,7 @@ export default function ReviewScreen() {
 
   if (!state) {
     // One hydration frame; the session mounts once the state is readable.
-    return (
-      <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']} />
-    )
+    return <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']} />
   }
 
   const round = roundParam ? Number(roundParam) : currentRound(state, bucketName)

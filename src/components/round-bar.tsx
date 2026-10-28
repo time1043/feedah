@@ -23,7 +23,9 @@ export function RoundBar({ statuses }: { statuses: RoundWordStatus[] }) {
   for (let column = 0; column < COLUMNS; column++) {
     const start = Math.floor((column * statuses.length) / COLUMNS)
     const end =
-      column === COLUMNS - 1 ? statuses.length : Math.floor(((column + 1) * statuses.length) / COLUMNS)
+      column === COLUMNS - 1
+        ? statuses.length
+        : Math.floor(((column + 1) * statuses.length) / COLUMNS)
     let status: RoundWordStatus = 'gray'
     for (let i = start; i < end; i++) {
       if (statuses[i] === 'red') {
@@ -36,9 +38,13 @@ export function RoundBar({ statuses }: { statuses: RoundWordStatus[] }) {
   }
 
   return (
-    <View className="h-3.5 flex-row gap-px overflow-hidden rounded-sm">
+    <View className="h-3.5 rounded-sm flex-row gap-px overflow-hidden">
       {columns.map((status, index) => (
-        <View key={index} className="h-full flex-1" style={{ backgroundColor: COLORS[status][scheme] }} />
+        <View
+          key={index}
+          className="h-full flex-1"
+          style={{ backgroundColor: COLORS[status][scheme] }}
+        />
       ))}
     </View>
   )

@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router'
+import { useFocusEffect } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { useCallback, useMemo, useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
@@ -87,15 +87,19 @@ export default function StatisticsScreen() {
 
         <View className="rounded-2xl border-gray-200 p-4 dark:border-gray-800 gap-3 border">
           <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <MetricPill label="Words" active={metric === 'words'} onPress={() => setMetric('words')} />
+            <View className="gap-2 flex-row items-center">
+              <MetricPill
+                label="Words"
+                active={metric === 'words'}
+                onPress={() => setMetric('words')}
+              />
               <MetricPill
                 label="Minutes"
                 active={metric === 'minutes'}
                 onPress={() => setMetric('minutes')}
               />
             </View>
-            <View className="flex-row items-center gap-2">
+            <View className="gap-2 flex-row items-center">
               <Pressable hitSlop={8} onPress={() => setYear((value) => value - 1)}>
                 <Text className="text-gray-500 dark:text-gray-400 text-[17px]">‹</Text>
               </Pressable>
@@ -139,7 +143,7 @@ function StatChip({
 }) {
   return (
     <Pressable
-      className={`rounded-2xl border p-4 flex-1 ${active ? 'border-blue-500' : 'border-gray-200 dark:border-gray-800'}`}
+      className={`rounded-2xl p-4 flex-1 border ${active ? 'border-blue-500' : 'border-gray-200 dark:border-gray-800'}`}
       onPress={onPress}
     >
       <Text
@@ -164,10 +168,12 @@ function MetricPill({
 }) {
   return (
     <Pressable
-      className={`rounded-full px-3 py-1 ${active ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-800'}`}
+      className={`px-3 py-1 rounded-full ${active ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-800'}`}
       onPress={onPress}
     >
-      <Text className={`text-[12px] ${active ? 'font-semibold text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+      <Text
+        className={`text-[12px] ${active ? 'font-semibold text-white' : 'text-gray-500 dark:text-gray-400'}`}
+      >
         {label}
       </Text>
     </Pressable>

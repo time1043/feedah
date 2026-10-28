@@ -2,12 +2,12 @@ import { router } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { Pressable, Text, View } from 'react-native'
 
-import { activeBucketAtom } from '@/atoms/study'
 import ThemeToggle from '@/components/theme-toggle'
 import { buckets, findBucketByName } from '@/mock/data'
 import { progressOf, roundFlagPositions } from '@/study/logic'
-import { EMPTY_STUDY_STATE } from '@/study/types'
+import { activeBucketAtom } from '@/study/settings'
 import { studyStateAtom } from '@/study/store'
+import { EMPTY_STUDY_STATE } from '@/study/types'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)

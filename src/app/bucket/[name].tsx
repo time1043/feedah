@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams, type Href } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
+import { useState } from 'react'
 import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -8,8 +9,8 @@ import { RoundBar } from '@/components/round-bar'
 import { formatYearMonthDay } from '@/lib/format'
 import { buckets, findBucketByName } from '@/mock/data'
 import { progressOf, roundFlagPositions, roundRecords } from '@/study/logic'
+import { activeBucketAtom } from '@/study/settings'
 import { studyStateAtom } from '@/study/store'
-import { activeBucketAtom } from '@/atoms/study'
 
 const ICON = { light: '#9A9EA6', dark: '#7A7E86' }
 
@@ -24,7 +25,6 @@ type ModeRoute = '/mode/feed' | '/mode/review' | '/mode/browse/[position]'
  */
 export default function BucketDetailScreen() {
   const scheme: keyof typeof ICON = useColorScheme() === 'dark' ? 'dark' : 'light'
-  const iconColor = scheme === 'dark' ? '#7A7E86' : '#9A9EA6'
   const { name } = useLocalSearchParams<{ name: string }>()
   const bucketName = Array.isArray(name) ? name[0] : (name ?? buckets[0].name)
   const bucket = findBucketByName(bucketName)
@@ -33,12 +33,13 @@ export default function BucketDetailScreen() {
 
   const progress = progressOf(state, bucketName)
   const currentFlags = roundFlagPositions(state, bucketName, progress.round)
-  // Records are derived once per state change; "now" only feeds the running
+  // Records are derived per state change; "now" only feeds the running
   // round's day count.
+  const [now] = useState(() => Date.now())
   const records = roundRecords(state, {
     bucketId: bucketName,
     wordCount: bucket.words.length,
-    now: Date.now(),
+    now,
   })
 
   const open = <R extends ModeRoute>(pathname: R, params: Record<string, string> = {}) => {
@@ -78,9 +79,7 @@ export default function BucketDetailScreen() {
               title="Review"
               detail={`round ${progress.round} · ${currentFlags.length} flagged`}
               disabled={currentFlags.length === 0}
-              onPress={() =>
-                open('/mode/review', { round: String(progress.round) })
-              }
+              onPress={() => open('/mode/review', { round: String(progress.round) })}
             />
             <ModeRow
               icon="compass"
@@ -100,10 +99,8 @@ export default function BucketDetailScreen() {
                 <Pressable
                   key={record.round}
                   disabled={record.red === 0}
-                  className="gap-2 rounded-2xl border-gray-200 p-3 dark:border-gray-800 disabled:opacity-60 border"
-                  onPress={() =>
-                    open('/mode/review', { round: String(record.round) })
-                  }
+                  className="gap-2 rounded-2xl border-gray-200 p-3 dark:border-gray-800 border disabled:opacity-60"
+                  onPress={() => open('/mode/review', { round: String(record.round) })}
                   accessibilityLabel={`Review round ${record.round} flags`}
                 >
                   <Text
@@ -116,8 +113,8 @@ export default function BucketDetailScreen() {
                     {record.done ? '' : ' · in progress'}
                   </Text>
                   <RoundBar statuses={record.statuses} />
-                  <View className="flex-row items-center justify-end gap-4">
-                    <View className="flex-row items-center gap-1.5">
+                  <View className="gap-4 flex-row items-center justify-end">
+                    <View className="gap-1.5 flex-row items-center">
                       <View className="h-1.5 w-1.5 rounded-full bg-[#3D9A50]" />
                       <Text
                         className="text-gray-500 dark:text-gray-400 text-[12px]"
@@ -126,7 +123,7 @@ export default function BucketDetailScreen() {
                         {record.green}
                       </Text>
                     </View>
-                    <View className="flex-row items-center gap-1.5">
+                    <View className="gap-1.5 flex-row items-center">
                       <View className="h-1.5 w-1.5 rounded-full bg-[#E5484D]" />
                       <Text
                         className="text-gray-500 dark:text-gray-400 text-[12px]"
@@ -162,15 +159,11 @@ function ModeRow({
   const scheme = useColorScheme() ?? 'light'
   return (
     <Pressable
-      className="rounded-2xl border-gray-200 p-4 dark:border-gray-800 flex-row items-center gap-3 border disabled:opacity-50"
+      className="rounded-2xl border-gray-200 p-4 dark:border-gray-800 gap-3 flex-row items-center border disabled:opacity-50"
       onPress={onPress}
       disabled={disabled}
     >
-      <Ionicons
-        name={icon}
-        size={20}
-        color={scheme === 'dark' ? '#4CA0F0' : '#208AEF'}
-      />
+      <Ionicons name={icon} size={20} color={scheme === 'dark' ? '#4CA0F0' : '#208AEF'} />
       <Text className="font-semibold text-black dark:text-white flex-1 text-[15px]">{title}</Text>
       <Text
         className="text-gray-500 dark:text-gray-400 text-[13px]"
@@ -178,7 +171,11 @@ function ModeRow({
       >
         {detail}
       </Text>
-      <Ionicons name="chevron-forward" size={16} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
+      <Ionicons
+        name="chevron-forward"
+        size={16}
+        color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
+      />
     </Pressable>
   )
 }

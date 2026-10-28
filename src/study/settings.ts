@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { atom } from 'jotai'
 import { atomWithStorage, createJSONStorage } from 'jotai/utils'
 
 function storedAtom<T>(key: string, initial: T) {
-  return atomWithStorage<T>(key, initial, createJSONStorage<T>(() => AsyncStorage))
+  return atomWithStorage<T>(
+    key,
+    initial,
+    createJSONStorage<T>(() => AsyncStorage),
+  )
 }
 
 /**
@@ -11,6 +14,9 @@ function storedAtom<T>(key: string, initial: T) {
  * gets the single-blob treatment in store.ts because its writes are transact-
  * ional (one settle touches several tables).
  */
+
+/** The bucket the home screen and mode screens operate on by default. */
+export const activeBucketAtom = storedAtom('feedah.active-bucket', '2050')
 
 /** Whether the word list shows the meaning column (default hidden). */
 export const wordsMeaningAtom = storedAtom('feedah.words-meaning', false)

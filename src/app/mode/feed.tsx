@@ -1,20 +1,19 @@
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useMemo, useRef, useState } from 'react'
 import { Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { Ionicons } from '@expo/vector-icons'
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom } from '@/atoms/study'
 import { DeckReadout, WordDeck, type WordDeckHandle } from '@/components/word-deck'
+import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/data'
 import { progressOf, roundFlagPositions } from '@/study/logic'
-import { studyReadoutsAtom } from '@/study/settings'
+import { activeBucketAtom, studyReadoutsAtom } from '@/study/settings'
 import { settleCardAtom, setRoundFlagAtom, studyStateAtom } from '@/study/store'
 import { useStudySeconds } from '@/study/usage'
-import { speakWord } from '@/lib/speech'
 
 /**
  * The study feed: swiping through the active bucket flows the round's probe
