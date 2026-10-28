@@ -21,9 +21,9 @@ import {
   completeReviewSessionAtom,
   saveReviewCursorAtom,
   setRoundFlagAtom,
-  studyStateAtom,
   useStudyState,
 } from '@/study/store'
+import type { StudyState } from '@/study/types'
 import { useStudySeconds } from '@/study/usage'
 import { speakWord } from '@/lib/speech'
 
@@ -68,7 +68,7 @@ function ReviewSession({
   bucketName,
   round,
 }: {
-  state: NonNullable<ReturnType<typeof useStudyState>>
+  state: StudyState
   bucketName: string
   round: number
 }) {
