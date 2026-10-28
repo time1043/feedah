@@ -4,11 +4,11 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "android": "expo start --android",
+    "android": "expo run:android",
     "db:generate": "drizzle-kit generate",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "ios": "expo start --ios",
+    "ios": "expo run:ios",
     "lint": "expo lint",
     "reset-project": "node ./scripts/reset-project.js",
     "start": "expo start",
