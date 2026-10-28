@@ -42,7 +42,10 @@ This depends on the settle invariant above; if feed navigation ever changes,
 revisit this.
 
 **Per-round flag lists** — every round of a bucket has an independent flag
-list (`round1_flag`, `round2_flag`, …). The round of a flag write is always
+list (`round1_flag`, `round2_flag`, …). A new round starts as a copy of the
+finished round's list (回显), made in the round-advance transaction; the user
+can then unflag or add on it freely while the finished round's list stays
+frozen as review history. The round of a flag write is always
 passed in explicitly by the caller: the feed targets the probe's round, a
 review targets its own round, and a browse opened from a review inherits that
 round. The repo refuses to write a future round and never derives the round

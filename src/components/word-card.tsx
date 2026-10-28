@@ -109,18 +109,22 @@ export function WordCard({
         )}
       </Pressable>
 
-      <Pressable
-        className="bottom-8 left-0 right-0 absolute items-center justify-center"
-        onPress={onToggleFlag}
-        hitSlop={16}
-        accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}
-      >
-        <Ionicons
-          name={flagged ? 'bookmark' : 'bookmark-outline'}
-          size={30}
-          color={flagged ? '#E5484D' : scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-        />
-      </Pressable>
+      {/* Only the bookmark itself toggles the flag: the wrapper passes taps
+          outside it through to the meaning toggles underneath. */}
+      <View className="bottom-8 left-0 right-0 absolute items-center" pointerEvents="box-none">
+        <Pressable
+          className="p-2"
+          onPress={onToggleFlag}
+          hitSlop={8}
+          accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}
+        >
+          <Ionicons
+            name={flagged ? 'bookmark' : 'bookmark-outline'}
+            size={30}
+            color={flagged ? '#E5484D' : scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
+          />
+        </Pressable>
+      </View>
     </View>
   )
 }

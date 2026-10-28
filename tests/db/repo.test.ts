@@ -55,6 +55,15 @@ describe('probe', () => {
     expect(rounds).toHaveLength(2)
     expect(rounds[0]).toMatchObject({ round: 1, done: true, green: wordCount, red: 0 })
   })
+
+  it("carries the finished round's flags into the next round", async () => {
+    await setRoundFlag(BUCKET, 1, 2, true)
+    await setRoundFlag(BUCKET, 1, 4, true)
+    await finishFeedRound()
+    // The new round starts pre-flagged (回显), the finished one stays frozen.
+    expect(await countRoundFlags(BUCKET, 2)).toBe(2)
+    expect(await countRoundFlags(BUCKET, 1)).toBe(2)
+  })
 })
 
 describe('per-round flags', () => {

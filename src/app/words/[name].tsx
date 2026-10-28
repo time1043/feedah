@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
-import { useAtom } from 'jotai'
+import { useAtomValue } from 'jotai'
 import { useCallback, useRef, useState } from 'react'
 import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -21,7 +21,10 @@ export default function WordsScreen() {
   const scheme = useColorScheme() ?? 'light'
   const { name } = useLocalSearchParams<{ name: string }>()
   const bucketName = Array.isArray(name) ? name[0] : name
-  const [showMeaning, setShowMeaning] = useAtom(wordsMeaningAtom)
+  // The eye is per-visit: it starts from the global word-meanings setting on
+  // every entry and never writes back to it.
+  const meaningDefault = useAtomValue(wordsMeaningAtom)
+  const [showMeaning, setShowMeaning] = useState(meaningDefault)
 
   // The top visible row, mirrored by the progress bar.
   const [index, setIndex] = useState(0)
@@ -34,6 +37,7 @@ export default function WordsScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false
+      setShowMeaning(meaningDefault)
       void (async () => {
         const progress = await getProgress(bucketName)
         const loaded = await getWordsWithRoundFlag(bucketName, progress.round)
@@ -42,7 +46,7 @@ export default function WordsScreen() {
       return () => {
         cancelled = true
       }
-    }, [bucketName]),
+    }, [bucketName, meaningDefault]),
   )
 
   const jumpTo = (target: number) => {

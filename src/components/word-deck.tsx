@@ -171,8 +171,15 @@ export function WordDeck({
       setIndex(target)
       endLingerTimer.current = setTimeout(() => {
         endLingerTimer.current = null
-        if (end.action === 'close') onClose()
-        else listRef.current?.scrollToIndex({ index: 0, animated: false })
+        if (end.action === 'close') {
+          onClose()
+          return
+        }
+        // The reset is a programmatic jump: move the index state too, or the
+        // progress bar stays parked on the end page.
+        suppressSettle.current = true
+        setIndex(0)
+        listRef.current?.scrollToIndex({ index: 0, animated: false })
       }, END_LINGER_MS)
       return
     }

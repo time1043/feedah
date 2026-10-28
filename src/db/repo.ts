@@ -307,7 +307,10 @@ export async function settleCard(bucketId: string, index: number): Promise<void>
 /**
  * Archives the current round (the end card was settled by hand in study
  * mode) and opens the next one, all in one transaction — there is no
- * "walked through but not advanced" limbo state.
+ * "walked through but not advanced" limbo state. The next round starts as a
+ * copy of the finished round's flag list (回显): the user can then unflag or
+ * add flags on it freely, while the finished round's own list stays frozen
+ * as review history.
  */
 export async function completeRound(bucketId: string): Promise<void> {
   await withTransaction(async (tx) => {
@@ -343,6 +346,24 @@ export async function completeRound(bucketId: string): Promise<void> {
         target: bucketProgress.bucketId,
         set: { round: probe.round + 1, pointer: 0, roundStartedAt: now, updatedAt: now },
       })
+    const carried = await tx
+      .select({ position: roundFlag.position, flaggedAt: roundFlag.flaggedAt })
+      .from(roundFlag)
+      .where(and(eq(roundFlag.bucketId, bucketId), eq(roundFlag.round, probe.round)))
+    if (carried.length > 0) {
+      await tx
+        .insert(roundFlag)
+        .values(
+          carried.map((row) => ({
+            bucketId,
+            round: probe.round + 1,
+            position: row.position,
+            flaggedAt: row.flaggedAt,
+            updatedAt: now,
+          })),
+        )
+        .onConflictDoNothing()
+    }
   })
 }
 
