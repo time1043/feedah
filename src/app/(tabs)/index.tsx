@@ -2,20 +2,23 @@ import { router } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { Pressable, Text, View } from 'react-native'
 
-import { DEFAULT_PROGRESS, activeBucketAtom, flagKey, flagsAtom, progressAtom } from '@/atoms/study'
+import { activeBucketAtom } from '@/atoms/study'
 import ThemeToggle from '@/components/theme-toggle'
 import { buckets, findBucketByName } from '@/mock/data'
+import { progressOf, roundFlagPositions } from '@/study/logic'
+import { EMPTY_STUDY_STATE } from '@/study/types'
+import { studyStateAtom } from '@/study/store'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
   const setActiveName = useSetAtom(activeBucketAtom)
-  const progress = useAtomValue(progressAtom)
-  const flags = useAtomValue(flagsAtom)
+  // Reads update through hydration on their own; nothing here snapshots.
+  const state = useAtomValue(studyStateAtom) ?? EMPTY_STUDY_STATE
 
   const bucket = findBucketByName(activeName)
-  const { round, pointer } = progress[activeName] ?? DEFAULT_PROGRESS
-  const flaggedCount = bucket.words.filter((word) => flags[flagKey(activeName, word)]).length
-  const started = pointer > 0 || round > 1
+  const progress = progressOf(state, activeName)
+  const flaggedCount = roundFlagPositions(state, activeName, progress.round).length
+  const started = progress.pointer > 0 || progress.round > 1
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
@@ -39,13 +42,13 @@ export default function Index() {
         </View>
 
         <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
-          Round {round}
+          Round {progress.round}
         </Text>
         <Text
           className="font-extrabold text-black dark:text-white text-center text-[40px]"
           style={{ fontVariant: ['tabular-nums'] }}
         >
-          {pointer} / {bucket.words.length}
+          {progress.pointer} / {bucket.words.length}
         </Text>
 
         <Pressable
@@ -58,7 +61,9 @@ export default function Index() {
         <Pressable
           disabled={flaggedCount === 0}
           className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
-          onPress={() => router.push('/mode/review')}
+          onPress={() =>
+            router.push({ pathname: '/mode/review', params: { round: String(progress.round) } })
+          }
         >
           <Text className="font-semibold text-blue-500">Review · {flaggedCount}</Text>
         </Pressable>

@@ -59,8 +59,6 @@ export interface ReviewSession {
   finishedAt: number
   /** How many cards the flag list held when the session was snapshotted. */
   listSize: number
-  /** Highest card index settled in the session (1-based, within the list). */
-  position: number
 }
 
 /** Per-day studying time — the future daily_stat row. */
@@ -81,6 +79,11 @@ export interface StudyState {
   /** reviewTimes[bucketId][round] = counted review sessions. */
   reviewTimes: Record<string, Record<number, number>>
   reviewSessions: ReviewSession[]
+  /**
+   * Resume position of a round's review session: the furthest card index
+   * (0-based) landed on before leaving, monotonic, cleared on completion.
+   */
+  reviewCursors: Record<string, Record<number, number>>
   /** dailyPointers[day][bucketId] = global position high-water of that day. */
   dailyPointers: Record<string, Record<string, number>>
   /** dailyStat[day] */
@@ -93,6 +96,7 @@ export const EMPTY_STUDY_STATE: StudyState = {
   roundHistory: {},
   reviewTimes: {},
   reviewSessions: [],
+  reviewCursors: {},
   dailyPointers: {},
   dailyStat: {},
 }

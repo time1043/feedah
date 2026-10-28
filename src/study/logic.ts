@@ -194,7 +194,6 @@ export function completeReviewSession(
     round: number
     wordCount: number
     listSize: number
-    position: number
     startedAt: number
     finishedAt: number
   },
@@ -211,16 +210,42 @@ export function completeReviewSession(
     startedAt: params.startedAt,
     finishedAt: params.finishedAt,
     listSize: params.listSize,
-    position: params.position,
   }
 
   const timesNext = { ...state.reviewTimes[bucketId] }
   if (counted) timesNext[round] = time
 
+  // A completed pass has no resume position anymore.
+  const cursorsNext = { ...state.reviewCursors[bucketId] }
+  delete cursorsNext[round]
+
   return {
     ...state,
     reviewTimes: { ...state.reviewTimes, [bucketId]: timesNext },
     reviewSessions: [...state.reviewSessions, session],
+    reviewCursors: { ...state.reviewCursors, [bucketId]: cursorsNext },
+  }
+}
+
+/** The resume card index of a round's review session (0 = from the top). */
+export function reviewCursorOf(state: StudyState, bucketId: string, round: number): number {
+  return state.reviewCursors[bucketId]?.[round] ?? 0
+}
+
+/** Remembers how far a review session got; the mark only moves forward. */
+export function saveReviewCursor(
+  state: StudyState,
+  params: { bucketId: string; round: number; index: number },
+): StudyState {
+  const { bucketId, round } = params
+  const previous = reviewCursorOf(state, bucketId, round)
+  if (params.index <= previous) return state
+  return {
+    ...state,
+    reviewCursors: {
+      ...state.reviewCursors,
+      [bucketId]: { ...state.reviewCursors[bucketId], [round]: params.index },
+    },
   }
 }
 
