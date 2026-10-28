@@ -1,9 +1,10 @@
 import { router } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useMemo, useRef, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { Ionicons } from '@expo/vector-icons'
 import type { DeckWord } from '@/types/word'
 
 import { activeBucketAtom } from '@/atoms/study'
@@ -23,6 +24,7 @@ import { speakWord } from '@/lib/speech'
  * Reaching the end page completes the round and starts the next one.
  */
 export default function FeedScreen() {
+  const scheme = useColorScheme() ?? 'light'
   const bucketName = useAtomValue(activeBucketAtom)
   const state = useAtomValue(studyStateAtom)
   const settle = useSetAtom(settleCardAtom)
@@ -91,6 +93,20 @@ export default function FeedScreen() {
               Feed · {bucketName}
             </Text>
           )
+        }
+        headerRight={
+          <Pressable
+            hitSlop={12}
+            accessibilityLabel="Search words"
+            onPress={() =>
+              router.push({
+                pathname: '/mode/search',
+                params: { bucket: bucketName, flagRound: String(round) },
+              })
+            }
+          >
+            <Ionicons name="search" size={20} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
+          </Pressable>
         }
         footerLeft={readouts ? <DeckReadout>round {round}</DeckReadout> : null}
         footerRight={
