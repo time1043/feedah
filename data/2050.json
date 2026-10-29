@@ -2,353 +2,348 @@
   "name": "2050",
   "words": [
     {
-      "position": 1,
-      "word": "for",
-      "ipa": "/fɔː/ /fɔr/",
-      "meaning": "prep. 为了……、对于……、conj. 因为",
+      "position": 1701,
+      "word": "click",
+      "ipa": "/klɪk/",
+      "meaning": "v. n. 点击",
+      "distractors": [],
       "forms": []
     },
     {
-      "position": 2,
-      "word": "change",
-      "ipa": "/ˈtʃeɪndʒ/",
-      "meaning": "v. n. 改变、n. 零钱",
-      "forms": ["changed v.", "unchanged adj.", "changes v. n.", "changing v.", "changeable adj."]
-    },
-    {
-      "position": 3,
-      "word": "take",
-      "ipa": "/ˈteɪk/",
-      "meaning": "v. 拿走、携带",
-      "forms": ["took v.", "taken v.", "taking v."]
-    },
-    {
-      "position": 4,
-      "word": "care",
-      "ipa": "/kɛə/ /kɛər/",
-      "meaning": "v. 关心、在意",
-      "forms": [
-        "cares v. n.",
-        "cared v.",
-        "careful adj.",
-        "carefully adv.",
-        "careless adj.",
-        "carelessly adv.",
-        "carelessness n.",
-        "caretaker n."
-      ]
-    },
-    {
-      "position": 5,
-      "word": "in",
-      "ipa": "/ɪn/",
-      "meaning": "prep. 在……内",
-      "forms": ["inner adj."]
-    },
-    {
-      "position": 6,
-      "word": "look",
-      "ipa": "/lʊk/",
-      "meaning": "v. 看",
-      "forms": ["looked v.", "looking v.", "overlook v."]
-    },
-    {
-      "position": 7,
-      "word": "promise",
-      "ipa": "/ˈprɒmɪs/ /ˈprɑmɪs/",
-      "meaning": "v. 承诺、保证",
-      "forms": ["promised v.", "promises v. n.", "promising v. adj."]
-    },
-    {
-      "position": 8,
-      "word": "decide",
-      "ipa": "/dɪˈsaɪd/",
-      "meaning": "v. 决定",
-      "forms": ["decided v.", "deciding v.", "decision n.", "decisions n."]
-    },
-    {
-      "position": 9,
-      "word": "make",
-      "ipa": "/meɪk/",
-      "meaning": "v. 制作、使得",
-      "forms": ["makes v.", "made v.", "making v."]
-    },
-    {
-      "position": 10,
-      "word": "on",
-      "ipa": "/ɒn/ /ɑn/",
-      "meaning": "prep. 在……上、继续着",
-      "forms": ["onto prep."]
-    },
-    {
-      "position": 11,
-      "word": "courage",
-      "ipa": "/ˈkʌrɪdʒ/",
-      "meaning": "n. 勇气",
-      "forms": [
-        "courageous adj.",
-        "encouraged v.",
-        "encouragement n.",
-        "encouraging v. adj.",
-        "discouraged v."
-      ]
-    },
-    {
-      "position": 12,
-      "word": "hope",
-      "ipa": "/ˈhəʊp/ /ˈhoʊp/",
-      "meaning": "v. n. 希望",
-      "forms": ["hoped v.", "hoping v.", "hopeful adj.", "hopefully adv.", "hopeless adj."]
-    },
-    {
-      "position": 13,
-      "word": "interest",
-      "ipa": "/ˈɪntrɛst/",
-      "meaning": "n. 兴趣、利益",
-      "forms": [
-        "interested adj.",
-        "interesting v. adj.",
-        "interestingly adv.",
-        "interests v. n.",
-        "uninterested adj."
-      ]
-    },
-    {
-      "position": 14,
-      "word": "surprise",
-      "ipa": "/səˈpraɪz/ /sərˈpraɪz/",
-      "meaning": "n. 惊讶、v. 使感到意外",
-      "forms": ["surprised v. adj.", "surprises v. n.", "surprising v. adj.", "surprisingly adv."]
-    },
-    {
-      "position": 15,
-      "word": "work",
-      "ipa": "/wɜːk/ /wɜːrk/",
-      "meaning": "n. 工作、作品、v. 奏效",
-      "forms": [
-        "works v. n.",
-        "worked v.",
-        "working v. adj.",
-        "worker n.",
-        "workers n.",
-        "workplace n.",
-        "workday n.",
-        "workforce n.",
-        "workmate n."
-      ]
-    },
-    {
-      "position": 16,
-      "word": "expect",
-      "ipa": "/ɪkˈspɛkt/",
-      "meaning": "v. 预料、期待",
-      "forms": [
-        "expects v.",
-        "expected v. adj.",
-        "expecting v.",
-        "expectation n.",
-        "expectations n.",
-        "unexpected adj."
-      ]
-    },
-    {
-      "position": 17,
-      "word": "disappoint",
-      "ipa": "/dɪsəˈpɔɪnt/ /ˌdɪsəˈpɔɪnt/",
-      "meaning": "v. 使失望",
-      "forms": [
-        "disappointed v. adj.",
-        "disappointment n.",
-        "disappointing v. adj.",
-        "disappointedly adv."
-      ]
-    },
-    {
-      "position": 18,
-      "word": "plan",
-      "ipa": "/plæn/",
-      "meaning": "n. v. 计划",
-      "forms": ["plans v. n.", "planned v.", "planning v."]
-    },
-    {
-      "position": 19,
-      "word": "with",
-      "ipa": "/wɪð/ /wɪθ/",
-      "meaning": "prep. 伴随",
-      "forms": ["without prep.", "within prep."]
-    },
-    {
-      "position": 20,
-      "word": "believe",
-      "ipa": "/bɪˈliːv/ /bɪˈliv/",
-      "meaning": "v. 相信、认为",
-      "forms": [
-        "believed v.",
-        "believing v.",
-        "believable adj.",
-        "unbelievable adj.",
-        "belief n.",
-        "disbelief n."
-      ]
-    },
-    {
-      "position": 21,
-      "word": "leave",
-      "ipa": "/ˈliːv/",
-      "meaning": "v. 离开、把……留下",
-      "forms": ["leaves v. n.", "left v. adj.", "leaving v."]
-    },
-    {
-      "position": 22,
-      "word": "so",
-      "ipa": "/səʊ/ /soʊ/",
-      "meaning": "adv. 因此",
+      "position": 1702,
+      "word": "collapse",
+      "ipa": "/kəˈlæps/",
+      "meaning": "v. n. 坍塌",
+      "distractors": [],
       "forms": []
     },
     {
-      "position": 23,
-      "word": "proud",
-      "ipa": "/ˈpraʊd/",
-      "meaning": "adj. 骄傲的",
-      "forms": ["proudly adv.", "pride n. v."]
-    },
-    {
-      "position": 24,
-      "word": "accept",
-      "ipa": "/əkˈsɛpt/",
-      "meaning": "v. 接受",
-      "forms": [
-        "accepted v.",
-        "acceptance n.",
-        "acceptable adj.",
-        "accepting v.",
-        "unacceptable adj."
-      ]
-    },
-    {
-      "position": 25,
-      "word": "find",
-      "ipa": "/ˈfaɪnd/",
-      "meaning": "v. 发现",
-      "forms": ["found v.", "finding v. n.", "finds v. n."]
-    },
-    {
-      "position": 26,
-      "word": "realize",
-      "ipa": "/ˈrɪəlaɪz/ /ˈriˌlaɪz/",
-      "meaning": "v. 意识到、实现",
-      "forms": [
-        "realise v.",
-        "realized v.",
-        "realizing v.",
-        "real adj.",
-        "really adv.",
-        "reality n.",
-        "realistic adj."
-      ]
-    },
-    {
-      "position": 27,
-      "word": "show",
-      "ipa": "/ʃəʊ/ /ʃoʊ/",
-      "meaning": "v. 展示、展现",
-      "forms": ["shows v. n.", "showed v.", "showing v. n.", "shown v."]
-    },
-    {
-      "position": 28,
-      "word": "since",
-      "ipa": "/sɪns/",
-      "meaning": "prep. 自从、conj. 因为、既然",
+      "position": 1703,
+      "word": "combine",
+      "ipa": "/kəmˈbaɪn/",
+      "meaning": "v. 合并",
+      "distractors": [],
       "forms": []
     },
     {
-      "position": 29,
-      "word": "act",
-      "ipa": "/ækt/",
-      "meaning": "n. 行为、行动、v. 扮演",
-      "forms": [
-        "acts v. n.",
-        "acted v.",
-        "acting v. n.",
-        "active adj.",
-        "actively adv.",
-        "action n.",
-        "actions n.",
-        "activity n.",
-        "activities n.",
-        "actor n.",
-        "actress n."
-      ]
+      "position": 1704,
+      "word": "compose",
+      "ipa": "/kəmˈpəʊz/ /kəmˈpoʊz/",
+      "meaning": "v. 组成、作曲、撰写",
+      "distractors": [],
+      "forms": ["composition n."]
     },
     {
-      "position": 30,
-      "word": "agree",
-      "ipa": "/əˈɡriː/ /əˈɡri/",
-      "meaning": "v. 同意",
-      "forms": ["agreed v.", "disagreed v.", "agreement n.", "disagreement n."]
-    },
-    {
-      "position": 31,
-      "word": "as",
-      "ipa": "/æz/",
-      "meaning": "prep. 作为、如同、随着、conj. 因为",
+      "position": 1705,
+      "word": "comprise",
+      "ipa": "/kəmˈpraɪz/",
+      "meaning": "v. 包括、包含",
+      "distractors": [],
       "forms": []
     },
     {
-      "position": 32,
-      "word": "regret",
-      "ipa": "/rɪˈɡrɛt/",
-      "meaning": "n. v. 遗憾、后悔",
-      "forms": [
-        "regretted v.",
-        "regretfully adv.",
-        "regretful adj.",
-        "regrets v. n.",
-        "regretting v."
-      ]
-    },
-    {
-      "position": 33,
-      "word": "though",
-      "ipa": "/ðəʊ/ /ðoʊ/",
-      "meaning": "conj. 尽管、虽然",
+      "position": 1706,
+      "word": "concrete",
+      "ipa": "/ˈkɒnkriːt/ /ˌkɑnˈkrit/",
+      "meaning": "adj. 具体的、确实的",
+      "distractors": [],
       "forms": []
     },
     {
-      "position": 34,
-      "word": "think",
-      "ipa": "/ˈθɪŋk/",
-      "meaning": "v. 认为",
-      "forms": [
-        "thinker n.",
-        "thinking v. n.",
-        "thought v. n.",
-        "thoughts n.",
-        "thoughtful adj.",
-        "thoughtfully adv.",
-        "thoughtless adj."
-      ]
+      "position": 1707,
+      "word": "contest",
+      "ipa": "/ˈkɒntɛst/ /ˈkɑntɛst/",
+      "meaning": "n. v. 比赛",
+      "distractors": [],
+      "forms": []
     },
     {
-      "position": 35,
-      "word": "until",
-      "ipa": "/ʌnˈtɪl/",
-      "meaning": "prep. 直到",
-      "forms": ["till conj."]
+      "position": 1708,
+      "word": "continent",
+      "ipa": "/ˈkɒntɪnənt/ /ˈkɑntɪnənt/",
+      "meaning": "n. 大陆",
+      "distractors": [],
+      "forms": []
     },
     {
-      "position": 36,
-      "word": "chance",
-      "ipa": "/tʃɑːns/ /tʃæns/",
-      "meaning": "n. 机会、可能性",
-      "forms": ["chances v. n."]
+      "position": 1709,
+      "word": "costume",
+      "ipa": "/ˈkɒstjuːm/ /ˈkɑsˌtum/",
+      "meaning": "n. 服装",
+      "distractors": [],
+      "forms": []
     },
     {
-      "position": 37,
-      "word": "experience",
-      "ipa": "/ɪkˈspɪəriəns/ /ɪkˈspɪriəns/",
-      "meaning": "n. v. 经历、n. 经验",
-      "forms": ["experienced v. adj.", "experiences v. n.", "inexperienced adj."]
+      "position": 1710,
+      "word": "critical",
+      "ipa": "/ˈkrɪtɪkəl/",
+      "meaning": "adj. 批评的、关键的",
+      "distractors": [],
+      "forms": ["criticise v.", "criticize v."]
+    },
+    {
+      "position": 1711,
+      "word": "culture",
+      "ipa": "/ˈkʌltʃə/ /ˈkʌltʃər/",
+      "meaning": "n. 文化",
+      "distractors": [],
+      "forms": ["cultural adj."]
+    },
+    {
+      "position": 1712,
+      "word": "deafening",
+      "ipa": "/ˈdɛfənɪŋ/",
+      "meaning": "adj. 震耳欲聋的",
+      "distractors": [],
+      "forms": ["deaf adj."]
+    },
+    {
+      "position": 1713,
+      "word": "dinner",
+      "ipa": "/ˈdɪnə/ /ˈdɪnər/",
+      "meaning": "n. 正餐",
+      "distractors": [],
+      "forms": ["dining v."]
+    },
+    {
+      "position": 1714,
+      "word": "disease",
+      "ipa": "/dɪˈziːz/ /dɪˈziz/",
+      "meaning": "n. 疾病",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1715,
+      "word": "distinguish",
+      "ipa": "/dɪˈstɪŋɡwɪʃ/",
+      "meaning": "v. 区分、辨别",
+      "distractors": [],
+      "forms": ["distinguished v."]
+    },
+    {
+      "position": 1716,
+      "word": "dominate",
+      "ipa": "/ˈdɒmɪneɪt/ /ˈdɑməˌneɪt/",
+      "meaning": "v. 支配、掌控",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1717,
+      "word": "emphasize",
+      "ipa": "/ˈɛmfəsaɪz/",
+      "meaning": "v. 强调",
+      "distractors": [],
+      "forms": ["emphasis n."]
+    },
+    {
+      "position": 1718,
+      "word": "essential",
+      "ipa": "/ɪˈsɛnʃəl/",
+      "meaning": "adj. 重要的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1719,
+      "word": "excellent",
+      "ipa": "/ˈɛksələnt/",
+      "meaning": "adj. 优秀的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1720,
+      "word": "fantasy",
+      "ipa": "/ˈfæntəsi/",
+      "meaning": "n. v. 幻想",
+      "distractors": [],
+      "forms": ["fantastic adj."]
+    },
+    {
+      "position": 1721,
+      "word": "fascinating",
+      "ipa": "/ˈfæsɪˌneɪtɪŋ/",
+      "meaning": "adj. 令人着迷的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1722,
+      "word": "fist",
+      "ipa": "/fɪst/",
+      "meaning": "n. 拳头",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1723,
+      "word": "flat",
+      "ipa": "/ˈflæt/",
+      "meaning": "adj. 水平的、n. 公寓",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1724,
+      "word": "forecast",
+      "ipa": "/ˈfɔːkɑːst/ /ˈfɔrkæst/",
+      "meaning": "v. n. 预报",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1725,
+      "word": "forest",
+      "ipa": "/ˈfɒrɪst/ /ˈfɔrəst/",
+      "meaning": "n. 森林",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1726,
+      "word": "frame",
+      "ipa": "/ˈfreɪm/",
+      "meaning": "n. v. 框架",
+      "distractors": [],
+      "forms": ["framework n."]
+    },
+    {
+      "position": 1727,
+      "word": "grab",
+      "ipa": "/ˈɡræb/",
+      "meaning": "v. 抓取、夺取",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1728,
+      "word": "grand",
+      "ipa": "/ˈɡrænd/",
+      "meaning": "adj. 壮丽的、宏大的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1729,
+      "word": "habitat",
+      "ipa": "/ˈhæbɪtæt/",
+      "meaning": "n. 栖息地",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1730,
+      "word": "hall",
+      "ipa": "/hɔːl/ /hɔl/",
+      "meaning": "n. 大厅",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1731,
+      "word": "harvest",
+      "ipa": "/ˈhɑːvɪst/ /ˈhɑrvəst/",
+      "meaning": "v. n. 收获",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1732,
+      "word": "humble",
+      "ipa": "/ˈhʌmbəl/",
+      "meaning": "adj. 谦逊的、卑微的",
+      "distractors": [],
+      "forms": ["humbly adv."]
+    },
+    {
+      "position": 1733,
+      "word": "impact",
+      "ipa": "/ˈɪmpækt/",
+      "meaning": "n. v. 冲击、影响",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1734,
+      "word": "income",
+      "ipa": "/ˈɪnˌkʌm/",
+      "meaning": "n. 收入",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1735,
+      "word": "inquire",
+      "ipa": "/ɪnˈkwaɪə/ /ɪnˈkwaɪr/",
+      "meaning": "v. 询问、查问",
+      "distractors": [],
+      "forms": ["inquires v."]
+    },
+    {
+      "position": 1736,
+      "word": "interrupt",
+      "ipa": "/ˌɪntəˈrʌpt/",
+      "meaning": "v. 打断说话、中断",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1737,
+      "word": "issue",
+      "ipa": "/ˈɪʃʉw/ /ˈɪʃu/",
+      "meaning": "n. 问题、期刊、v. 发布",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1738,
+      "word": "journal",
+      "ipa": "/ˈdʒɜːnəl/ /ˈdʒɜːrnəl/",
+      "meaning": "n. 日记",
+      "distractors": [],
+      "forms": ["journalist n."]
+    },
+    {
+      "position": 1739,
+      "word": "justify",
+      "ipa": "/ˈdʒʌstɪfaɪ/",
+      "meaning": "v. 证明……正确、辩护",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1740,
+      "word": "keen",
+      "ipa": "/kiːn/ /kin/",
+      "meaning": "adj. 热切的、热情的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1741,
+      "word": "kingdom",
+      "ipa": "/ˈkɪŋdəm/",
+      "meaning": "n. 王国",
+      "distractors": [],
+      "forms": ["king n."]
+    },
+    {
+      "position": 1742,
+      "word": "kitchen",
+      "ipa": "/ˈkɪtʃn/",
+      "meaning": "n. 厨房",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1743,
+      "word": "labor",
+      "ipa": "/ˈleɪbər/",
+      "meaning": "n. 劳动、劳动力",
+      "distractors": [],
+      "forms": ["labour n."]
     }
   ]
 }
