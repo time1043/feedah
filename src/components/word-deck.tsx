@@ -116,6 +116,7 @@ export function WordDeck({
   const indexRef = useRef(index)
   const endLingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const endReached = useRef(false)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
     indexRef.current = index
@@ -130,7 +131,9 @@ export function WordDeck({
 
   // A new resetKey is a new session: re-apply the initial card. initialIndex
   // is only meaningful together with resetKey, hence not a dependency.
+  // Skip the first mount: useState already initialised index to clamp(initialIndex).
   useEffect(() => {
+    if (!mountedRef.current) return
     setIndex(clamp(initialIndex))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey])
@@ -212,8 +215,12 @@ export function WordDeck({
   }))
 
   // Speak the card the deck opens on; a resetKey change opens a new session.
+  // mountedRef is set to true here so the sibling setIndex effect above can
+  // skip its own first-mount run (useState already handled that).
   useEffect(() => {
     speakAt(clamp(initialIndex))
+    mountedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey])
 
   const items: DeckItem[] = [
