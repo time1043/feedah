@@ -3,21 +3,23 @@
 Single SQLite database (`feedah.db`, WAL, foreign keys ON). The schema is
 declared with drizzle-orm in `src/db/schema.ts`; migrations are generated
 with `pnpm db:generate` into `drizzle/` and applied by the drizzle migrator
-on first open. Bundled buckets are seeded from `src/mock/data.ts`
-(idempotent — a bucket is re-seeded only when its word count changes).
+on first open. Bundled buckets are seeded from `data/*.json` (idempotent
+against the stored word count AND a content hash of the word data — a
+data-only change, e.g. new distractors, re-seeds that bucket too).
 
 ## Tables
 
-| Table             | Purpose                                                                                    |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `bucket`          | id (the display name, e.g. `2050`) and word count — the anchor of the global position math |
-| `word`            | one row per word: bucket, position (1-based), text, ipa, meaning, forms (JSON)             |
-| `bucket_progress` | the probe: current `round`, `pointer` (0-based card index), `round_started_at`             |
-| `round_flag`      | per (bucket, round, position): the round's flag list, sparse (unflag deletes the row)      |
-| `round_history`   | finished rounds: started_at, finished_at                                                   |
-| `review_session`  | review walk-throughs of one round's flag list (see lifecycle below)                        |
-| `daily_pointer`   | per (day, bucket): end-of-day global position watermark                                    |
-| `daily_stat`      | per day: `feed_seconds`, `app_seconds`                                                     |
+| Table             | Purpose                                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `bucket`          | id (the display name, e.g. `2050`), word count and content hash — the anchors of seeding and the global position math |
+| `word`            | one row per word: bucket, position, text, ipa, meaning, forms (JSON), distractors (JSON)                              |
+| `answer_log`      | append-only quiz/typing answers (mode, correct) — never read by stats, never gates paging                             |
+| `bucket_progress` | the probe: current `round`, `pointer` (0-based card index), `round_started_at`                                        |
+| `round_flag`      | per (bucket, round, position): the round's flag list, sparse (unflag deletes the row)                                 |
+| `round_history`   | finished rounds: started_at, finished_at                                                                              |
+| `review_session`  | review walk-throughs of one round's flag list (see lifecycle below)                                                   |
+| `daily_pointer`   | per (day, bucket): end-of-day global position watermark                                                               |
+| `daily_stat`      | per day: `feed_seconds`, `app_seconds`                                                                                |
 
 Display preferences (theme, HUD toggles, search scope, words-meaning) live in
 AsyncStorage via jotai atoms instead — they reference no DB entity and never
@@ -50,6 +52,18 @@ passed in explicitly by the caller: the feed targets the probe's round, a
 review targets its own round, and a browse opened from a review inherits that
 round. The repo refuses to write a future round and never derives the round
 itself (an MVP bug this rule precludes).
+
+**Word positions vs card ordinals** — positions are arbitrary ids (the 2050
+test data starts at 1701) and must never be compared against the probe's
+pointer, which counts card indices. Everything that relates flags to
+progress translates positions into card ordinals first (the 0-based index
+in the bucket's position-ordered word list).
+
+**Study modes** — swipe / choice / typing share one probe, one flag list
+and one round-advance protocol; a mode is only a different card renderer
+plus per-card payloads (`src/study/`). Choice/typing answers append to
+`answer_log` and nothing else: they never gate paging, never move the
+pointer and never auto-flag.
 
 **Review sessions** — a review is a walk over one round's full flag list,
 snapshotted (frozen) into the session row at creation; flag edits never

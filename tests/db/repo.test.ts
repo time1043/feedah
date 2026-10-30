@@ -9,6 +9,7 @@ import { getDb } from '@/db/index'
 import {
   completeRound,
   countRoundFlags,
+  recordAnswer,
   finishReview,
   getProgress,
   getRoundSummaries,
@@ -75,6 +76,31 @@ describe('seed', () => {
     const words = await getWords('t')
     expect(words[0].meaning).toBe('m1')
     expect(words[0].distractors).toEqual([{ word: 'beta', meaning: 'm2' }])
+  })
+})
+
+describe('answer log', () => {
+  it('appends answers without touching probe, flags or sessions', async () => {
+    const db = await getDb()
+    await recordAnswer({
+      bucketId: BUCKET,
+      round: 1,
+      position: 1701,
+      mode: 'choice',
+      correct: true,
+    })
+    await recordAnswer({
+      bucketId: BUCKET,
+      round: 1,
+      position: 1702,
+      mode: 'typing',
+      correct: false,
+    })
+    const rows = await db.all('SELECT * FROM answer_log ORDER BY answered_at')
+    expect(rows).toHaveLength(2)
+    expect(rows.map((r) => r.correct)).toEqual([1, 0])
+    // No side effects on the study state.
+    expect(await getProgress(BUCKET)).toMatchObject({ round: 1, pointer: 0 })
   })
 })
 
