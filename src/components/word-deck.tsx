@@ -62,6 +62,19 @@ type WordDeckProps = {
   hudLeft?: ReactNode
   hudRight?: ReactNode
   onClose: () => void
+  /**
+   * Custom card renderer for study modes. Defaults to the swipe-mode
+   * WordCard; receives the replay/flag helpers wired to the deck's props.
+   */
+  renderCard?: (
+    word: DeckWord,
+    helpers: { onReplay: () => void; onToggleFlag: () => void },
+  ) => ReactNode
+  /**
+   * The deck speaks the current card on open/settle/scrub. Typing mode must
+   * turn this off — speaking the word would leak the answer.
+   */
+  autoSpeak?: boolean
   /** Whether the progress bar can be grabbed and scrubbed. */
   scrubbable?: boolean
   end?: WordDeckEnd
@@ -97,6 +110,8 @@ export function WordDeck({
   onToggleFlag,
   headerCenter,
   onSearch,
+  renderCard,
+  autoSpeak = true,
   hudLeft,
   hudRight,
   onClose,
@@ -154,6 +169,7 @@ export function WordDeck({
   }, [viewport])
 
   const speakAt = useEffectEvent((target: number) => {
+    if (autoSpeak === false) return
     const word = words[target]
     if (word && onSpeak) onSpeak(word)
   })
@@ -281,16 +297,23 @@ export function WordDeck({
             renderItem={({ item }) => (
               <View style={{ height: viewport }}>
                 {item.kind === 'word' ? (
-                  <WordCard
-                    position={item.word.position}
-                    text={item.word.word}
-                    meaning={item.word.meaning}
-                    forms={item.word.forms}
-                    ipa={item.word.ipa}
-                    flagged={item.word.flagged}
-                    onReplay={() => onSpeak?.(item.word)}
-                    onToggleFlag={() => onToggleFlag?.(item.word)}
-                  />
+                  renderCard ? (
+                    renderCard(item.word, {
+                      onReplay: () => onSpeak?.(item.word),
+                      onToggleFlag: () => onToggleFlag?.(item.word),
+                    })
+                  ) : (
+                    <WordCard
+                      position={item.word.position}
+                      text={item.word.word}
+                      meaning={item.word.meaning}
+                      forms={item.word.forms}
+                      ipa={item.word.ipa}
+                      flagged={item.word.flagged}
+                      onReplay={() => onSpeak?.(item.word)}
+                      onToggleFlag={() => onToggleFlag?.(item.word)}
+                    />
+                  )
                 ) : (
                   end?.render()
                 )}

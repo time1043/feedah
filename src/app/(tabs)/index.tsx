@@ -1,15 +1,17 @@
 import { router, useFocusEffect } from 'expo-router'
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
-import { activeBucketAtom } from '@/atoms/settings'
+import { activeBucketAtom, studyModeAtom } from '@/atoms/settings'
 import ThemeToggle from '@/components/theme-toggle'
 import { getBucketCards, type BucketCard } from '@/db/repo'
+import { STUDY_MODES } from '@/study/modes'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
   const setActiveName = useSetAtom(activeBucketAtom)
+  const [studyMode, setStudyMode] = useAtom(studyModeAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
 
   useFocusEffect(
@@ -53,9 +55,33 @@ export default function Index() {
           {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
         </Text>
 
+        <View className="gap-2 flex-row">
+          {STUDY_MODES.map((mode) => (
+            <Pressable
+              key={mode.id}
+              onPress={() => setStudyMode(mode.id)}
+              className={`rounded-lg p-2.5 flex-1 items-center border ${
+                mode.id === studyMode
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                  : 'border-gray-300 dark:border-gray-700'
+              }`}
+            >
+              <Text
+                className={`font-semibold text-[13px] ${
+                  mode.id === studyMode ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                {mode.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Pressable
           className="rounded-lg bg-blue-500 p-4 items-center"
-          onPress={() => router.push('/mode/feed')}
+          onPress={() =>
+            router.push({ pathname: '/mode/study/[mode]', params: { mode: studyMode } })
+          }
         >
           <Text className="font-bold text-white">{started ? 'Continue' : 'Start'}</Text>
         </Pressable>

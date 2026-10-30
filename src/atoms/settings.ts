@@ -3,6 +3,8 @@ import type { PrimitiveAtom } from 'jotai'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { atomWithStorage, createJSONStorage } from 'jotai/utils'
 
+import type { StudyModeId } from '@/study/types'
+
 const storage = createJSONStorage(() => AsyncStorage)
 
 /**
@@ -21,6 +23,9 @@ function storedAtom<T>(key: string, initial: T): PrimitiveAtom<T> {
 
 /** The bucket the home screen studies and the decks open on. */
 export const activeBucketAtom = storedAtom<string>('feedah.active-bucket', '2050')
+
+/** Which study mode the Continue button opens. */
+export const studyModeAtom = storedAtom<StudyModeId>('feedah.study-mode', 'swipe')
 
 /** Whether the word list shows the meaning column (default hidden). */
 export const wordsMeaningAtom = storedAtom<boolean>('feedah.words-meaning', false)
