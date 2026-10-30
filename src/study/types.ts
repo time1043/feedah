@@ -4,7 +4,14 @@ import type { DeckWord } from '@/types/word'
 
 export type StudyModeId = 'swipe' | 'choice' | 'typing'
 
-export type AnswerState = 'correct' | 'wrong' | 'skipped' | undefined
+export interface AnswerRecord {
+  correct: boolean
+  /** The chosen option key (choice mode) — lets the card highlight it. */
+  picked?: string
+}
+
+/** Per-card answer state; undefined = not answered yet. */
+export type AnswerState = AnswerRecord | { skipped: true } | undefined
 
 /** Per-card render input, assembled by the study screen. Cards hold no
  * session state of their own — FlatList recycles them. */
@@ -15,7 +22,7 @@ export interface StudyCardProps {
   payload: unknown
   /** undefined = not answered yet (or the mode has no answers). */
   answered: AnswerState
-  onAnswer: (correct: boolean) => void
+  onAnswer: (correct: boolean, picked?: string) => void
   /** Reveal without recording an answer (typing's "show answer"). */
   onSkip: () => void
   onReplay: () => void

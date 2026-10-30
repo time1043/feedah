@@ -83,8 +83,9 @@ export default function StudyScreen() {
     deckRef.current?.scrollTo(frontier)
   }
 
-  const answeredCount = Object.values(answers).filter((a) => a !== 'skipped').length
-  const correctCount = Object.values(answers).filter((a) => a === 'correct').length
+  const answerList = Object.values(answers)
+  const answeredCount = answerList.filter((a) => a && !('skipped' in a)).length
+  const correctCount = answerList.filter((a) => a && !('skipped' in a) && a.correct).length
 
   const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
@@ -102,8 +103,8 @@ export default function StudyScreen() {
             word,
             payload: payloads.get(word.position),
             answered: answers[word.position],
-            onAnswer: (correct) => {
-              patch({ answers: { ...answers, [word.position]: correct ? 'correct' : 'wrong' } })
+            onAnswer: (correct, picked) => {
+              patch({ answers: { ...answers, [word.position]: { correct, picked } } })
               void recordAnswer({
                 bucketId: bucketName,
                 round: progress.round,
@@ -112,7 +113,7 @@ export default function StudyScreen() {
                 correct,
               })
             },
-            onSkip: () => patch({ answers: { ...answers, [word.position]: 'skipped' } }),
+            onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
             onReplay: helpers.onReplay,
             onToggleFlag: () => {
               const flagged = !word.flagged
