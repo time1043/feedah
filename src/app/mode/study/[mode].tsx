@@ -30,6 +30,8 @@ type StudyState = {
   payloads: Map<number, unknown>
   /** Per-card answer state; a card absent from the map is unanswered. */
   answers: Record<number, AnswerState>
+  /** Per-card draft text (typing input), surviving card recycling. */
+  drafts: Record<number, string>
 }
 
 /**
@@ -60,6 +62,7 @@ export default function StudyScreen() {
             progress,
             payloads: mode.prepare?.(words) ?? new Map(),
             answers: {},
+            drafts: {},
           })
         }
       })()
@@ -72,11 +75,11 @@ export default function StudyScreen() {
   if (!loaded) {
     return <View className="bg-white dark:bg-black flex-1" />
   }
-  const { words, progress, payloads, answers } = loaded
+  const { words, progress, payloads, answers, drafts } = loaded
   const frontier = Math.min(progress.pointer, words.length)
 
   const patch = (changes: Partial<StudyState>) =>
-    setLoaded({ words, progress, payloads, answers, ...changes })
+    setLoaded({ words, progress, payloads, answers, drafts, ...changes })
 
   const resumeStudying = () => {
     setBrowsing(false)
@@ -114,6 +117,8 @@ export default function StudyScreen() {
               })
             },
             onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
+            draft: drafts[word.position] ?? '',
+            onDraft: (value) => patch({ drafts: { ...drafts, [word.position]: value } }),
             onReplay: helpers.onReplay,
             onToggleFlag: () => {
               const flagged = !word.flagged
@@ -191,7 +196,12 @@ export default function StudyScreen() {
               const fresh = await getWordsWithRoundFlag(bucketName, round)
               setLoaded((prev) =>
                 prev
-                  ? { ...prev, words: fresh, payloads: mode.prepare?.(fresh) ?? new Map() }
+                  ? {
+                      ...prev,
+                      words: fresh,
+                      payloads: mode.prepare?.(fresh) ?? new Map(),
+                      drafts: {},
+                    }
                   : prev,
               )
             })()

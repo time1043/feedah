@@ -25,6 +25,10 @@ export interface StudyCardProps {
   onAnswer: (correct: boolean, picked?: string) => void
   /** Reveal without recording an answer (typing's "show answer"). */
   onSkip: () => void
+  /** The card's draft text (typing input), lifted to the screen so it
+   * survives FlatList recycling. */
+  draft?: string
+  onDraft?: (value: string) => void
   onReplay: () => void
   onToggleFlag: () => void
 }

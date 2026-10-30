@@ -114,6 +114,7 @@ export default function SearchScreen() {
         data={results}
         keyExtractor={(result, i) => `${result.bucketId}-${result.position}-${i}`}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         renderItem={({ item }) => (
           <Pressable
             className="px-6 py-3 flex-row items-center"
