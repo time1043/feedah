@@ -4,6 +4,9 @@ import { integer, primaryKey, sqliteTable, text, uniqueIndex, index } from 'driz
 export const bucket = sqliteTable('bucket', {
   id: text('id').primaryKey(),
   wordCount: integer('word_count').notNull(),
+  // Hash of the seeded word content — seed idempotency key next to
+  // word_count, so data-only changes (e.g. new distractors) re-seed too.
+  contentHash: text('content_hash').notNull().default(''),
 })
 
 export const word = sqliteTable(
@@ -21,8 +24,36 @@ export const word = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'`),
+    // Curated confusables for the multiple-choice mode: { word, meaning }[].
+    // Optional and not necessarily bucket members; the quiz tops them up
+    // with random bucket words at load time.
+    distractors: text('distractors', { mode: 'json' })
+      .$type<{ word: string; meaning: string }[]>()
+      .notNull()
+      .default(sql`'[]'`),
   },
   (t) => [primaryKey({ columns: [t.bucketId, t.position] })],
+)
+
+/**
+ * Append-only answer history for the quiz/typing modes. Never read by the
+ * existing statistics (daily words remain pointer-delta based) and never
+ * gates paging or flags — a wrong answer is data, not a state change.
+ */
+export const answerLog = sqliteTable(
+  'answer_log',
+  {
+    id: text('id').primaryKey(),
+    bucketId: text('bucket_id')
+      .notNull()
+      .references(() => bucket.id, { onDelete: 'cascade' }),
+    round: integer('round').notNull(),
+    position: integer('position').notNull(),
+    mode: text('mode').notNull(),
+    correct: integer('correct', { mode: 'boolean' }).notNull(),
+    answeredAt: integer('answered_at').notNull(),
+  },
+  (t) => [index('idx_answer_log_round').on(t.bucketId, t.round)],
 )
 
 /**

@@ -60,10 +60,13 @@ export default function BrowseScreen() {
   }
 
   const { words, round, seen } = loaded
-  // Route param is a 1-based word position.
+  // Route param is a word position — find its card in deck order (word
+  // positions are arbitrary ids, not indices).
   const requested = Number(position)
-  const initial =
-    Number.isInteger(requested) && requested > 0 ? Math.min(requested, words.length) - 1 : 0
+  const initial = Math.max(
+    0,
+    words.findIndex((w) => w.position === requested),
+  )
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>

@@ -1,4 +1,4 @@
-import { seedBuckets } from '@/db/seed'
+import { seedBuckets, seedBucketsFrom, type SeedFile } from '@/db/seed'
 
 jest.mock('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }))
 jest.mock('@/db/index', () => require('./harness').dbIndex())
@@ -12,6 +12,7 @@ import {
   finishReview,
   getProgress,
   getRoundSummaries,
+  getWords,
   getWordCount,
   getWordsWithRoundFlag,
   openReviewSession,
@@ -25,7 +26,13 @@ const BUCKET = '2050'
 
 async function seed(): Promise<void> {
   const db = await getDb()
-  await seedBuckets(db)
+  const { withTransaction } = require('./harness').dbIndex()
+  await seedBuckets(db, withTransaction)
+}
+
+/** The bucket's word positions in deck order — flags and joins use these. */
+async function wordPositions(): Promise<number[]> {
+  return (await getWords(BUCKET)).map((w) => w.position)
 }
 
 /** Walks the probe through the whole round and completes it. */
@@ -38,6 +45,37 @@ async function finishFeedRound(): Promise<void> {
 beforeEach(async () => {
   require('./harness').resetDb()
   await seed()
+})
+
+describe('seed', () => {
+  it('re-seeds a bucket when only data-only fields change', async () => {
+    const db = await getDb()
+    const { withTransaction } = require('./harness').dbIndex()
+    const files: SeedFile[] = [
+      { name: 't', words: [{ position: 1, word: 'alpha', ipa: '', meaning: 'm1', forms: [] }] },
+    ]
+    await seedBucketsFrom(db, withTransaction, files)
+    // Same word count, different content: the hash must trigger a re-seed.
+    const changed: SeedFile[] = [
+      {
+        name: 't',
+        words: [
+          {
+            position: 1,
+            word: 'alpha',
+            ipa: '',
+            meaning: 'm1',
+            forms: [],
+            distractors: [{ word: 'beta', meaning: 'm2' }],
+          },
+        ],
+      },
+    ]
+    await seedBucketsFrom(db, withTransaction, changed)
+    const words = await getWords('t')
+    expect(words[0].meaning).toBe('m1')
+    expect(words[0].distractors).toEqual([{ word: 'beta', meaning: 'm2' }])
+  })
 })
 
 describe('probe', () => {
@@ -58,8 +96,9 @@ describe('probe', () => {
   })
 
   it("carries the finished round's flags into the next round", async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
-    await setRoundFlag(BUCKET, 1, 4, true)
+    const [p1, , p3] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p3, true)
     await finishFeedRound()
     // The new round starts pre-flagged (回显), the finished one stays frozen.
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
@@ -68,16 +107,17 @@ describe('probe', () => {
 })
 
 describe('the round-advance chain (user scenario)', () => {
-  it('round 1 flags 2,4 → round 2 carries them; sweeping 1..4 turns 1,3 green', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
-    await setRoundFlag(BUCKET, 1, 4, true)
+  it('flags two words → the next round carries them; sweeping their cards turns the rest green', async () => {
+    const positions = await wordPositions()
+    await setRoundFlag(BUCKET, 1, positions[1], true)
+    await setRoundFlag(BUCKET, 1, positions[3], true)
     await finishFeedRound()
 
     // The carried round: flags present, nothing swept yet — flags red,
     // everything else still gray.
     const fresh = (await getRoundSummaries(BUCKET)).find((r) => !r.done)!
     expect(fresh.pointer).toBe(0)
-    expect(fresh.flags).toEqual([2, 4])
+    expect(fresh.flags).toEqual([1, 3])
     const wordCount = await getWordCount(BUCKET)
     expect(roundStatuses(wordCount, fresh)[1]).toBe('red')
 
@@ -89,7 +129,7 @@ describe('the round-advance chain (user scenario)', () => {
     const current = (await getRoundSummaries(BUCKET)).find((r) => !r.done)!
     expect(current.round).toBe(2)
     expect(current.pointer).toBe(4)
-    expect(current.flags).toEqual([2, 4])
+    expect(current.flags).toEqual([1, 3])
     expect(current.red).toBe(2)
     expect(current.green).toBe(2)
     const statuses = roundStatuses(wordCount, current)
@@ -101,24 +141,26 @@ describe('the round-advance chain (user scenario)', () => {
   })
 
   it('the feed deck sees the carried flags after the round advances', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
+    const positions = await wordPositions()
+    await setRoundFlag(BUCKET, 1, positions[1], true)
     await finishFeedRound()
     const round = (await getProgress(BUCKET)).round
     const words = await getWordsWithRoundFlag(BUCKET, round)
-    expect(words.find((w) => w.position === 2)?.flagged).toBe(true)
-    expect(words.find((w) => w.position === 1)?.flagged).toBe(false)
+    expect(words.find((w) => w.position === positions[1])?.flagged).toBe(true)
+    expect(words.find((w) => w.position === positions[0])?.flagged).toBe(false)
   })
 })
 
 describe('per-round flags', () => {
   it('keeps every round independent', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
+    const [p1, , p3] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
     await finishFeedRound() // the probe moves to round 2
-    await setRoundFlag(BUCKET, 2, 2, true)
-    await setRoundFlag(BUCKET, 2, 4, true)
+    await setRoundFlag(BUCKET, 2, p1, true)
+    await setRoundFlag(BUCKET, 2, p3, true)
     expect(await countRoundFlags(BUCKET, 1)).toBe(1)
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
-    await setRoundFlag(BUCKET, 1, 2, false)
+    await setRoundFlag(BUCKET, 1, p1, false)
     expect(await countRoundFlags(BUCKET, 1)).toBe(0)
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
   })
@@ -128,7 +170,8 @@ describe('per-round flags', () => {
   })
 
   it('joins the flag state onto the word rows of one round', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p2, true)
     const words: WordWithFlag[] = await getWordsWithRoundFlag(BUCKET, 1)
     const expected = Array.from({ length: words.length }, (_, i) => i === 1)
     expect(words.map((w) => w.flagged)).toEqual(expected)
@@ -139,34 +182,36 @@ describe('per-round flags', () => {
 
 describe('review session counting (the zeroing rule)', () => {
   it('a draft exists while the feed is unfinished and resumes in place', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
-    await setRoundFlag(BUCKET, 1, 4, true)
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
 
     const first = await openReviewSession(BUCKET, 1)
-    expect(first).toMatchObject({ counted: false, number: null, queue: [2, 4] })
-    await settleReview(first!.id, 2)
+    expect(first).toMatchObject({ counted: false, number: null, queue: [p1, p2] })
+    await settleReview(first!.id, p1)
 
     // Re-entry resumes the same session: same row, cursor kept.
     const second = await openReviewSession(BUCKET, 1)
     expect(second!.id).toBe(first!.id)
-    expect(second!.lastPosition).toBe(2)
+    expect(second!.lastPosition).toBe(p1)
   })
 
   it('finishing the feed discards the draft and starts the real time 1', async () => {
-    await setRoundFlag(BUCKET, 1, 2, true)
-    await setRoundFlag(BUCKET, 1, 4, true)
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
     const draft = await openReviewSession(BUCKET, 1)
-    await settleReview(draft!.id, 2)
+    await settleReview(draft!.id, p1)
 
     // The user walks the whole feed: round 1 completes.
     await finishFeedRound()
 
     const real = await openReviewSession(BUCKET, 1)
     expect(real!.id).not.toBe(draft!.id)
-    expect(real).toMatchObject({ counted: true, number: 1, lastPosition: 0, queue: [2, 4] })
+    expect(real).toMatchObject({ counted: true, number: 1, lastPosition: 0, queue: [p1, p2] })
 
     // The walk reaches the end: the session is archived with a finish time.
-    await settleReview(real!.id, 4)
+    await settleReview(real!.id, p2)
     await finishReview(real!.id)
 
     // The next walk-through is time 2.
@@ -178,9 +223,10 @@ describe('review session counting (the zeroing rule)', () => {
   })
 
   it('a finished draft leaves no trace', async () => {
-    await setRoundFlag(BUCKET, 1, 3, true)
+    const [p1] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
     const draft = await openReviewSession(BUCKET, 1)
-    await settleReview(draft!.id, 3)
+    await settleReview(draft!.id, p1)
     await finishReview(draft!.id)
 
     const next = await openReviewSession(BUCKET, 1)

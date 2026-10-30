@@ -30,7 +30,20 @@
       "word": "compose",
       "ipa": "/kəmˈpəʊz/ /kəmˈpoʊz/",
       "meaning": "v. 组成、作曲、撰写",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "comprise",
+          "meaning": "v. 包括、包含"
+        },
+        {
+          "word": "combine",
+          "meaning": "v. 合并"
+        },
+        {
+          "word": "compromise",
+          "meaning": "n. v. 妥协"
+        }
+      ],
       "forms": ["composition n."]
     },
     {
@@ -38,7 +51,20 @@
       "word": "comprise",
       "ipa": "/kəmˈpraɪz/",
       "meaning": "v. 包括、包含",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "compose",
+          "meaning": "v. 组成、作曲、撰写"
+        },
+        {
+          "word": "combine",
+          "meaning": "v. 合并"
+        },
+        {
+          "word": "comprise",
+          "meaning": "v. 包括、包含"
+        }
+      ],
       "forms": []
     },
     {
@@ -54,7 +80,20 @@
       "word": "contest",
       "ipa": "/ˈkɒntɛst/ /ˈkɑntɛst/",
       "meaning": "n. v. 比赛",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "continent",
+          "meaning": "n. 大陆"
+        },
+        {
+          "word": "costume",
+          "meaning": "n. 服装"
+        },
+        {
+          "word": "culture",
+          "meaning": "n. 文化"
+        }
+      ],
       "forms": []
     },
     {
@@ -190,7 +229,20 @@
       "word": "forecast",
       "ipa": "/ˈfɔːkɑːst/ /ˈfɔrkæst/",
       "meaning": "v. n. 预报",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "forest",
+          "meaning": "n. 森林"
+        },
+        {
+          "word": "harvest",
+          "meaning": "v. n. 收获"
+        },
+        {
+          "word": "habitat",
+          "meaning": "n. 栖息地"
+        }
+      ],
       "forms": []
     },
     {
@@ -222,7 +274,20 @@
       "word": "grand",
       "ipa": "/ˈɡrænd/",
       "meaning": "adj. 壮丽的、宏大的",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "grab",
+          "meaning": "v. 抓取、夺取"
+        },
+        {
+          "word": "humble",
+          "meaning": "adj. 谦逊的、卑微的"
+        },
+        {
+          "word": "essential",
+          "meaning": "adj. 重要的"
+        }
+      ],
       "forms": []
     },
     {
@@ -334,7 +399,20 @@
       "word": "kitchen",
       "ipa": "/ˈkɪtʃn/",
       "meaning": "n. 厨房",
-      "distractors": [],
+      "distractors": [
+        {
+          "word": "kingdom",
+          "meaning": "n. 王国"
+        },
+        {
+          "word": "hall",
+          "meaning": "n. 大厅"
+        },
+        {
+          "word": "dinner",
+          "meaning": "n. 正餐"
+        }
+      ],
       "forms": []
     },
     {

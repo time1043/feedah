@@ -1,9 +1,16 @@
+/** A curated confusable for the multiple-choice mode. */
+export interface Distractor {
+  word: string
+  meaning: string
+}
+
 export interface Word {
   position: number
   word: string
   ipa: string
   meaning: string
   forms: string[]
+  distractors: Distractor[]
 }
 
 export interface Bucket {

@@ -1,12 +1,13 @@
 import { and, count, eq, inArray, isNull, isNotNull, sql } from 'drizzle-orm'
 import * as Crypto from 'expo-crypto'
 
-import type { Word } from '@/types/word'
+import type { Distractor, Word } from '@/types/word'
 
 import { todayLocalDate } from '@/lib/date'
 
 import { getDb, withTransaction, type Db } from './index'
 import {
+  answerLog,
   bucket,
   bucketProgress,
   dailyPointer,
@@ -34,7 +35,8 @@ export type RoundSummary = {
   /** Green = reached (pointer swept over it) and not flagged; red = flagged. */
   green: number
   red: number
-  /** Flag positions of this round, ascending — the red cells of the bar. */
+  /** Card ordinals (0-based, position-ordered) of this round's flags — the
+   * red cells of the bar. */
   flags: number[]
   /** Completed review walk-throughs of this round's flag list. */
   reviewTimes: number
@@ -50,6 +52,7 @@ function mapWord(row: {
   ipa: string
   meaning: string
   forms: string[] | null
+  distractors: Distractor[] | null
 }): Word {
   return {
     position: row.position,
@@ -57,6 +60,7 @@ function mapWord(row: {
     ipa: row.ipa,
     meaning: row.meaning,
     forms: row.forms ?? [],
+    distractors: row.distractors ?? [],
   }
 }
 
@@ -163,6 +167,7 @@ export async function getWordsWithRoundFlag(
       ipa: word.ipa,
       meaning: word.meaning,
       forms: word.forms,
+      distractors: word.distractors,
       flagged: sql<number>`CASE WHEN ${roundFlag.position} IS NULL THEN 0 ELSE 1 END`,
     })
     .from(word)
@@ -193,11 +198,14 @@ export async function countRoundFlags(bucketId: string, round: number): Promise<
  * Every round of the bucket in order: finished ones from round_history plus
  * the probe's current one. Green is derived, never stored — reached means
  * the pointer swept over the word (exposure semantics, the same yardstick
- * the daily word count uses).
+ * the daily word count uses). Flag positions are reported as card ordinals
+ * (their 0-based index in the bucket's position-ordered word list): the
+ * probe sweeps card indices, and word positions are arbitrary ids that may
+ * not even start at 1.
  */
 export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[]> {
   const db = await getDb()
-  const [wordCount, history, probe, flagRows, badges, drafts] = await Promise.all([
+  const [wordCount, history, probe, wordRows, flagRows, badges, drafts] = await Promise.all([
     readWordCount(db, bucketId),
     db
       .select()
@@ -205,6 +213,11 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
       .where(eq(roundHistory.bucketId, bucketId))
       .orderBy(roundHistory.round),
     readProbe(db, bucketId),
+    db
+      .select({ position: word.position })
+      .from(word)
+      .where(eq(word.bucketId, bucketId))
+      .orderBy(word.position),
     db
       .select({ round: roundFlag.round, position: roundFlag.position })
       .from(roundFlag)
@@ -229,18 +242,24 @@ export async function getRoundSummaries(bucketId: string): Promise<RoundSummary[
       ),
   ])
 
+  // Word positions are arbitrary ids: translate them into card ordinals so
+  // they can be compared against the probe's pointer.
+  const ordinalByPosition = new Map(wordRows.map((row, i) => [row.position, i]))
   const flagsByRound = new Map<number, number[]>()
   for (const row of flagRows) {
+    const ordinal = ordinalByPosition.get(row.position)
+    if (ordinal === undefined) continue
     const list = flagsByRound.get(row.round)
-    if (list) list.push(row.position)
-    else flagsByRound.set(row.round, [row.position])
+    if (list) list.push(ordinal)
+    else flagsByRound.set(row.round, [ordinal])
   }
+  for (const list of flagsByRound.values()) list.sort((a, b) => a - b)
   const badgeByRound = new Map(badges.map((row) => [row.round, row.times ?? 0]))
   const draftByRound = new Map(drafts.map((row) => [row.round, true]))
 
   const greenOf = (round: number, frontier: number): number => {
     const flags = flagsByRound.get(round) ?? []
-    return frontier - flags.filter((position) => position <= frontier).length
+    return frontier - flags.filter((ordinal) => ordinal < frontier).length
   }
 
   const summaries: RoundSummary[] = history.map((row) => ({
@@ -414,6 +433,31 @@ export async function setRoundFlag(
         ),
       )
   }
+}
+
+// --- answers -------------------------------------------------------------
+
+/**
+ * Appends one quiz/typing answer to the log. Write-only data: nothing gates
+ * paging or flags on it, and the existing statistics never read it.
+ */
+export async function recordAnswer(params: {
+  bucketId: string
+  round: number
+  position: number
+  mode: string
+  correct: boolean
+}): Promise<void> {
+  const db = await getDb()
+  await db.insert(answerLog).values({
+    id: Crypto.randomUUID(),
+    bucketId: params.bucketId,
+    round: params.round,
+    position: params.position,
+    mode: params.mode,
+    correct: params.correct,
+    answeredAt: Date.now(),
+  })
 }
 
 // --- review sessions -----------------------------------------------------
