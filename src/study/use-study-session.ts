@@ -33,6 +33,7 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         const words = await getWordsWithRoundFlag(bucket, progress.round)
         if (cancelled) return
         dispatch({ type: 'loaded', words, progress })
+        mode.prepare?.(words)
       })()
       return () => {
         cancelled = true
@@ -110,6 +111,7 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         await completeRound(bucket)
         const fresh: WordWithFlag[] = await getWordsWithRoundFlag(bucket, nextRound)
         dispatch({ type: 'roundWordsLoaded', words: fresh })
+        mode.prepare?.(fresh)
       })()
       return true
     },
