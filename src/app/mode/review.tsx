@@ -1,13 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useAtomValue } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useAtom, useAtomValue } from 'jotai'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
+import { activeBucketAtom, hudPageAtom, hudRoundAtom, studyModeAtom } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
+import { WordDeckHandle } from '@/components/word-deck'
 import { WordDeck } from '@/components/word-deck'
 import {
   countedReviewCount,
@@ -15,12 +17,14 @@ import {
   getProgress,
   getWordsWithRoundFlag,
   openReviewSession,
+  recordAnswer,
   settleReview,
   setRoundFlag,
   type ReviewSessionRow,
 } from '@/db/repo'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
+import { getStudyMode } from '@/study/modes'
 
 type ReviewState = {
   session: ReviewSessionRow
@@ -31,23 +35,33 @@ type ReviewState = {
   startIndex: number
   /** Cards seen, for the footer page number. */
   seen: number
+  /** Per-card answer state, keyed by word position. */
+  answers: Record<number, AnswerState>
+  /** Per-card draft text (typing), surviving card recycling. */
+  drafts: Record<number, string>
 }
 
 /**
- * Review of one round's flag list (default: the probe's round). The queue is
- * the session's frozen snapshot; unflagging during the walk updates the
- * round's flag list and the bookmark, but the word stays until the next
- * pass. Nothing but the session is recorded.
+ * Review of one round's flag list, in any study mode. The queue is the
+ * session's frozen snapshot; unflagging during the walk updates the round's
+ * flag list and the bookmark, but the word stays until the next pass.
+ * Answers append to answer_log; gated modes lock the deck until the card
+ * on screen is answered or revealed.
  */
 export default function ReviewScreen() {
   const params = useLocalSearchParams<{ bucket?: string; round?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
+  const [studyMode] = useAtom(studyModeAtom)
+  const mode = getStudyMode(studyMode)
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
 
   const [loaded, setLoaded] = useState<ReviewState | null>(null)
   const [empty, setEmpty] = useState(false)
+  const deckRef = useRef<WordDeckHandle>(null)
+  // Pending auto-advance after a correct answer; cancelled on unmount.
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -77,12 +91,33 @@ export default function ReviewScreen() {
         : await countedReviewCount(bucketName, round)
       const rawStart = queue.findIndex((word) => word.position >= session.lastPosition)
       const startIndex = rawStart < 0 ? 0 : rawStart
-      if (!cancelled) setLoaded({ session, queue, countedCount, startIndex, seen: startIndex + 1 })
+      // The mode's payloads (choice options) build from the whole bucket —
+      // the flag list alone is too small a distractor pool.
+      mode.prepare?.(words)
+      if (!cancelled) {
+        setLoaded({
+          session,
+          queue,
+          countedCount,
+          startIndex,
+          seen: startIndex + 1,
+          answers: {},
+          drafts: {},
+        })
+      }
     })()
     return () => {
       cancelled = true
     }
-  }, [bucketName, params.round])
+  }, [bucketName, params.round, mode])
+
+  // A pending auto-advance must not fire after the screen is gone.
+  useEffect(
+    () => () => {
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+    },
+    [],
+  )
 
   if (empty) {
     return (
@@ -110,7 +145,72 @@ export default function ReviewScreen() {
         words={queue}
         resetKey={`${bucketName}:${session.round}:${session.id}`}
         initialIndex={startIndex}
+        autoSpeak={mode.speakOnSettle}
         onSpeak={(word) => speakWord(word.word)}
+        renderCard={(word: DeckWord, helpers) =>
+          mode.renderCard({
+            word,
+            answered: loaded.answers[word.position],
+            onAnswer: (correct, picked) => {
+              setLoaded((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      answers: { ...prev.answers, [word.position]: { correct, picked } },
+                    }
+                  : prev,
+              )
+              void recordAnswer({
+                bucketId: bucketName,
+                round: session.round,
+                position: word.position,
+                mode: mode.id,
+                correct,
+              })
+              // A correct answer advances on its own — but only while the
+              // answered card is still the one on screen.
+              if (correct && mode.autoAdvanceMs) {
+                if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+                autoAdvanceTimer.current = setTimeout(() => {
+                  if (deckRef.current?.showsWord(word.position)) deckRef.current.advance()
+                }, mode.autoAdvanceMs)
+              }
+            },
+            onSkip: () =>
+              setLoaded((prev) =>
+                prev
+                  ? { ...prev, answers: { ...prev.answers, [word.position]: { skipped: true } } }
+                  : prev,
+              ),
+            draft: loaded.drafts[word.position] ?? '',
+            onDraft: (value) =>
+              setLoaded((prev) =>
+                prev ? { ...prev, drafts: { ...prev.drafts, [word.position]: value } } : prev,
+              ),
+            onReplay: helpers.onReplay,
+            onToggleFlag: () => {
+              const flagged = !word.flagged
+              setLoaded((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      queue: prev.queue.map((w) =>
+                        w.position === word.position ? { ...w, flagged } : w,
+                      ),
+                    }
+                  : prev,
+              )
+              void setRoundFlag(bucketName, session.round, word.position, flagged)
+            },
+          })
+        }
+        canSettle={(from, to) => {
+          // Gated modes: the card being left must be answered or revealed.
+          if (mode.scrollable) return true
+          const fromWord = queue[from]
+          if (!fromWord) return true
+          return loaded.answers[fromWord.position] !== undefined
+        }}
         onSettle={(word, index) => {
           void settleReview(session.id, word.position)
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
@@ -139,7 +239,8 @@ export default function ReviewScreen() {
           })
         }
         onClose={() => router.back()}
-        scrubbable
+        scrubbable={mode.scrubbable}
+        scrollEnabled={mode.scrollable}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
             Review {bucketName} {session.round}

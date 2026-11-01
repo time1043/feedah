@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { DeckWord } from '@/types/word'
+import type { DeckWord, Word } from '@/types/word'
 
 export type StudyModeId = 'swipe' | 'quiz' | 'type'
 
@@ -42,7 +42,7 @@ export interface StudyMode {
   label: string
   /** Runs once per data load: rebuilds the mode's private per-card data
    * (e.g. shuffled options). All randomness lives here. */
-  prepare?: (words: DeckWord[]) => void
+  prepare?: (words: Word[]) => void
   renderCard: (props: StudyCardProps) => ReactNode
   /** The deck auto-speaks on open/settle/scrub. Typing must be false —
    * speaking the word would leak the answer. */
