@@ -76,7 +76,7 @@ export function ChoiceCard({
               key={option.key}
               disabled={locked}
               onPress={() => onAnswer(option.isCorrect, option.key)}
-              className={`rounded-xl p-3 border ${classes}`}
+              className={`rounded-xl px-3 py-5 border ${classes}`}
             >
               <Text className={`text-left text-[14px] ${textClass}`}>{option.meaning}</Text>
             </Pressable>
