@@ -4,40 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
 import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
-import {
-  completeRound,
-  getProgress,
-  getWordsWithRoundFlag,
-  recordAnswer,
-  settleCard,
-  setRoundFlag,
-  type Progress,
-  type WordWithFlag,
-} from '@/db/repo'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
 import { getStudyMode } from '@/study/modes'
-
-type StudyState = {
-  words: WordWithFlag[]
-  progress: Progress
-  /** Session-stable per-card payloads built by the mode's prepare(). */
-  payloads: Map<number, unknown>
-  /** Per-card answer state; a card absent from the map is unanswered. */
-  answers: Record<number, AnswerState>
-  /** Per-card draft text (typing input), surviving card recycling. */
-  drafts: Record<number, string>
-}
+import { countsOf, frontierOf } from '@/study/session'
+import { useStudySession } from '@/study/use-study-session'
 
 /**
- * The generalized study screen: one policy (probe recording, round
- * completion, flag writes, browsing) shared by every mode, with the mode
- * contributing only its cards, payloads and copy. See src/study/types.ts.
+ * The generalized study screen: chrome, deck wiring and the auto-advance
+ * timer. Session state and policy db-writes live in useStudySession; the
+ * mode contributes cards, payloads and copy. See src/study/types.ts.
  */
 export default function StudyScreen() {
   const params = useLocalSearchParams<{ mode?: string }>()
@@ -45,8 +25,7 @@ export default function StudyScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
-  const [loaded, setLoaded] = useState<StudyState | null>(null)
-  const [browsing, setBrowsing] = useState(false)
+  const { session, payloads, actions } = useStudySession(bucketName, mode)
   const deckRef = useRef<WordDeckHandle>(null)
   // Pending auto-advance after a correct answer; cancelled on unmount.
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -57,29 +36,6 @@ export default function StudyScreen() {
   // typing lock scrolling while the card on screen is unanswered.
   const [deckIndex, setDeckIndex] = useState(0)
 
-  // Reloads on every focus: a review pushed on top may have re-flagged words.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false
-      void (async () => {
-        const progress = await getProgress(bucketName)
-        const words = await getWordsWithRoundFlag(bucketName, progress.round)
-        if (!cancelled) {
-          setLoaded({
-            words,
-            progress,
-            payloads: mode.prepare?.(words) ?? new Map(),
-            answers: {},
-            drafts: {},
-          })
-        }
-      })()
-      return () => {
-        cancelled = true
-      }
-    }, [bucketName, mode]),
-  )
-
   // A pending auto-advance must not fire after the screen is gone.
   useEffect(
     () => () => {
@@ -88,28 +44,17 @@ export default function StudyScreen() {
     [],
   )
 
-  if (!loaded) {
+  if (session.status !== 'ready') {
     return <View className="bg-white dark:bg-black flex-1" />
   }
-  const { words, progress, payloads, answers, drafts } = loaded
-  const frontier = Math.min(progress.pointer, words.length)
-
-  // Functional form keeps multi-field updates atomic: two patches in one
-  // tick must not overwrite each other with stale closure state.
-  const patch = (changes: Partial<StudyState> | ((prev: StudyState) => Partial<StudyState>)) =>
-    setLoaded((prev) => {
-      if (!prev) return prev
-      return { ...prev, ...(typeof changes === 'function' ? changes(prev) : changes) }
-    })
+  const { words, progress } = session
+  const frontier = frontierOf(session)
+  const { answered: answeredCount, correct: correctCount } = countsOf(session)
 
   const resumeStudying = () => {
-    setBrowsing(false)
+    actions.resume()
     deckRef.current?.scrollTo(frontier)
   }
-
-  const answerList = Object.values(answers)
-  const answeredCount = answerList.filter((a) => a && !('skipped' in a)).length
-  const correctCount = answerList.filter((a) => a && !('skipped' in a) && a.correct).length
 
   const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
@@ -117,7 +62,7 @@ export default function StudyScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <WordDeck
         ref={deckRef}
-        words={words}
+        words={session.words}
         resetKey={`${bucketName}:${mode.id}`}
         initialIndex={frontier}
         autoSpeak={mode.speakOnSettle}
@@ -126,60 +71,29 @@ export default function StudyScreen() {
           mode.renderCard({
             word,
             payload: payloads.get(word.position),
-            answered: answers[word.position],
+            answered: session.answers[word.position],
             onAnswer: (correct, picked) => {
-              // One atomic patch: the highlight and the auto-flag land together.
-              patch((prev) => ({
-                answers: { ...prev.answers, [word.position]: { correct, picked } },
-                words:
-                  !correct && mode.autoFlagOnWrong
-                    ? prev.words.map((w) =>
-                        w.position === word.position ? { ...w, flagged: true } : w,
-                      )
-                    : prev.words,
-              }))
-              void recordAnswer({
-                bucketId: bucketName,
-                round: progress.round,
-                position: word.position,
-                mode: mode.id,
-                correct,
-              })
-              // A wrong pick auto-flags the word (the bookmark can undo it);
-              // a correct answer never un-flags a carried one.
-              if (!correct && mode.autoFlagOnWrong) {
-                void setRoundFlag(bucketName, progress.round, word.position, true)
-              }
+              actions.answer(word, correct, picked)
               // A correct answer advances on its own — but only while the
               // answered card is still the one on screen.
               if (correct && mode.autoAdvanceMs) {
                 if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
                 autoAdvanceTimer.current = setTimeout(() => {
-                  if (words[deckIndexRef.current]?.position === word.position) {
+                  if (session.words[deckIndexRef.current]?.position === word.position) {
                     deckRef.current?.advance()
                   }
                 }, mode.autoAdvanceMs)
               }
             },
-            onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
-            draft: drafts[word.position] ?? '',
-            onDraft: (value) => patch({ drafts: { ...drafts, [word.position]: value } }),
+            onSkip: () => actions.skip(word),
+            draft: session.drafts[word.position] ?? '',
+            onDraft: (value) => actions.draft(word, value),
             onReplay: helpers.onReplay,
-            onToggleFlag: () => {
-              const flagged = !word.flagged
-              patch({
-                words: words.map((w) => (w.position === word.position ? { ...w, flagged } : w)),
-              })
-              void setRoundFlag(bucketName, progress.round, word.position, flagged)
-            },
+            onToggleFlag: () => actions.toggleFlag(word),
           })
         }
-        onSettle={(_, index) => {
-          if (browsing || index <= progress.pointer) return
-          patch({ progress: { ...progress, pointer: index } })
-          void settleCard(bucketName, index)
-        }}
-        onScrub={() => setBrowsing(true)}
+        onSettle={(_, index) => actions.settle(index)}
+        onScrub={actions.startBrowsing}
         onClose={() => router.back()}
         onIndexChange={(index) => {
           deckIndexRef.current = index
@@ -188,12 +102,12 @@ export default function StudyScreen() {
         scrubbable={mode.scrubbable}
         scrollEnabled={
           mode.scrollable ||
-          browsing ||
-          words[deckIndex] === undefined || // the end page stays reachable
-          answers[words[deckIndex].position] !== undefined
+          session.browsing ||
+          session.words[deckIndex] === undefined || // the end page stays reachable
+          session.answers[session.words[deckIndex].position] !== undefined
         }
         headerCenter={
-          browsing ? (
+          session.browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>
               <Text className="font-semibold text-white text-[13px]">Resume studying</Text>
             </Pressable>
@@ -233,34 +147,7 @@ export default function StudyScreen() {
               </View>
             )
           },
-          onReached: () => {
-            // Completing a round requires having walked the whole bucket in
-            // study mode; scrubbing to the end records nothing.
-            if (browsing || progress.pointer < words.length - 1) return false
-            const round = progress.round + 1
-            patch({
-              progress: { ...progress, round, pointer: 0, roundStartedAt: Date.now() },
-              answers: {},
-              payloads: mode.prepare?.(words) ?? new Map(),
-            })
-            setBrowsing(false)
-            void (async () => {
-              // The reload must wait for the advance transaction: it carries
-              // the finished round's flags into the new one (回显).
-              await completeRound(bucketName)
-              const fresh = await getWordsWithRoundFlag(bucketName, round)
-              setLoaded((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      words: fresh,
-                      payloads: mode.prepare?.(fresh) ?? new Map(),
-                      drafts: {},
-                    }
-                  : prev,
-              )
-            })()
-          },
+          onReached: () => actions.reachEnd(),
           action: 'reset',
         }}
       />

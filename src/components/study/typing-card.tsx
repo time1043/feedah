@@ -8,7 +8,7 @@ import { normalizeAnswer } from '@/lib/quiz'
 
 type TypingCardProps = {
   word: DeckWord
-  answered: AnswerState
+  answered?: AnswerState
   /** Lifted to the screen: FlatList recycling wipes local input state. */
   draft?: string
   onDraft?: (value: string) => void

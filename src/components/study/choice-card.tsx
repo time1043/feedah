@@ -9,7 +9,7 @@ import { BookmarkButton, CardHeadword, CardMeaning } from '@/components/study/ca
 type ChoiceCardProps = {
   word: DeckWord
   options: QuizOption[]
-  answered: AnswerState
+  answered?: AnswerState
   onAnswer: (correct: boolean, picked?: string) => void
   onReplay: () => void
   onToggleFlag: () => void

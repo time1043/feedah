@@ -11,7 +11,7 @@ export interface AnswerRecord {
 }
 
 /** Per-card answer state; undefined = not answered yet. */
-export type AnswerState = AnswerRecord | { skipped: true } | undefined
+export type AnswerState = AnswerRecord | { skipped: true }
 
 /** Per-card render input, assembled by the study screen. Cards hold no
  * session state of their own — FlatList recycles them. */
@@ -21,7 +21,7 @@ export interface StudyCardProps {
    * options). All randomness lives in prepare, never in render. */
   payload: unknown
   /** undefined = not answered yet (or the mode has no answers). */
-  answered: AnswerState
+  answered: AnswerState | undefined
   onAnswer: (correct: boolean, picked?: string) => void
   /** Reveal without recording an answer (typing's "show answer"). */
   onSkip: () => void
