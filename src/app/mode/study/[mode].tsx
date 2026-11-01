@@ -175,15 +175,13 @@ export default function StudyScreen() {
           })
         }
         onSettle={(_, index) => {
-          if (browsing || index <= progress.pointer) return
+          // Browsing pauses recording in the swipe mode only: quiz and
+          // typing keep recording their answers across scrub jumps.
+          if ((browsing && mode.scrollable) || index <= progress.pointer) return
           patch({ progress: { ...progress, pointer: index } })
           void settleCard(bucketName, index)
         }}
-        onScrub={() => {
-          // Only the swipe mode splits studying from browsing; quiz and
-          // typing keep recording across scrub jumps.
-          if (mode.scrollable) setBrowsing(true)
-        }}
+        onScrub={() => setBrowsing(true)}
         onClose={() => router.back()}
         onIndexChange={(index) => {
           deckIndexRef.current = index
@@ -239,7 +237,7 @@ export default function StudyScreen() {
           onReached: () => {
             // Completing a round requires having walked the whole bucket in
             // study mode; scrubbing to the end records nothing.
-            if (browsing || progress.pointer < words.length - 1) return false
+            if ((browsing && mode.scrollable) || progress.pointer < words.length - 1) return false
             const round = progress.round + 1
             patch({
               progress: { ...progress, round, pointer: 0, roundStartedAt: Date.now() },
