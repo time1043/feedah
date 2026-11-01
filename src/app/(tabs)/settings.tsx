@@ -1,7 +1,7 @@
-import { useFocusEffect } from 'expo-router'
+import type { ReactNode } from 'react'
+
 import { useAtom } from 'jotai'
-import { useCallback, useState } from 'react'
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native'
+import { ScrollView, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import {
@@ -10,13 +10,11 @@ import {
   hudPageAtom,
   hudRoundAtom,
   searchLocalAtom,
-  searchScopeAtom,
   wordsMeaningAtom,
 } from '@/atoms/settings'
 import ThemeToggle from '@/components/theme-toggle'
-import { listBuckets } from '@/db/repo'
 
-/** Preferences: deck footers, word list display, search scope. */
+/** Global preferences: theme, study deck chrome, word list display, search. */
 export default function SettingsScreen() {
   const [showTitle, setShowTitle] = useAtom(deckTitleAtom)
   const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
@@ -24,35 +22,19 @@ export default function SettingsScreen() {
   const [showRound, setShowRound] = useAtom(hudRoundAtom)
   const [showMeaning, setShowMeaning] = useAtom(wordsMeaningAtom)
   const [localSearch, setLocalSearch] = useAtom(searchLocalAtom)
-  const [scope, setScope] = useAtom(searchScopeAtom)
-  const [bucketIds, setBucketIds] = useState<string[]>([])
-
-  useFocusEffect(
-    useCallback(() => {
-      void listBuckets().then((rows) => setBucketIds(rows.map((row) => row.id)))
-    }, []),
-  )
-
-  // An empty scope means every bucket; the picker keeps it explicit once touched.
-  const includes = (id: string) => scope.length === 0 || scope.includes(id)
-  const toggleScope = (id: string) => {
-    const all = bucketIds.filter((entry) => entry !== id)
-    if (includes(id)) {
-      const remaining = (scope.length === 0 ? all : scope).filter((entry) => entry !== id)
-      setScope(remaining)
-    } else {
-      setScope([...scope, id])
-    }
-  }
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <Text className="p-4 pb-2 font-bold text-black dark:text-white text-[22px]">Settings</Text>
         <View className="gap-1 px-4">
+          <SettingRow
+            label="Theme"
+            hint="System, light or dark"
+            value={undefined}
+            onChange={undefined}
+            children={<ThemeToggle />}
+          />
           <SettingRow
             label="Deck title"
             hint="Mode and bucket label at the top of the study screen"
@@ -83,51 +65,12 @@ export default function SettingsScreen() {
             value={showMeaning}
             onChange={setShowMeaning}
           />
-          <View className="border-gray-200 py-3 dark:border-gray-800 border-b">
-            <Text className="font-semibold text-black dark:text-white text-[15px]">Theme</Text>
-            <View className="mt-3">
-              <ThemeToggle />
-            </View>
-          </View>
           <SettingRow
             label="Local search"
             hint="Search opened from a bucket stays inside it"
             value={localSearch}
             onChange={setLocalSearch}
           />
-        </View>
-
-        <View className="gap-2 px-4 pt-6">
-          <Text className="font-semibold text-black dark:text-white text-[15px]">
-            Global search scope
-          </Text>
-          <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
-            Buckets searched when no single bucket is pinned.{'\n'}
-            Current: {scope.length === 0 ? 'all buckets' : scope.join(', ')}
-          </Text>
-          <View className="mt-1 gap-2 flex-row flex-wrap">
-            {bucketIds.map((id) => (
-              <Pressable
-                key={id}
-                onPress={() => toggleScope(id)}
-                className={`px-4 py-2 rounded-full border ${
-                  includes(id)
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-700'
-                }`}
-              >
-                <Text
-                  className={`text-[13px] ${
-                    includes(id)
-                      ? 'font-semibold text-blue-500'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {id}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -139,19 +82,24 @@ function SettingRow({
   hint,
   value,
   onChange,
+  children,
 }: {
   label: string
   hint: string
-  value: boolean
-  onChange: (value: boolean) => void
+  value?: boolean
+  onChange?: (value: boolean) => void
+  children?: ReactNode
 }) {
   return (
     <View className="border-gray-200 py-3 dark:border-gray-800 flex-row items-center justify-between border-b">
       <View className="pr-4 flex-1">
         <Text className="font-semibold text-black dark:text-white text-[15px]">{label}</Text>
-        <Text className="mt-0.5 text-gray-500 dark:text-gray-400 text-[13px]">{hint}</Text>
+        {hint && (
+          <Text className="mt-0.5 text-gray-500 dark:text-gray-400 text-[13px]">{hint}</Text>
+        )}
+        {children && <View className="mt-3">{children}</View>}
       </View>
-      <Switch value={value} onValueChange={onChange} />
+      {value !== undefined && onChange && <Switch value={value} onValueChange={onChange} />}
     </View>
   )
 }
