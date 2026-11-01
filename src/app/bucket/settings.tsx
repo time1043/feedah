@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
+import { Modal, Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom, searchScopeAtom, studyModeAtom } from '@/atoms/settings'
@@ -72,6 +72,8 @@ export default function BucketSettingsScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Active bucket: a collapsed row opening the picker modal, so the
+            sections below never get pushed around by a long list. */}
         <View className="px-4 pt-2">
           <Text className="font-semibold text-black dark:text-white text-[15px]">
             Active bucket
@@ -79,10 +81,8 @@ export default function BucketSettingsScreen() {
           <Text className="mt-1 text-gray-500 dark:text-gray-400 text-[13px]">
             The bucket Home's readout and Continue study.
           </Text>
-          {/* Collapsed dropdown row: tap to unfold the candidates, pick one to
-            select and fold back. Scales to any number of buckets. */}
           <Pressable
-            onPress={() => setPickerOpen((open) => !open)}
+            onPress={() => setPickerOpen(true)}
             className="mt-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 flex-row items-center justify-between border"
             accessibilityLabel="Choose the active bucket"
           >
@@ -97,55 +97,8 @@ export default function BucketSettingsScreen() {
                 round {active?.round ?? 1} - {active?.pointer ?? 0}/{active?.wordCount ?? 0}
               </Text>
             </View>
-            <Ionicons
-              name={pickerOpen ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={muted ?? '#9A9EA6'}
-            />
+            <Ionicons name="chevron-forward" size={20} color={muted} />
           </Pressable>
-          {pickerOpen && (
-            <View className="mt-2 gap-2">
-              {cards.map((card) => {
-                const isStudying = card.id === activeName
-                return (
-                  <Pressable
-                    key={card.id}
-                    onPress={() => {
-                      setActiveName(card.id)
-                      setPickerOpen(false)
-                    }}
-                    className={`rounded-xl p-3 flex-row items-center justify-between border ${
-                      isStudying
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                        : 'border-gray-300 dark:border-gray-700'
-                    }`}
-                  >
-                    <View>
-                      <Text
-                        className={`font-semibold text-[15px] ${
-                          isStudying ? 'text-blue-500' : 'text-black dark:text-white'
-                        }`}
-                      >
-                        {card.id}
-                      </Text>
-                      <Text
-                        className="mt-0.5 text-gray-500 dark:text-gray-400 text-[13px]"
-                        style={{ fontVariant: ['tabular-nums'] }}
-                      >
-                        round {card.round} - {card.pointer}/{card.wordCount}
-                      </Text>
-                    </View>
-                    {isStudying && (
-                      <View className="gap-1.5 flex-row items-center">
-                        <Ionicons name="checkmark-circle" size={18} color="#208AEF" />
-                        <Text className="font-semibold text-blue-500 text-[13px]">studying</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                )
-              })}
-            </View>
-          )}
         </View>
 
         {/* Default study mode */}
@@ -213,6 +166,62 @@ export default function BucketSettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Active-bucket picker */}
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <Pressable
+          className="bg-black/50 p-6 flex-1 items-center justify-center"
+          onPress={() => setPickerOpen(false)}
+        >
+          {/* Blocks backdrop taps inside the card. */}
+          <Pressable className="max-w-sm rounded-2xl bg-white p-4 dark:bg-gray-900 max-h-[70%] w-full">
+            <Text className="font-semibold text-black dark:text-white text-[15px]">
+              Active bucket
+            </Text>
+            <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+              {cards.map((card) => {
+                const isStudying = card.id === activeName
+                return (
+                  <Pressable
+                    key={card.id}
+                    onPress={() => {
+                      setActiveName(card.id)
+                      setPickerOpen(false)
+                    }}
+                    className={`mt-2 rounded-xl p-3 flex-row items-center justify-between border ${
+                      isStudying
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                        : 'border-gray-300 dark:border-gray-700'
+                    }`}
+                  >
+                    <View>
+                      <Text
+                        className={`font-semibold text-[15px] ${
+                          isStudying ? 'text-blue-500' : 'text-black dark:text-white'
+                        }`}
+                      >
+                        {card.id}
+                      </Text>
+                      <Text
+                        className="mt-0.5 text-gray-500 dark:text-gray-400 text-[13px]"
+                        style={{ fontVariant: ['tabular-nums'] }}
+                      >
+                        round {card.round} - {card.pointer}/{card.wordCount}
+                      </Text>
+                    </View>
+                    {isStudying && <Ionicons name="checkmark-circle" size={20} color="#208AEF" />}
+                  </Pressable>
+                )
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
