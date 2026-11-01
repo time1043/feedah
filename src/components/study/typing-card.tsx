@@ -45,6 +45,10 @@ export function TypingCard({
     onAnswer(matches)
   }
 
+  // The underline scales with the word it stands for: one glyph per letter
+  // plus padding, clamped so tiny and very long words both stay usable.
+  const underlineWidth = Math.min(340, Math.max(140, 60 + word.word.length * 18))
+
   return (
     <View className="flex-1">
       <View className="px-8 flex-1 items-center justify-center">
@@ -55,18 +59,33 @@ export function TypingCard({
           onReplay={onReplay}
         />
         {!revealed && (
-          <TextInput
-            value={draft}
-            onChangeText={onDraft}
-            onSubmitEditing={submit}
-            returnKeyType="go"
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            placeholder="type the word…"
-            placeholderTextColor="#9CA3AF"
-            className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] w-full max-w-[320px] border-b-2 text-center text-[32px]"
-          />
+          <>
+            <TextInput
+              value={draft}
+              onChangeText={onDraft}
+              onSubmitEditing={submit}
+              returnKeyType="go"
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              placeholder="type the word…"
+              placeholderTextColor="#9CA3AF"
+              className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] border-b-2 text-center text-[32px]"
+              style={{ width: underlineWidth }}
+            />
+            {word.ipa && word.ipa.length > 0 && (
+              <Pressable
+                onPress={onReplay}
+                hitSlop={8}
+                className="mt-2"
+                accessibilityLabel="Play word"
+              >
+                <Text className="text-lg text-gray-400 dark:text-gray-500 text-center">
+                  {word.ipa}
+                </Text>
+              </Pressable>
+            )}
+          </>
         )}
         {/* Same reserved slot as the feed card: the Chinese prompt lives here. */}
         <View className="mt-4 h-[110px] items-center justify-start">
