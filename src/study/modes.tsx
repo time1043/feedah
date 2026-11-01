@@ -83,9 +83,9 @@ const typingMode: StudyMode = {
       onToggleFlag={props.onToggleFlag}
     />
   ),
-  // Speaking the word would leak the answer; scrubbing skips past typing.
+  // Speaking the word would leak the answer.
   speakOnSettle: false,
-  scrubbable: false,
+  scrubbable: true,
   scrollable: false,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',

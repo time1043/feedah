@@ -179,16 +179,21 @@ export default function StudyScreen() {
           patch({ progress: { ...progress, pointer: index } })
           void settleCard(bucketName, index)
         }}
-        onScrub={() => setBrowsing(true)}
+        onScrub={() => {
+          // Only the swipe mode splits studying from browsing; quiz and
+          // typing keep recording across scrub jumps.
+          if (mode.scrollable) setBrowsing(true)
+        }}
         onClose={() => router.back()}
         onIndexChange={(index) => {
           deckIndexRef.current = index
           setDeckIndex((prev) => (prev === index ? prev : index))
         }}
-        scrubbable={mode.scrubbable && progress.pointer > 0}
+        scrubbable={mode.scrubbable}
         scrollEnabled={
           mode.scrollable ||
-          (words[deckIndex] !== undefined && answers[words[deckIndex].position] !== undefined)
+          words[deckIndex] === undefined || // the end page stays reachable
+          answers[words[deckIndex].position] !== undefined
         }
         headerCenter={
           browsing ? (
