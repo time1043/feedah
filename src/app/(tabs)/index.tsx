@@ -66,13 +66,6 @@ export default function Index() {
           >
             <Text className="font-semibold text-blue-500">Review · {active?.flagCount ?? 0}</Text>
           </Pressable>
-
-          <Pressable
-            className="rounded-lg border-gray-300 p-3 dark:border-gray-700 items-center border"
-            onPress={() => router.push({ pathname: '/bucket' })}
-          >
-            <Text className="text-black dark:text-white">Buckets & modes</Text>
-          </Pressable>
         </View>
       </View>
     </View>
