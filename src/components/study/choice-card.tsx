@@ -19,19 +19,21 @@ type ChoiceCardProps = {
 /**
  * The multiple-choice card: the English word on top, four Chinese options
  * below. Tapping an option locks the card — the correct one turns green,
- * a wrong pick turns red — and the round's flag list is untouched. Swipe
- * whenever you like; an unanswered swipe counts as exposure only.
+ * a wrong pick turns red, and a Next button appears (correct answers
+ * auto-advance instead). The round's flag list is untouched.
  */
 export function ChoiceCard({
   word,
   options,
   answered,
   onAnswer,
+  onNext = () => {},
   onReplay,
   onToggleFlag,
 }: ChoiceCardProps) {
   const picked = typeof answered === 'object' && 'picked' in answered ? answered.picked : undefined
   const locked = answered !== undefined
+  const wrong = typeof answered === 'object' && 'correct' in answered && !answered.correct
 
   return (
     <View className="flex-1">
@@ -82,6 +84,15 @@ export function ChoiceCard({
             </Pressable>
           )
         })}
+        {wrong && (
+          <Pressable
+            onPress={onNext}
+            className="rounded-xl bg-blue-500 px-10 py-3 self-center"
+            accessibilityLabel="Next word"
+          >
+            <Text className="font-semibold text-white">Next</Text>
+          </Pressable>
+        )}
       </View>
 
       <BookmarkButton flagged={word.flagged} onToggleFlag={onToggleFlag} />
