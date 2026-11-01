@@ -30,6 +30,7 @@ function readySession(overrides: Partial<ReadySession> = {}): ReadySession {
     browsing: false,
     answers: {},
     drafts: {},
+    pendingAutoAdvance: null,
   }
   return { ...base, ...overrides }
 }
@@ -49,11 +50,18 @@ describe('studyReducer', () => {
       correct: false,
       picked: 'd1',
       autoFlag: true,
+      autoAdvanceDueAt: null,
     })
     expect(s.answers[1702]).toEqual({ correct: false, picked: 'd1' })
     expect(s.words.find((w) => w.position === 1702)?.flagged).toBe(true)
 
-    s = reduce(s, { type: 'answered', position: 1703, correct: true, autoFlag: true })
+    s = reduce(s, {
+      type: 'answered',
+      position: 1703,
+      correct: true,
+      autoFlag: true,
+      autoAdvanceDueAt: 123,
+    })
     expect(s.answers[1703]).toEqual({ correct: true, picked: undefined })
     expect(s.words.find((w) => w.position === 1703)?.flagged).toBe(false)
   })

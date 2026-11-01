@@ -17,6 +17,9 @@ export type StudySession =
       /** Keyed by word position; an absent key is an unanswered card. */
       answers: Record<number, AnswerState>
       drafts: Record<number, string>
+      /** The reducer's decision: this card auto-advances at `dueAt`. Cleared
+       * by browsing, manual settles and round completion. */
+      pendingAutoAdvance: { position: number; dueAt: number } | null
     }
 
 export const LOADING_SESSION: StudySession = { status: 'loading' }
@@ -30,6 +33,8 @@ export type StudyAction =
       picked?: string
       /** Wrong picks auto-flag the word when the mode says so. */
       autoFlag: boolean
+      /** When a correct answer should slide to the next card. */
+      autoAdvanceDueAt: number | null
     }
   | { type: 'skipped'; position: number }
   | { type: 'drafted'; position: number; value: string }
@@ -42,6 +47,7 @@ export type StudyAction =
   /** Optimistic round reset; the DB transaction completes separately. */
   | { type: 'roundAdvanced'; now: number }
   | { type: 'roundWordsLoaded'; words: WordWithFlag[] }
+  | { type: 'autoAdvanceDone' }
 
 /**
  * Pure session reducer. Multi-field transitions (answer + auto-flag, round
@@ -60,10 +66,11 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         browsing: false,
         answers: {},
         drafts: {},
+        pendingAutoAdvance: null,
       }
     case 'answered': {
       if (session.status !== 'ready') return session
-      const { position, correct, picked, autoFlag } = action
+      const { position, correct, picked, autoFlag, autoAdvanceDueAt } = action
       return {
         ...session,
         answers: { ...session.answers, [position]: { correct, picked } },
@@ -72,6 +79,10 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
           autoFlag && !correct
             ? session.words.map((w) => (w.position === position ? { ...w, flagged: true } : w))
             : session.words,
+        pendingAutoAdvance:
+          correct && autoAdvanceDueAt !== null
+            ? { position, dueAt: autoAdvanceDueAt }
+            : session.pendingAutoAdvance,
       }
     }
     case 'skipped': {
@@ -101,15 +112,21 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
       if (session.status !== 'ready') return session
       // Browsing never moves the pointer; neither does re-settling behind it.
       if (session.browsing || action.index <= session.progress.pointer) return session
-      return { ...session, progress: { ...session.progress, pointer: action.index } }
+      // The user moved on by hand: a pending auto-advance is obsolete.
+      return {
+        ...session,
+        progress: { ...session.progress, pointer: action.index },
+        pendingAutoAdvance: null,
+      }
     }
     case 'browsingStarted': {
       if (session.status !== 'ready') return session
-      return { ...session, browsing: true }
+      // Scrubbing away makes a pending auto-advance obsolete.
+      return { ...session, browsing: true, pendingAutoAdvance: null }
     }
     case 'resumed': {
       if (session.status !== 'ready') return session
-      return { ...session, browsing: false }
+      return { ...session, browsing: false, pendingAutoAdvance: null }
     }
     case 'roundAdvanced': {
       if (session.status !== 'ready') return session
@@ -124,11 +141,16 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         answers: {},
         drafts: {},
         browsing: false,
+        pendingAutoAdvance: null,
       }
     }
     case 'roundWordsLoaded': {
       if (session.status !== 'ready') return session
       return { ...session, words: action.words }
+    }
+    case 'autoAdvanceDone': {
+      if (session.status !== 'ready') return session
+      return { ...session, pendingAutoAdvance: null }
     }
   }
 }

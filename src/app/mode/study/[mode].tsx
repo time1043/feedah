@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -16,8 +16,9 @@ import { useStudySession } from '@/study/use-study-session'
 
 /**
  * The generalized study screen: chrome, deck wiring and the auto-advance
- * timer. Session state and policy db-writes live in useStudySession; the
- * mode contributes cards, payloads and copy. See src/study/types.ts.
+ * executor. Session state, the answer gate and policy db-writes live in
+ * useStudySession; the mode contributes cards, payloads and copy. See
+ * src/study/types.ts.
  */
 export default function StudyScreen() {
   const params = useLocalSearchParams<{ mode?: string }>()
@@ -27,22 +28,20 @@ export default function StudyScreen() {
   const showRound = useAtomValue(hudRoundAtom)
   const { session, actions } = useStudySession(bucketName, mode)
   const deckRef = useRef<WordDeckHandle>(null)
-  // Pending auto-advance after a correct answer; cancelled on unmount.
-  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Mirrors the deck index so the auto-advance timer can check that the
-  // answered card is still on screen when it fires.
-  const deckIndexRef = useRef(0)
-  // The deck's current card index, mirrored for the answer gate: quiz and
-  // typing lock scrolling while the card on screen is unanswered.
-  const [deckIndex, setDeckIndex] = useState(0)
 
-  // A pending auto-advance must not fire after the screen is gone.
-  useEffect(
-    () => () => {
-      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
-    },
-    [],
-  )
+  // Executes the reducer's auto-advance decision: slides to the pending
+  // card when it is still on screen, then reports back. The countdown is
+  // dueAt-based, so restarts on unrelated renders keep the schedule.
+  useEffect(() => {
+    const pending = session.status === 'ready' ? session.pendingAutoAdvance : null
+    if (!pending) return
+    const remaining = Math.max(0, pending.dueAt - Date.now())
+    const timer = setTimeout(() => {
+      if (deckRef.current?.showsWord(pending.position)) deckRef.current.advance()
+      actions.autoAdvanceDone()
+    }, remaining)
+    return () => clearTimeout(timer)
+  }, [session, actions])
 
   if (session.status !== 'ready') {
     return <View className="bg-white dark:bg-black flex-1" />
@@ -71,19 +70,7 @@ export default function StudyScreen() {
           mode.renderCard({
             word,
             answered: session.answers[word.position],
-            onAnswer: (correct, picked) => {
-              actions.answer(word, correct, picked)
-              // A correct answer advances on its own — but only while the
-              // answered card is still the one on screen.
-              if (correct && mode.autoAdvanceMs) {
-                if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
-                autoAdvanceTimer.current = setTimeout(() => {
-                  if (session.words[deckIndexRef.current]?.position === word.position) {
-                    deckRef.current?.advance()
-                  }
-                }, mode.autoAdvanceMs)
-              }
-            },
+            onAnswer: (correct, picked) => actions.answer(word, correct, picked),
             onSkip: () => actions.skip(word),
             draft: session.drafts[word.position] ?? '',
             onDraft: (value) => actions.draft(word, value),
@@ -94,17 +81,16 @@ export default function StudyScreen() {
         onSettle={(_, index) => actions.settle(index)}
         onScrub={actions.startBrowsing}
         onClose={() => router.back()}
-        onIndexChange={(index) => {
-          deckIndexRef.current = index
-          setDeckIndex((prev) => (prev === index ? prev : index))
+        canSettle={(from, to) => {
+          // Browsing opens swiping; the end page stays reachable. Leaving an
+          // unanswered card is the only thing the gate refuses.
+          if (mode.scrollable || session.browsing) return true
+          const fromWord = session.words[from]
+          if (!fromWord) return true
+          return to <= from || session.answers[fromWord.position] !== undefined
         }}
         scrubbable={mode.scrubbable}
-        scrollEnabled={
-          mode.scrollable ||
-          session.browsing ||
-          session.words[deckIndex] === undefined || // the end page stays reachable
-          session.answers[session.words[deckIndex].position] !== undefined
-        }
+        scrollEnabled={mode.scrollable || session.browsing}
         headerCenter={
           session.browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>

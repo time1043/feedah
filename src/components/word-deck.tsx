@@ -21,6 +21,8 @@ const END_LINGER_MS = 2000
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
   scrollTo(index: number): void
+  /** Whether the card on screen is the given word (auto-advance guard). */
+  showsWord(position: number): boolean
   /** Settles the NEXT card through the full path (probe records, end page
    * fires) and scrolls to it. Button-driven modes auto-advance here. */
   advance(): void
@@ -85,6 +87,14 @@ type WordDeckProps = {
   /** User gestures scroll the deck. Button-driven modes (quiz/typing)
    * turn this off and advance through the handle. */
   scrollEnabled?: boolean
+  /**
+   * Landing gate for answer-gated modes: may the deck settle from card
+   * `from` onto card `to`? Returning false snaps the view back to `from`
+   * without firing onSettle. The deck also derives its gesture scrolling
+   * from this per render, so the gate takes effect in the same commit as
+   * the state it is computed from — no mirror delay.
+   */
+  canSettle?: (from: number, to: number) => boolean
   end?: WordDeckEnd
 }
 
@@ -126,6 +136,7 @@ export function WordDeck({
   onClose,
   scrubbable = false,
   scrollEnabled = true,
+  canSettle,
   end,
 }: WordDeckProps & { ref?: Ref<WordDeckHandle> }) {
   const scheme = useColorScheme() ?? 'light'
@@ -135,6 +146,11 @@ export function WordDeck({
   const [index, setIndex] = useState(() => clamp(initialIndex))
   // Measured height of the scroll viewport; the list mounts once it is known.
   const [viewport, setViewport] = useState(0)
+  // Gesture scrolling re-derives from the gate on every render: while the
+  // card on screen is unanswered (and the mode gates answers) the list
+  // simply cannot be scrolled — in the same commit the answer state changed.
+  const gesturesEnabled =
+    scrollEnabled && (!canSettle || canSettle(index, Math.min(index + 1, itemCount - 1)))
 
   const listRef = useRef<FlatList<DeckItem> | null>(null)
   const suppressSettle = useRef(false)
@@ -223,6 +239,14 @@ export function WordDeck({
       return
     }
 
+    // Answer-gated modes: leaving an unanswered card is vetoed — snap back
+    // to the card the gesture started from, without recording anything.
+    if (canSettle && !canSettle(indexRef.current, target)) {
+      suppressSettle.current = true
+      listRef.current?.scrollToIndex({ index: indexRef.current, animated: false })
+      return
+    }
+
     // Landing on a word card re-arms the end page: after a reset, the next
     // walk-through must fire onReached again.
     endReached.current = false
@@ -248,6 +272,7 @@ export function WordDeck({
       listRef.current?.scrollToIndex({ index: clamped, animated: false })
       setIndex(clamped)
     },
+    showsWord: (position: number) => words[indexRef.current]?.position === position,
     advance: () => {
       const target = clamp(indexRef.current + 1)
       if (target === indexRef.current) return
@@ -351,7 +376,7 @@ export function WordDeck({
             )}
             horizontal={false}
             pagingEnabled
-            scrollEnabled={scrollEnabled}
+            scrollEnabled={gesturesEnabled}
             showsVerticalScrollIndicator={false}
             initialNumToRender={2}
             maxToRenderPerBatch={2}

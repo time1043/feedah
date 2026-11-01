@@ -57,6 +57,7 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         correct,
         picked,
         autoFlag: mode.autoFlagOnWrong ?? false,
+        autoAdvanceDueAt: mode.autoAdvanceMs ? Date.now() + mode.autoAdvanceMs : null,
       })
       void recordAnswer({
         bucketId: bucket,
@@ -76,6 +77,9 @@ export function useStudySession(bucket: string, mode: StudyMode) {
     },
 
     skip: (word: DeckWord) => dispatch({ type: 'skipped', position: word.position }),
+
+    /** The pending auto-advance was executed (or obsoleted) by the screen. */
+    autoAdvanceDone: () => dispatch({ type: 'autoAdvanceDone' }),
 
     draft: (word: DeckWord, value: string) =>
       dispatch({ type: 'drafted', position: word.position, value }),
