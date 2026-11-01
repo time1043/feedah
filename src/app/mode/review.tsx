@@ -225,7 +225,6 @@ export default function ReviewScreen() {
         }}
         onClose={() => router.back()}
         scrubbable={mode.scrubbable}
-        scrollEnabled={mode.scrollable}
         autoSpeak={mode.speakOnSettle}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
