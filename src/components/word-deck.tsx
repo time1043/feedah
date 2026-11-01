@@ -182,18 +182,14 @@ export function WordDeck({
     return () => cancelAnimationFrame(frame)
   }, [viewport])
 
-  // Button-driven decks (scrollEnabled=false): there are no scroll gestures
-  // to move the view, so the view follows the index state — every index
-  // change (advance(), reset) scrolls the list to match. This is what makes
-  // advance() actually move the page: its settle only updates the state.
-  useEffect(() => {
-    if (scrollEnabled || viewport <= 0) return
-    suppressSettle.current = true
-    listRef.current?.scrollToIndex({ index, animated: false })
-  }, [index, scrollEnabled, viewport])
-
+  const spokenIndexRef = useRef(-1)
   const speakAt = useEffectEvent((target: number) => {
     if (autoSpeak === false) return
+    // One speak per index: the animated advance settles its target twice
+    // (explicitly + via the animation's momentum end) — only the first
+    // speaks, otherwise the word audibly restarts.
+    if (spokenIndexRef.current === target) return
+    spokenIndexRef.current = target
     const word = words[target]
     if (word && onSpeak) onSpeak(word)
   })
@@ -255,8 +251,11 @@ export function WordDeck({
     advance: () => {
       const target = clamp(indexRef.current + 1)
       if (target === indexRef.current) return
+      // Animated on purpose: the smooth slide is the feedback. The explicit
+      // settle below records immediately; the animation's own momentum-end
+      // may settle the same index again, which speakAt dedupes.
       suppressSettle.current = true
-      listRef.current?.scrollToIndex({ index: target, animated: false })
+      listRef.current?.scrollToIndex({ index: target, animated: true })
       settle(target)
     },
   }))
