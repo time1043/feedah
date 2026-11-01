@@ -122,17 +122,23 @@ export default function ReviewScreen() {
         onSpeak={(word) => speakWord(word.word)}
         onSettle={(word, index) => {
           void settleReview(session.id, word.position)
-          setLoaded({ ...loaded, seen: index + 1 })
+          setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onScrub={(index) => {
-          setLoaded({ ...loaded, seen: index + 1 })
+          setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onToggleFlag={(word) => {
           const flagged = !word.flagged
-          setLoaded({
-            ...loaded,
-            queue: queue.map((w) => (w.position === word.position ? { ...w, flagged } : w)),
-          })
+          setLoaded((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  queue: prev.queue.map((w) =>
+                    w.position === word.position ? { ...w, flagged } : w,
+                  ),
+                }
+              : prev,
+          )
           void setRoundFlag(bucketName, session.round, word.position, flagged)
         }}
         onSearch={() =>

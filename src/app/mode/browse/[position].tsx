@@ -76,17 +76,23 @@ export default function BrowseScreen() {
         initialIndex={initial}
         onSpeak={(word) => speakWord(word.word)}
         onSettle={(_, index) => {
-          setLoaded({ ...loaded, seen: index + 1 })
+          setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onScrub={(index) => {
-          setLoaded({ ...loaded, seen: index + 1 })
+          setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onToggleFlag={(word) => {
           const flagged = !word.flagged
-          setLoaded({
-            ...loaded,
-            words: words.map((w) => (w.position === word.position ? { ...w, flagged } : w)),
-          })
+          setLoaded((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  words: prev.words.map((w) =>
+                    w.position === word.position ? { ...w, flagged } : w,
+                  ),
+                }
+              : prev,
+          )
           void setRoundFlag(bucketName, round, word.position, flagged)
         }}
         scrubbable
