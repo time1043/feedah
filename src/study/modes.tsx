@@ -58,7 +58,7 @@ const choiceMode: StudyMode = {
   ),
   // Speaking the English word is safe here — the options are Chinese.
   speakOnSettle: true,
-  scrubbable: false,
+  scrubbable: true,
   scrollable: false,
   autoAdvanceMs: 650,
   autoFlagOnWrong: true,
