@@ -28,7 +28,6 @@ export default function Index() {
   return (
     <View className="bg-white dark:bg-black flex-1">
       <TabHeader
-        title="Home"
         right={
           <HeaderIconButton
             name="search"

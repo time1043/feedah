@@ -29,12 +29,17 @@ export function HeaderIconButton({
   )
 }
 
-/** Header row of the four tabs: 22px bold title left, optional right slot. */
-export function TabHeader({ title, right }: { title: string; right?: ReactNode }) {
+/** Header row of the four tabs: 22px bold title left, optional right slot
+ * (icon callers wrap themselves in HeaderIconButton's 36px box; text slots
+ * render unconstrained). The title is optional — the home header carries
+ * only its search icon. */
+export function TabHeader({ title, right }: { title?: string; right?: ReactNode }) {
   return (
     <View className="px-4 pb-2 pt-3 flex-row items-center justify-between">
-      <Text className="font-bold text-black dark:text-white text-[22px]">{title}</Text>
-      <View className="h-9 w-9 items-center justify-center">{right}</View>
+      {title !== undefined && (
+        <Text className="font-bold text-black dark:text-white text-[22px]">{title}</Text>
+      )}
+      {right}
     </View>
   )
 }

@@ -68,29 +68,27 @@ export default function BucketScreen() {
 
   return (
     <View className="bg-white dark:bg-black flex-1">
-      <View className="p-4 pb-2 flex-row items-center justify-between">
-        <Text className="font-bold text-black dark:text-white text-[22px]">Bucket</Text>
-        {importing ? (
-          <ActivityIndicator size="small" />
-        ) : (
-          <View className="gap-4 flex-row items-center">
-            <Pressable
-              onPress={() => void importFromFile()}
-              hitSlop={8}
-              accessibilityLabel="Import a bucket"
-            >
-              <Ionicons name="download-outline" size={22} color={muted} />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push('/bucket/settings')}
-              hitSlop={8}
-              accessibilityLabel="Bucket list settings"
-            >
-              <Ionicons name="settings-outline" size={22} color={muted} />
-            </Pressable>
-          </View>
-        )}
-      </View>
+      <TabHeader
+        title="Bucket"
+        right={
+          importing ? (
+            <ActivityIndicator size="small" />
+          ) : (
+            <View className="gap-4 flex-row items-center">
+              <HeaderIconButton
+                name="download-outline"
+                onPress={() => void importFromFile()}
+                accessibilityLabel="Import a bucket"
+              />
+              <HeaderIconButton
+                name="settings-outline"
+                onPress={() => router.push('/bucket/settings')}
+                accessibilityLabel="Bucket list settings"
+              />
+            </View>
+          )
+        }
+      />
       {cards.map((card) => (
         <View
           key={card.id}
