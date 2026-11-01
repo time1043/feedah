@@ -93,28 +93,22 @@ export function TypingCard({
 
       <View className="px-8 flex-1 items-center justify-center">
         {!revealed ? (
-          <Pressable
-            onPress={submit}
-            className="rounded-xl bg-blue-500 px-10 py-3"
-            accessibilityLabel="Submit answer"
-          >
-            <Text className="font-semibold text-white">Check</Text>
-          </Pressable>
+          <View className="gap-4 items-center">
+            <Pressable
+              onPress={submit}
+              className="rounded-xl bg-blue-500 px-10 py-3"
+              accessibilityLabel="Submit answer"
+            >
+              <Text className="font-semibold text-white">Check</Text>
+            </Pressable>
+            <Pressable onPress={onSkip} hitSlop={8} accessibilityLabel="Show answer">
+              <Text className="text-gray-400 dark:text-gray-500 text-[13px]">show answer</Text>
+            </Pressable>
+          </View>
         ) : (
           <CardForms forms={word.forms} />
         )}
       </View>
-
-      {!revealed && (
-        <Pressable
-          className="right-6 top-4 absolute"
-          onPress={onSkip}
-          hitSlop={8}
-          accessibilityLabel="Show answer"
-        >
-          <Text className="text-gray-400 dark:text-gray-500 text-[13px]">show answer</Text>
-        </Pressable>
-      )}
 
       <BookmarkButton flagged={word.flagged} onToggleFlag={onToggleFlag} />
     </View>
