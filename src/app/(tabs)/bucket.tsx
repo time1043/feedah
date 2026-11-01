@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons'
+import * as DocumentPicker from 'expo-document-picker'
+import * as FileSystem from 'expo-file-system'
 import { router, useFocusEffect } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useState } from 'react'
-import { Pressable, Text, View, useColorScheme } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, Text, View, useColorScheme } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/settings'
+import { importBucketFile, parseBucketJson } from '@/db/import-bucket'
 import { getBucketCards, type BucketCard } from '@/db/repo'
 
 /**
@@ -18,6 +21,7 @@ export default function BucketScreen() {
   const activeName = useAtomValue(activeBucketAtom)
   const setActiveName = useSetAtom(activeBucketAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
+  const [importing, setImporting] = useState(false)
 
   useFocusEffect(
     useCallback(() => {
@@ -25,17 +29,66 @@ export default function BucketScreen() {
     }, []),
   )
 
+  const importFromFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: '*/*',
+      copyToCacheDirectory: true,
+    })
+    if (result.canceled || result.assets.length === 0) return
+    const asset = result.assets[0]
+    setImporting(true)
+    try {
+      const text = await FileSystem.readAsStringAsync(asset.uri)
+      const file = parseBucketJson(text)
+      const run = async () => {
+        await importBucketFile(file)
+        setCards(await getBucketCards())
+        setImporting(false)
+        Alert.alert('Bucket imported', `${file.name} · ${file.words.length} words`)
+      }
+      // Same-name import = replace the words (study progress is kept).
+      if (cards.some((card) => card.id === file.name)) {
+        Alert.alert(
+          'Bucket exists',
+          `${file.name} already exists. Replace its words with the imported data?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => setImporting(false) },
+            { text: 'Replace', style: 'destructive', onPress: () => void run() },
+          ],
+        )
+      } else {
+        await run()
+      }
+    } catch (error) {
+      setImporting(false)
+      Alert.alert('Import failed', error instanceof Error ? error.message : String(error))
+    }
+  }
+
   return (
     <View className="bg-white dark:bg-black flex-1">
       <View className="p-4 pb-2 flex-row items-center justify-between">
         <Text className="font-bold text-black dark:text-white text-[22px]">Bucket</Text>
-        <Pressable
-          onPress={() => router.push('/bucket/settings')}
-          hitSlop={8}
-          accessibilityLabel="Bucket list settings"
-        >
-          <Ionicons name="settings-outline" size={22} color={muted} />
-        </Pressable>
+        {importing ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <View className="gap-4 flex-row items-center">
+            <Pressable
+              onPress={() => void importFromFile()}
+              hitSlop={8}
+              accessibilityLabel="Import a bucket"
+            >
+              <Ionicons name="download-outline" size={22} color={muted} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/bucket/settings')}
+              hitSlop={8}
+              accessibilityLabel="Bucket list settings"
+            >
+              <Ionicons name="settings-outline" size={22} color={muted} />
+            </Pressable>
+          </View>
+        )}
       </View>
       {cards.map((card) => (
         <View
