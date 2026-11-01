@@ -9,6 +9,7 @@ import type { DeckWord } from '@/types/word'
 import {
   completeRound,
   getProgress,
+  settleCard,
   getWordsWithRoundFlag,
   recordAnswer,
   setRoundFlag,
@@ -43,7 +44,13 @@ export function useStudySession(bucket: string, mode: StudyMode) {
 
   const actions = {
     /** Settles onto card `index`: advances the probe unless browsing. */
-    settle: (index: number) => dispatch({ type: 'settled', index }),
+    settle: (index: number) => {
+      dispatch({ type: 'settled', index })
+      // Browse-mode swiping never moves the probe — same rule as the
+      // reducer; settleCard's own monotonic guard does the rest.
+      if (session.status !== 'ready' || session.browsing) return
+      if (index > session.progress.pointer) void settleCard(bucket, index)
+    },
 
     startBrowsing: () => dispatch({ type: 'browsingStarted' }),
 
