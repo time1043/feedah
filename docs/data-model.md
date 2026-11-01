@@ -13,7 +13,7 @@ data-only change, e.g. new distractors, re-seeds that bucket too).
 | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `bucket`          | id (the display name, e.g. `2050`), word count and content hash — the anchors of seeding and the global position math |
 | `word`            | one row per word: bucket, position, text, ipa, meaning, forms (JSON), distractors (JSON)                              |
-| `answer_log`      | append-only quiz/typing answers (mode, correct) — never read by stats, never gates paging                             |
+| `answer_log`      | append-only quiz/typing answers (mode, correct) — never read by stats, never moves the pointer                        |
 | `bucket_progress` | the probe: current `round`, `pointer` (0-based card index), `round_started_at`                                        |
 | `round_flag`      | per (bucket, round, position): the round's flag list, sparse (unflag deletes the row)                                 |
 | `round_history`   | finished rounds: started_at, finished_at                                                                              |
@@ -61,9 +61,11 @@ in the bucket's position-ordered word list).
 
 **Study modes** — swipe / choice / typing share one probe, one flag list
 and one round-advance protocol; a mode is only a different card renderer
-plus per-card payloads (`src/study/`). Choice/typing answers append to
-`answer_log` and nothing else: they never gate paging, never move the
-pointer and never auto-flag.
+plus per-card payloads (`src/study/`). Choice/typing are answer-gated:
+the deck cannot scroll while the card on screen is unanswered, so a
+question cannot be skipped. Their answers append to `answer_log`, never
+move the pointer and never auto-flag; an unanswered card that is passed
+by feed-style swiping (swipe mode) remains plain exposure.
 
 **Review sessions** — a review is a walk over one round's full flag list,
 snapshotted (frozen) into the session row at creation; flag edits never

@@ -48,8 +48,9 @@ export default function StudyScreen() {
   const [loaded, setLoaded] = useState<StudyState | null>(null)
   const [browsing, setBrowsing] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
-  // Pending auto-advance after a correct answer; cancelled on unmount.
-  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The deck's current card index, mirrored for the answer gate: quiz and
+  // typing lock scrolling while the card on screen is unanswered.
+  const [deckIndex, setDeckIndex] = useState(0)
 
   // Reloads on every focus: a review pushed on top may have re-flagged words.
   useFocusEffect(
@@ -117,15 +118,7 @@ export default function StudyScreen() {
                 mode: mode.id,
                 correct,
               })
-              if (correct && mode.autoAdvanceMs) {
-                if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
-                autoAdvanceTimer.current = setTimeout(
-                  () => deckRef.current?.advance(),
-                  mode.autoAdvanceMs,
-                )
-              }
             },
-            onNext: () => deckRef.current?.advance(),
             onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
             draft: drafts[word.position] ?? '',
             onDraft: (value) => patch({ drafts: { ...drafts, [word.position]: value } }),
@@ -146,8 +139,12 @@ export default function StudyScreen() {
         }}
         onScrub={() => setBrowsing(true)}
         onClose={() => router.back()}
+        onIndexChange={(index) => setDeckIndex((prev) => (prev === index ? prev : index))}
         scrubbable={mode.scrubbable && progress.pointer > 0}
-        scrollEnabled={mode.scrollable}
+        scrollEnabled={
+          mode.scrollable ||
+          (words[deckIndex] !== undefined && answers[words[deckIndex].position] !== undefined)
+        }
         headerCenter={
           browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>

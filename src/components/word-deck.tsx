@@ -21,9 +21,6 @@ const END_LINGER_MS = 2000
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
   scrollTo(index: number): void
-  /** Moves to the next card through the settle path (probe records, end
-   * page fires). Button-driven modes advance through this. */
-  advance(): void
 }
 
 export interface WordDeckEnd {
@@ -61,6 +58,8 @@ type WordDeckProps = {
   headerCenter?: ReactNode
   /** Opens search from the header (review and feed pin their bucket). */
   onSearch?: () => void
+  /** Mirrors the deck's current card index to the screen. */
+  onIndexChange?: (index: number) => void
   /** Quiet footer slots on the bookmark line (page number, round/time). */
   hudLeft?: ReactNode
   hudRight?: ReactNode
@@ -115,6 +114,7 @@ export function WordDeck({
   onScrub,
   onToggleFlag,
   headerCenter,
+  onIndexChange,
   onSearch,
   renderCard,
   autoSpeak = true,
@@ -143,6 +143,10 @@ export function WordDeck({
   useEffect(() => {
     indexRef.current = index
   }, [index])
+
+  useEffect(() => {
+    onIndexChange?.(index)
+  }, [index, onIndexChange])
 
   useEffect(
     () => () => {
@@ -244,9 +248,6 @@ export function WordDeck({
       suppressSettle.current = true
       listRef.current?.scrollToIndex({ index: clamped, animated: false })
       setIndex(clamped)
-    },
-    advance: () => {
-      settle(indexRef.current + 1)
     },
   }))
 

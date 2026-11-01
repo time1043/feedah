@@ -13,7 +13,6 @@ type TypingCardProps = {
   draft?: string
   onDraft?: (value: string) => void
   onAnswer: (correct: boolean) => void
-  onNext?: () => void
   onSkip: () => void
   onReplay: () => void
   onToggleFlag: () => void
@@ -32,7 +31,6 @@ export function TypingCard({
   draft = '',
   onDraft = () => {},
   onAnswer,
-  onNext = () => {},
   onSkip,
   onReplay,
   onToggleFlag,
@@ -111,14 +109,6 @@ export function TypingCard({
               <Text className="text-gray-400 dark:text-gray-500 text-[13px]">show answer</Text>
             </Pressable>
           </View>
-        ) : typeof answered === 'object' && 'correct' in answered && !answered.correct ? (
-          <Pressable
-            onPress={onNext}
-            className="rounded-xl bg-blue-500 px-10 py-3"
-            accessibilityLabel="Next word"
-          >
-            <Text className="font-semibold text-white">Next</Text>
-          </Pressable>
         ) : (
           <CardForms forms={word.forms} />
         )}

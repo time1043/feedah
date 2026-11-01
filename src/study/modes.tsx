@@ -52,7 +52,6 @@ const choiceMode: StudyMode = {
       options={(props.payload as QuizOption[] | undefined) ?? []}
       answered={props.answered}
       onAnswer={props.onAnswer}
-      onNext={props.onNext}
       onReplay={props.onReplay}
       onToggleFlag={props.onToggleFlag}
     />
@@ -61,7 +60,6 @@ const choiceMode: StudyMode = {
   speakOnSettle: true,
   scrubbable: false,
   scrollable: false,
-  autoAdvanceMs: 650,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} correct · Round ${nextRound} starts in a moment`,
@@ -78,7 +76,6 @@ const typingMode: StudyMode = {
       draft={props.draft}
       onDraft={props.onDraft}
       onAnswer={props.onAnswer}
-      onNext={props.onNext}
       onSkip={props.onSkip}
       onReplay={props.onReplay}
       onToggleFlag={props.onToggleFlag}
@@ -88,7 +85,6 @@ const typingMode: StudyMode = {
   speakOnSettle: false,
   scrubbable: false,
   scrollable: false,
-  autoAdvanceMs: 900,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} typed right · Round ${nextRound} starts in a moment`,

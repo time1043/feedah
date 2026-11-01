@@ -11,7 +11,6 @@ type ChoiceCardProps = {
   options: QuizOption[]
   answered: AnswerState
   onAnswer: (correct: boolean, picked?: string) => void
-  onNext?: () => void
   onReplay: () => void
   onToggleFlag: () => void
 }
@@ -27,7 +26,6 @@ export function ChoiceCard({
   options,
   answered,
   onAnswer,
-  onNext = () => {},
   onReplay,
   onToggleFlag,
 }: ChoiceCardProps) {
@@ -84,15 +82,6 @@ export function ChoiceCard({
             </Pressable>
           )
         })}
-        {wrong && (
-          <Pressable
-            onPress={onNext}
-            className="rounded-xl bg-blue-500 px-10 py-3 self-center"
-            accessibilityLabel="Next word"
-          >
-            <Text className="font-semibold text-white">Next</Text>
-          </Pressable>
-        )}
       </View>
 
       <BookmarkButton flagged={word.flagged} onToggleFlag={onToggleFlag} />
