@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 import { activeBucketAtom, studyModeAtom } from '@/atoms/settings'
-import ThemeToggle from '@/components/theme-toggle'
 import { getBucketCards, type BucketCard } from '@/db/repo'
 import { STUDY_MODES } from '@/study/modes'
 
@@ -26,8 +25,6 @@ export default function Index() {
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
-      <ThemeToggle />
-
       <View className="max-w-sm gap-3 w-full">
         <View className="gap-2 flex-row">
           {cards.map((card) => (

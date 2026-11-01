@@ -11,6 +11,7 @@ import {
   searchScopeAtom,
   wordsMeaningAtom,
 } from '@/atoms/settings'
+import ThemeToggle from '@/components/theme-toggle'
 import { listBuckets } from '@/db/repo'
 
 /** Preferences: deck footers, word list display, search scope. */
@@ -66,6 +67,12 @@ export default function SettingsScreen() {
             value={showMeaning}
             onChange={setShowMeaning}
           />
+          <View className="border-gray-200 py-3 dark:border-gray-800 border-b">
+            <Text className="font-semibold text-black dark:text-white text-[15px]">Theme</Text>
+            <View className="mt-3">
+              <ThemeToggle />
+            </View>
+          </View>
           <SettingRow
             label="Local search"
             hint="Search opened from a bucket stays inside it"
