@@ -7,9 +7,9 @@ import raw700 from '../../data/700.json'
 import raw2050 from '../../data/2050.json'
 import { bucket, word } from './schema'
 
-type SeedDistractor = { word: string; meaning: string }
+export type SeedDistractor = { word: string; meaning: string }
 
-type SeedWord = {
+export type SeedWord = {
   position: number
   word: string
   ipa: string
@@ -33,7 +33,7 @@ const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
 const SEED_CHUNK = 500
 
 /** Stable short hash (djb2) of the serialized word content. */
-function contentHash(words: SeedWord[]): string {
+export function contentHash(words: SeedWord[]): string {
   const json = JSON.stringify(words)
   let hash = 5381
   for (let i = 0; i < json.length; i++) hash = ((hash << 5) + hash + json.charCodeAt(i)) | 0
