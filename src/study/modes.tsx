@@ -13,7 +13,7 @@ const quizOptions = new Map<number, QuizOption[]>()
 
 const swipeMode: StudyMode = {
   id: 'swipe',
-  label: 'Feed',
+  label: 'Swipe',
   renderCard: (props) => (
     <WordCard
       position={props.word.position}
@@ -36,7 +36,7 @@ const swipeMode: StudyMode = {
 }
 
 const choiceMode: StudyMode = {
-  id: 'choice',
+  id: 'quiz',
   label: 'Quiz',
   // Options are computed once per load: curated distractors topped up from
   // the bucket, shuffled into display order. Fixed for the whole session —
@@ -73,7 +73,7 @@ const choiceMode: StudyMode = {
 }
 
 const typingMode: StudyMode = {
-  id: 'typing',
+  id: 'type',
   label: 'Type',
   renderCard: (props) => (
     <TypingCard

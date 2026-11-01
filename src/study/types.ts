@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import type { DeckWord } from '@/types/word'
 
-export type StudyModeId = 'swipe' | 'choice' | 'typing'
+export type StudyModeId = 'swipe' | 'quiz' | 'type'
 
 export interface AnswerRecord {
   correct: boolean

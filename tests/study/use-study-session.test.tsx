@@ -27,7 +27,7 @@ const BUCKET = '2050'
 // side effect the tests can observe.
 let prepared = 0
 const testMode: StudyMode = {
-  id: 'choice',
+  id: 'quiz',
   label: 'Quiz',
   speakOnSettle: false,
   scrubbable: true,

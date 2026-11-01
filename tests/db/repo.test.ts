@@ -86,14 +86,14 @@ describe('answer log', () => {
       bucketId: BUCKET,
       round: 1,
       position: 1701,
-      mode: 'choice',
+      mode: 'quiz',
       correct: true,
     })
     await recordAnswer({
       bucketId: BUCKET,
       round: 1,
       position: 1702,
-      mode: 'typing',
+      mode: 'type',
       correct: false,
     })
     const rows = await db.all('SELECT * FROM answer_log ORDER BY answered_at')
