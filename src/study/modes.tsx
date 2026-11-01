@@ -6,6 +6,11 @@ import { TypingCard } from '@/components/study/typing-card'
 import { WordCard } from '@/components/word-card'
 import { buildOptions, pickDistractors } from '@/lib/quiz'
 
+// The choice mode's per-card options, rebuilt by prepare() on every data
+// load and read by renderCard. Module-level on purpose: the data must stay
+// stable across FlatList card recycling (and HMR simply restarts it).
+const quizOptions = new Map<number, QuizOption[]>()
+
 const swipeMode: StudyMode = {
   id: 'swipe',
   label: 'Feed',
@@ -37,19 +42,18 @@ const choiceMode: StudyMode = {
   // the bucket, shuffled into display order. Fixed for the whole session —
   // recycled cards must not reshuffle in front of the user.
   prepare: (words) => {
-    const payloads = new Map<number, unknown>()
+    quizOptions.clear()
     for (const word of words) {
-      payloads.set(
+      quizOptions.set(
         word.position,
         buildOptions(word, pickDistractors(word, word.distractors, words)),
       )
     }
-    return payloads
   },
   renderCard: (props) => (
     <ChoiceCard
       word={props.word}
-      options={(props.payload as QuizOption[] | undefined) ?? []}
+      options={quizOptions.get(props.word.position) ?? []}
       answered={props.answered}
       onAnswer={props.onAnswer}
       onReplay={props.onReplay}

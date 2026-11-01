@@ -17,9 +17,6 @@ export type AnswerState = AnswerRecord | { skipped: true }
  * session state of their own — FlatList recycles them. */
 export interface StudyCardProps {
   word: DeckWord
-  /** Session-stable per-card data computed by prepare() (e.g. shuffled
-   * options). All randomness lives in prepare, never in render. */
-  payload: unknown
   /** undefined = not answered yet (or the mode has no answers). */
   answered: AnswerState | undefined
   onAnswer: (correct: boolean, picked?: string) => void
@@ -43,9 +40,9 @@ export interface StudyMode {
   id: StudyModeId
   /** Home chip + headerCenter label. */
   label: string
-  /** Runs once per data load: builds session-stable per-card payloads. All
-   * randomness lives here. */
-  prepare?: (words: DeckWord[]) => Map<number, unknown>
+  /** Runs once per data load: rebuilds the mode's private per-card data
+   * (e.g. shuffled options). All randomness lives here. */
+  prepare?: (words: DeckWord[]) => void
   renderCard: (props: StudyCardProps) => ReactNode
   /** The deck auto-speaks on open/settle/scrub. Typing must be false —
    * speaking the word would leak the answer. */

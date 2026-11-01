@@ -25,7 +25,7 @@ export default function StudyScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
-  const { session, payloads, actions } = useStudySession(bucketName, mode)
+  const { session, actions } = useStudySession(bucketName, mode)
   const deckRef = useRef<WordDeckHandle>(null)
   // Pending auto-advance after a correct answer; cancelled on unmount.
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -70,7 +70,6 @@ export default function StudyScreen() {
         renderCard={(word: DeckWord, helpers) =>
           mode.renderCard({
             word,
-            payload: payloads.get(word.position),
             answered: session.answers[word.position],
             onAnswer: (correct, picked) => {
               actions.answer(word, correct, picked)

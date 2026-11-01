@@ -22,8 +22,6 @@ import { LOADING_SESSION, studyReducer } from '@/study/session'
  */
 export function useStudySession(bucket: string, mode: StudyMode) {
   const [session, dispatch] = useReducer(studyReducer, LOADING_SESSION)
-  // Mode-private payloads, rebuilt whenever the word list is rebuilt.
-  const [payloads, setPayloads] = useState<Map<number, unknown>>(new Map())
 
   // Reloads on every focus: a review pushed on top may have re-flagged words.
   // The reload restarts the session (answers/drafts are session-local).
@@ -35,7 +33,6 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         const words = await getWordsWithRoundFlag(bucket, progress.round)
         if (cancelled) return
         dispatch({ type: 'loaded', words, progress })
-        setPayloads(mode.prepare?.(words) ?? new Map())
       })()
       return () => {
         cancelled = true
@@ -109,11 +106,10 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         await completeRound(bucket)
         const fresh: WordWithFlag[] = await getWordsWithRoundFlag(bucket, nextRound)
         dispatch({ type: 'roundWordsLoaded', words: fresh })
-        setPayloads(mode.prepare?.(fresh) ?? new Map())
       })()
       return true
     },
   }
 
-  return { session, payloads, actions }
+  return { session, actions }
 }
