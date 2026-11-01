@@ -9,12 +9,12 @@ import type { DeckWord } from '@/types/word'
 
 import { activeBucketAtom, hudPageAtom, hudRoundAtom, studyModeAtom } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
-import { WordDeckHandle } from '@/components/word-deck'
-import { WordDeck } from '@/components/word-deck'
+import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import {
   countedReviewCount,
   finishReview,
   getProgress,
+  getWordsCompletedOn,
   getWordsWithRoundFlag,
   openReviewSession,
   recordAnswer,
@@ -22,34 +22,48 @@ import {
   setRoundFlag,
   type ReviewSessionRow,
 } from '@/db/repo'
+import { formatDayLabel } from '@/lib/format'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
 import { getStudyMode } from '@/study/modes'
 
-type ReviewState = {
+/** Round walk: a counted pass over one round's flag list. */
+type RoundWalk = {
+  kind: 'round'
   session: ReviewSessionRow
   queue: DeckWord[]
-  /** Real walk-throughs before this one; drafts display countedCount + 1. */
   countedCount: number
-  /** Card to resume from: the first queue word at or after the watermark. */
   startIndex: number
+}
+/** Day walk: the words completed on one day, across buckets — uncounted. */
+type DayWalk = {
+  kind: 'day'
+  day: string
+  queue: (DeckWord & { bucketId: string })[]
+  startIndex: number
+}
+type Walk = RoundWalk | DayWalk
+
+type ReviewState = {
+  walk: Walk
   /** Cards seen, for the footer page number. */
   seen: number
-  /** Per-card answer state, keyed by word position. */
-  answers: Record<number, AnswerState>
+  /** Per-card answer state. Keys: round walk = `pos`; day walk = `bucket:pos`. */
+  answers: Record<string, AnswerState>
   /** Per-card draft text (typing), surviving card recycling. */
-  drafts: Record<number, string>
+  drafts: Record<string, string>
 }
 
 /**
- * Review of one round's flag list, in any study mode. The queue is the
- * session's frozen snapshot; unflagging during the walk updates the round's
- * flag list and the bookmark, but the word stays until the next pass.
- * Answers append to answer_log; gated modes lock the deck until the card
- * on screen is answered or revealed.
+ * Review walks in any study mode:
+ *   - round walk — one round's flag list, counted (time N), session tracked;
+ *   - day walk — the words completed on one day across buckets, uncounted.
+ * The queue is the session's frozen snapshot; unflagging during the walk
+ * updates the round's flag list and the bookmark, but the word stays until
+ * the next pass.
  */
 export default function ReviewScreen() {
-  const params = useLocalSearchParams<{ bucket?: string; round?: string }>()
+  const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
   const [studyMode] = useAtom(studyModeAtom)
@@ -73,33 +87,36 @@ export default function ReviewScreen() {
         Number.isInteger(requested) && requested > 0
           ? requested
           : (await getProgress(bucketName)).round
-      const session = await openReviewSession(bucketName, round)
+      const reviewSession = await openReviewSession(bucketName, round)
       if (cancelled) return
-      if (!session) {
+      if (!reviewSession) {
         setEmpty(true)
         return
       }
       const words = await getWordsWithRoundFlag(bucketName, round)
       const byPosition = new Map(words.map((word) => [word.position, word]))
-      const queue: DeckWord[] = session.queue.flatMap((position) => {
+      const queue: DeckWord[] = reviewSession.queue.flatMap((position) => {
         const word = byPosition.get(position)
         return word ? [word] : []
       })
       // The draft's displayed number is the one it is aiming for.
-      const countedCount = session.counted
-        ? (session.number ?? 1) - 1
+      const countedCount = reviewSession.counted
+        ? (reviewSession.number ?? 1) - 1
         : await countedReviewCount(bucketName, round)
-      const rawStart = queue.findIndex((word) => word.position >= session.lastPosition)
+      const rawStart = queue.findIndex((word) => word.position >= reviewSession.lastPosition)
       const startIndex = rawStart < 0 ? 0 : rawStart
-      // The mode's payloads (choice options) build from the whole bucket —
-      // the flag list alone is too small a distractor pool.
+      // The choice options build from the whole bucket — the flag list alone
+      // is too small a distractor pool.
       mode.prepare?.(words)
       if (!cancelled) {
         setLoaded({
-          session,
-          queue,
-          countedCount,
-          startIndex,
+          walk: {
+            kind: 'round',
+            session: reviewSession,
+            queue,
+            countedCount,
+            startIndex,
+          },
           seen: startIndex + 1,
           answers: {},
           drafts: {},
@@ -133,36 +150,44 @@ export default function ReviewScreen() {
     return <View className="bg-white dark:bg-black flex-1" />
   }
 
-  const { session, queue, countedCount, startIndex, seen } = loaded
-  const timeLabel = session.counted
-    ? `time ${session.number}`
-    : `time ${countedCount + 1} · uncounted`
+  const { walk, seen, answers, drafts } = loaded
+  const roundWalk = walk.kind === 'round' ? walk : undefined
+  const countedCount = roundWalk ? roundWalk.countedCount : undefined
+  // Answer keys: round walk keys by position; the day walk spans buckets so
+  // its keys are composite (bucket:position).
+  const answerKeyOf = (word: DeckWord & { bucketId?: string }): string =>
+    walk.kind === 'day' ? `${word.bucketId}:${word.position}` : `${word.position}`
+  const timeLabel = roundWalk
+    ? roundWalk.session.counted
+      ? `time ${roundWalk.session.number}`
+      : `time ${roundWalk.countedCount + 1} · uncounted`
+    : undefined
   const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <WordDeck
-        words={queue}
-        resetKey={`${bucketName}:${session.round}:${session.id}`}
-        initialIndex={startIndex}
+        words={walk.queue}
+        resetKey={`${bucketName}:${walk.kind}:${walk.kind === 'round' ? walk.session.id : walk.day}`}
+        initialIndex={walk.startIndex}
         autoSpeak={mode.speakOnSettle}
         onSpeak={(word) => speakWord(word.word)}
         renderCard={(word: DeckWord, helpers) =>
           mode.renderCard({
             word,
-            answered: loaded.answers[word.position],
+            answered: answers[answerKeyOf(word)],
             onAnswer: (correct, picked) => {
               setLoaded((prev) =>
                 prev
                   ? {
                       ...prev,
-                      answers: { ...prev.answers, [word.position]: { correct, picked } },
+                      answers: { ...prev.answers, [answerKeyOf(word)]: { correct, picked } },
                     }
                   : prev,
               )
               void recordAnswer({
                 bucketId: bucketName,
-                round: session.round,
+                round: walk.kind === 'round' ? walk.session.round : 0,
                 position: word.position,
                 mode: mode.id,
                 correct,
@@ -179,13 +204,16 @@ export default function ReviewScreen() {
             onSkip: () =>
               setLoaded((prev) =>
                 prev
-                  ? { ...prev, answers: { ...prev.answers, [word.position]: { skipped: true } } }
+                  ? {
+                      ...prev,
+                      answers: { ...prev.answers, [answerKeyOf(word)]: { skipped: true } },
+                    }
                   : prev,
               ),
-            draft: loaded.drafts[word.position] ?? '',
+            draft: drafts[answerKeyOf(word)] ?? '',
             onDraft: (value) =>
               setLoaded((prev) =>
-                prev ? { ...prev, drafts: { ...prev.drafts, [word.position]: value } } : prev,
+                prev ? { ...prev, drafts: { ...prev.drafts, [answerKeyOf(word)]: value } } : prev,
               ),
             onReplay: helpers.onReplay,
             onToggleFlag: () => {
@@ -200,37 +228,29 @@ export default function ReviewScreen() {
                     }
                   : prev,
               )
-              void setRoundFlag(bucketName, session.round, word.position, flagged)
+              void setRoundFlag(
+                bucketName,
+                walk.kind === 'round' ? walk.session.round : 0,
+                word.position,
+                flagged,
+              )
             },
+            onNext: () => deckRef.current?.advance(),
           })
         }
         canSettle={(from, to) => {
           // Gated modes: the card being left must be answered or revealed.
           if (mode.scrollable) return true
-          const fromWord = queue[from]
+          const fromWord = walk.queue[from]
           if (!fromWord) return true
-          return loaded.answers[fromWord.position] !== undefined
+          return answers[answerKeyOf(fromWord)] !== undefined
         }}
         onSettle={(word, index) => {
-          void settleReview(session.id, word.position)
+          if (walk.kind === 'round') void settleReview(walk.session.id, word.position)
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onScrub={(index) => {
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
-        }}
-        onToggleFlag={(word) => {
-          const flagged = !word.flagged
-          setLoaded((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  queue: prev.queue.map((w) =>
-                    w.position === word.position ? { ...w, flagged } : w,
-                  ),
-                }
-              : prev,
-          )
-          void setRoundFlag(bucketName, session.round, word.position, flagged)
         }}
         onSearch={() =>
           router.push({
@@ -241,16 +261,17 @@ export default function ReviewScreen() {
         onClose={() => router.back()}
         scrubbable={mode.scrubbable}
         scrollEnabled={mode.scrollable}
+        autoSpeak={mode.speakOnSettle}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-            Review {bucketName} {session.round}
+            Review {bucketName} {walk.kind === 'round' ? walk.session.round : ''}
           </Text>
         }
         hudLeft={showRound ? <Text className={hudTextClass}>{timeLabel}</Text> : undefined}
         hudRight={
           showPage ? (
             <Text className={hudTextClass} style={{ fontVariant: ['tabular-nums'] }}>
-              {Math.min(seen, queue.length)}/{queue.length}
+              {Math.min(seen, walk.queue.length)}/{walk.queue.length}
             </Text>
           ) : undefined
         }
@@ -264,7 +285,7 @@ export default function ReviewScreen() {
             </View>
           ),
           onReached: () => {
-            void finishReview(session.id)
+            if (walk.kind === 'round') void finishReview(walk.session.id)
           },
           action: 'close',
         }}

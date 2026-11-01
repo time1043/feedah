@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, isNull, isNotNull, sql } from 'drizzle-orm'
+import { and, count, eq, gte, inArray, isNull, isNotNull, lte, sql } from 'drizzle-orm'
 import * as Crypto from 'expo-crypto'
 
 import type { Distractor, Word } from '@/types/word'
@@ -619,6 +619,66 @@ export async function addDailyTime(
 export async function listDailyStats() {
   const db = await getDb()
   return db.select().from(dailyStat).orderBy(dailyStat.day)
+}
+
+/** The bucket's word positions flagged in one round, ascending. */
+export async function getRoundFlagPositions(bucketId: string, round: number): Promise<number[]> {
+  const db = await getDb()
+  const rows = await db
+    .select({ position: roundFlag.position })
+    .from(roundFlag)
+    .where(and(eq(roundFlag.bucketId, bucketId), eq(roundFlag.round, round)))
+    .orderBy(roundFlag.position)
+  return rows.map((row) => row.position)
+}
+
+/**
+ * Distinct words completed on a local day, across all buckets, rebuilt from
+ * the daily pointer high-water marks: the day's globalPosition gain over the
+ * previous recorded snapshot names exactly the global positions settled that
+ * day — the same rule the stats word counts use, so the queue always matches
+ * the number. Rows carry their bucket id (a day review spans buckets).
+ */
+export async function getWordsCompletedOn(day: string): Promise<(Word & { bucketId: string })[]> {
+  const db = await getDb()
+  const pointers = await db
+    .select()
+    .from(dailyPointer)
+    .orderBy(dailyPointer.bucketId, dailyPointer.day)
+  const prevByBucket = new Map<string, number>()
+  const ranges: { bucketId: string; from: number; to: number }[] = []
+  for (const row of pointers) {
+    if (row.day === day) {
+      const from = (prevByBucket.get(row.bucketId) ?? 0) + 1
+      if (row.globalPosition >= from) {
+        ranges.push({ bucketId: row.bucketId, from, to: row.globalPosition })
+      }
+    }
+    prevByBucket.set(row.bucketId, row.globalPosition)
+  }
+
+  const out: (Word & { bucketId: string })[] = []
+  const seen = new Set<string>()
+  for (const range of ranges) {
+    const rows = await db
+      .select()
+      .from(word)
+      .where(
+        and(
+          eq(word.bucketId, range.bucketId),
+          gte(word.position, range.from),
+          lte(word.position, range.to),
+        ),
+      )
+      .orderBy(word.position)
+    for (const row of rows) {
+      const key = `${row.bucketId}:${row.position}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push({ ...mapWord(row), bucketId: row.bucketId })
+    }
+  }
+  return out
 }
 
 export async function listDailyPointers() {

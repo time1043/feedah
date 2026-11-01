@@ -113,9 +113,10 @@ type DeckItem = { kind: 'word'; word: DeckWord } | { kind: 'end' }
  *   - The viewport height is measured and kept fractional; every card is
  *     exactly that tall, otherwise pagingEnabled snapping drifts off the
  *     card boundaries.
- *   - All programmatic jumps are instant (animated: false), which fires no
- *     scroll events; a `suppressSettle` flag guards against any stray event,
- *     and the next real gesture's momentum-begin clears it.
+ *   - Programmatic jumps are instant (animated: false) except advance(),
+ *     which slides animated and dedupes its double settle via speakAt. A
+ *     'suppressSettle' flag guards against stray scroll events, and the
+ *     next real gesture's momentum-begin clears it.
  *   - Settles are computed from contentOffset / viewport on momentum end,
  *     never from gesture velocity.
  */
