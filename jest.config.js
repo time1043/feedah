@@ -5,9 +5,10 @@ process.env.TZ = 'UTC'
 module.exports = {
   preset: 'jest-expo',
 
-  // Suites live in tests/, mirroring the src/ tree. Component tests
-  // (*.test.tsx) are deliberately out of scope.
-  testMatch: ['<rootDir>/tests/**/*.test.ts'],
+  // Suites live in tests/, mirroring the src/ tree. *.test.tsx files are
+  // react-test-renderer probes (no DOM), currently only the study-session
+  // wiring suite.
+  testMatch: ['<rootDir>/tests/**/*.test.{ts,tsx}'],
 
   clearMocks: true,
 }
