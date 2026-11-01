@@ -149,8 +149,12 @@ export function WordDeck({
   // Gesture scrolling re-derives from the gate on every render: while the
   // card on screen is unanswered (and the mode gates answers) the list
   // simply cannot be scrolled — in the same commit the answer state changed.
-  const gesturesEnabled =
-    scrollEnabled && (!canSettle || canSettle(index, Math.min(index + 1, itemCount - 1)))
+  // With a gate, gesture scrolling comes from canSettle alone — the gate
+  // already encodes browsing and the answer state. Without one, the plain
+  // scrollEnabled prop governs (swipe mode: always true).
+  const gesturesEnabled = canSettle
+    ? canSettle(index, Math.min(index + 1, itemCount - 1))
+    : scrollEnabled
 
   const listRef = useRef<FlatList<DeckItem> | null>(null)
   const suppressSettle = useRef(false)

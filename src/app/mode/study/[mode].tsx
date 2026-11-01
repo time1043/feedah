@@ -90,7 +90,6 @@ export default function StudyScreen() {
           return to <= from || session.answers[fromWord.position] !== undefined
         }}
         scrubbable={mode.scrubbable}
-        scrollEnabled={mode.scrollable || session.browsing}
         headerCenter={
           session.browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>
