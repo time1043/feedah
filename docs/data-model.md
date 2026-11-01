@@ -63,9 +63,11 @@ in the bucket's position-ordered word list).
 and one round-advance protocol; a mode is only a different card renderer
 plus per-card payloads (`src/study/`). Choice/typing are answer-gated:
 the deck cannot scroll while the card on screen is unanswered, so a
-question cannot be skipped. Their answers append to `answer_log`, never
-move the pointer and never auto-flag; an unanswered card that is passed
-by feed-style swiping (swipe mode) remains plain exposure.
+question cannot be skipped — until the user scrubs away, which opens
+browsing (free swiping in every mode) until `Resume studying` returns
+to the frontier. Browse-mode swiping never moves the pointer. Their
+answers append to `answer_log`, never move the pointer and never
+auto-flag.
 
 **Review sessions** — a review is a walk over one round's full flag list,
 snapshotted (frozen) into the session row at creation; flag edits never
