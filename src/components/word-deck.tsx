@@ -175,6 +175,16 @@ export function WordDeck({
     return () => cancelAnimationFrame(frame)
   }, [viewport])
 
+  // Button-driven decks (scrollEnabled=false): there are no scroll gestures
+  // to move the view, so the view follows the index state — every index
+  // change (advance(), reset) scrolls the list to match. This is what makes
+  // advance() actually move the page: its settle only updates the state.
+  useEffect(() => {
+    if (scrollEnabled || viewport <= 0) return
+    suppressSettle.current = true
+    listRef.current?.scrollToIndex({ index, animated: false })
+  }, [index, scrollEnabled, viewport])
+
   const speakAt = useEffectEvent((target: number) => {
     if (autoSpeak === false) return
     const word = words[target]
