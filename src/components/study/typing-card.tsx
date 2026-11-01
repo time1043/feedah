@@ -3,7 +3,7 @@ import { Pressable, Text, TextInput, View } from 'react-native'
 import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { BookmarkButton, CardHeadword } from '@/components/study/card-parts'
+import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from '@/components/study/card-parts'
 import { normalizeAnswer } from '@/lib/quiz'
 
 type TypingCardProps = {
@@ -19,11 +19,11 @@ type TypingCardProps = {
 }
 
 /**
- * The typing card: the Chinese meaning is the prompt, the English word goes
- * on the line. The input sits in the card's upper half so the keyboard never
- * covers it. Submitting locks the card and reveals the word; "show answer"
- * reveals it without recording. The prompt's meaning stays visible either
- * way. Swipe to move on — same exposure semantics as every mode.
+ * The typing card mirrors the feed card's layout exactly: the position sits
+ * on top, the input line occupies the word's place, and the reserved meaning
+ * slot below shows the Chinese prompt (always visible — it IS the prompt).
+ * Once answered or revealed, the word and its forms appear in their feed
+ * positions, so the revealed card is the feed card.
  */
 export function TypingCard({
   word,
@@ -47,53 +47,34 @@ export function TypingCard({
 
   return (
     <View className="flex-1">
-      <View className="px-8 pt-10 flex-1 justify-center">
-        <Text className="text-gray-400 dark:text-gray-500 text-center text-[13px]">
-          {word.position} · type the word
-        </Text>
-        {/* The prompt is the meaning; the English word stays hidden until
-            the card is answered or revealed. */}
-        <Text className="mt-6 font-semibold leading-9 text-black dark:text-white text-center text-[26px]">
-          {word.meaning}
-        </Text>
-        <TextInput
-          value={draft}
-          onChangeText={onDraft}
-          onSubmitEditing={submit}
-          editable={!revealed}
-          returnKeyType="go"
-          autoCapitalize="none"
-          autoCorrect={false}
-          spellCheck={false}
-          placeholder="type the word…"
-          placeholderTextColor="#9CA3AF"
-          className={`mt-6 rounded-xl bg-white px-4 py-3 text-black dark:bg-gray-900 dark:text-white border text-center text-[19px] ${
-            !revealed
-              ? 'border-gray-300 dark:border-gray-700'
-              : correct
-                ? 'border-green-500 bg-green-50 dark:bg-green-950'
-                : 'border-red-500 bg-red-50 dark:bg-red-950'
-          }`}
+      <View className="px-8 flex-1 items-center justify-center">
+        <CardHeadword
+          position={word.position}
+          text={revealed ? word.word : undefined}
+          ipa={revealed ? word.ipa : undefined}
+          onReplay={onReplay}
         />
-        {revealed && (
-          <View className="mt-6 gap-3 items-center">
-            {submitted && !correct && (
-              <Text className="text-red-600 dark:text-red-400 text-[15px]">correct spelling:</Text>
-            )}
-            <CardHeadword
-              position={word.position}
-              text={word.word}
-              ipa={word.ipa}
-              onReplay={onReplay}
-            />
-            {revealed && 'skipped' in answered && (
-              <Text className="text-gray-400 dark:text-gray-500 text-[13px]">not recorded</Text>
-            )}
-          </View>
+        {!revealed && (
+          <TextInput
+            value={draft}
+            onChangeText={onDraft}
+            onSubmitEditing={submit}
+            returnKeyType="go"
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            placeholder="type the word…"
+            placeholderTextColor="#9CA3AF"
+            className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] w-full max-w-[320px] border-b-2 text-center text-[32px]"
+          />
         )}
+        {/* Same reserved slot as the feed card: the Chinese prompt lives here. */}
+        <View className="mt-4 h-[110px] items-center justify-start">
+          <CardMeaning meaning={word.meaning} />
+        </View>
       </View>
 
-      <View className="flex-1 items-center justify-center">
+      <View className="px-8 flex-1 items-center justify-center">
         {!revealed ? (
           <Pressable
             onPress={submit}
@@ -102,7 +83,9 @@ export function TypingCard({
           >
             <Text className="font-semibold text-white">Check</Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <CardForms forms={word.forms} />
+        )}
       </View>
 
       {!revealed && (

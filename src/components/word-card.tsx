@@ -1,11 +1,7 @@
 import { useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, View } from 'react-native'
 
-import { BookmarkButton, CardHeadword, CardMeaning } from '@/components/study/card-parts'
-
-// Word forms render in a fixed 2×6 grid (12 cells); empty cells keep the
-// layout, so the card height is constant across words.
-const FORMS_GRID_CELLS = 12
+import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from '@/components/study/card-parts'
 
 type WordCardProps = {
   position: number
@@ -55,23 +51,7 @@ export function WordCard({
         className="px-8 flex-1 items-center justify-center"
         onPress={() => setRevealed((value) => !value)}
       >
-        {revealed && forms.length > 0 && (
-          <View className="mb-6 w-full flex-row flex-wrap">
-            {Array.from({ length: FORMS_GRID_CELLS }).map((_, i) => (
-              <View key={i} className="mb-2 h-7 px-2 w-1/2 justify-center">
-                {forms[i] != null && (
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    className="text-gray-400 dark:text-gray-500 text-[13px]"
-                  >
-                    {forms[i]}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
+        {revealed && <CardForms forms={forms} />}
       </Pressable>
 
       <BookmarkButton flagged={flagged} onToggleFlag={onToggleFlag} />

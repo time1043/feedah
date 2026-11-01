@@ -3,7 +3,13 @@ import { Pressable, Text, View, useColorScheme } from 'react-native'
 
 import { meaningLines } from '@/lib/meaning'
 
-/** Position number, the big tappable word (replays pronunciation) and ipa. */
+// Word forms render in a fixed 2×6 grid (12 cells); empty cells keep the
+// layout, so the card height is constant across words.
+const FORMS_GRID_CELLS = 12
+
+/** Position number, the big tappable word (replays pronunciation) and ipa.
+ * Omit `text` to render the position alone (typing hides the word until it
+ * is answered). */
 export function CardHeadword({
   position,
   text,
@@ -11,7 +17,7 @@ export function CardHeadword({
   onReplay,
 }: {
   position: number
-  text: string
+  text?: string
   ipa?: string
   onReplay: () => void
 }) {
@@ -23,18 +29,22 @@ export function CardHeadword({
       >
         {position}
       </Text>
-      <Pressable onPress={onReplay} hitSlop={12}>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-          className="font-extrabold text-black dark:text-white text-center text-[48px]"
-        >
-          {text}
-        </Text>
-      </Pressable>
-      {ipa && ipa.length > 0 && (
-        <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">{ipa}</Text>
+      {text !== undefined && text.length > 0 && (
+        <>
+          <Pressable onPress={onReplay} hitSlop={12}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+              className="font-extrabold text-black dark:text-white text-center text-[48px]"
+            >
+              {text}
+            </Text>
+          </Pressable>
+          {ipa && ipa.length > 0 && (
+            <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">{ipa}</Text>
+          )}
+        </>
       )}
     </>
   )
@@ -54,6 +64,28 @@ export function CardMeaning({ meaning }: { meaning: string }) {
     </View>
   ) : (
     <Text className="text-xl text-gray-500 dark:text-gray-400 text-center">{meaning}</Text>
+  )
+}
+
+/** The supplementary forms grid, shown together with the meaning. */
+export function CardForms({ forms }: { forms: string[] }) {
+  if (forms.length === 0) return null
+  return (
+    <View className="mb-6 w-full flex-row flex-wrap">
+      {Array.from({ length: FORMS_GRID_CELLS }).map((_, i) => (
+        <View key={i} className="mb-2 h-7 px-2 w-1/2 justify-center">
+          {forms[i] != null && (
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+            >
+              {forms[i]}
+            </Text>
+          )}
+        </View>
+      ))}
+    </View>
   )
 }
 
