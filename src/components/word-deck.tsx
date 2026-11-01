@@ -21,6 +21,9 @@ const END_LINGER_MS = 2000
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
   scrollTo(index: number): void
+  /** Settles the NEXT card through the full path (probe records, end page
+   * fires) and scrolls to it. Button-driven modes auto-advance here. */
+  advance(): void
 }
 
 export interface WordDeckEnd {
@@ -248,6 +251,13 @@ export function WordDeck({
       suppressSettle.current = true
       listRef.current?.scrollToIndex({ index: clamped, animated: false })
       setIndex(clamped)
+    },
+    advance: () => {
+      const target = clamp(indexRef.current + 1)
+      if (target === indexRef.current) return
+      suppressSettle.current = true
+      listRef.current?.scrollToIndex({ index: target, animated: false })
+      settle(target)
     },
   }))
 

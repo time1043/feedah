@@ -60,6 +60,8 @@ const choiceMode: StudyMode = {
   speakOnSettle: true,
   scrubbable: false,
   scrollable: false,
+  autoAdvanceMs: 650,
+  autoFlagOnWrong: true,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} correct · Round ${nextRound} starts in a moment`,

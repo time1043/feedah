@@ -57,6 +57,10 @@ export interface StudyMode {
    * false: the screen toggles scrollEnabled while the current card is
    * unanswered, so the only way forward is answering. */
   scrollable: boolean
+  /** After a CORRECT answer the deck auto-advances after this many ms. */
+  autoAdvanceMs?: number
+  /** A wrong answer auto-flags the word (the user can unflag freely). */
+  autoFlagOnWrong?: boolean
   /** End-page copy. nextRound is the round that starts after the linger. */
   endCopy: (facts: { nextRound: number; total: number; correct: number; answered: number }) => {
     title: string

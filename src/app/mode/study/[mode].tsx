@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -48,6 +48,11 @@ export default function StudyScreen() {
   const [loaded, setLoaded] = useState<StudyState | null>(null)
   const [browsing, setBrowsing] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
+  // Pending auto-advance after a correct answer; cancelled on unmount.
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Mirrors the deck index so the auto-advance timer can check that the
+  // answered card is still on screen when it fires.
+  const deckIndexRef = useRef(0)
   // The deck's current card index, mirrored for the answer gate: quiz and
   // typing lock scrolling while the card on screen is unanswered.
   const [deckIndex, setDeckIndex] = useState(0)
@@ -73,6 +78,14 @@ export default function StudyScreen() {
         cancelled = true
       }
     }, [bucketName, mode]),
+  )
+
+  // A pending auto-advance must not fire after the screen is gone.
+  useEffect(
+    () => () => {
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+    },
+    [],
   )
 
   if (!loaded) {
@@ -118,6 +131,25 @@ export default function StudyScreen() {
                 mode: mode.id,
                 correct,
               })
+              // A wrong pick auto-flags the word (the bookmark can undo it).
+              if (!correct && mode.autoFlagOnWrong && !word.flagged) {
+                patch({
+                  words: words.map((w) =>
+                    w.position === word.position ? { ...w, flagged: true } : w,
+                  ),
+                })
+                void setRoundFlag(bucketName, progress.round, word.position, true)
+              }
+              // A correct answer advances on its own — but only while the
+              // answered card is still the one on screen.
+              if (correct && mode.autoAdvanceMs) {
+                if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+                autoAdvanceTimer.current = setTimeout(() => {
+                  if (words[deckIndexRef.current]?.position === word.position) {
+                    deckRef.current?.advance()
+                  }
+                }, mode.autoAdvanceMs)
+              }
             },
             onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
             draft: drafts[word.position] ?? '',
@@ -139,7 +171,10 @@ export default function StudyScreen() {
         }}
         onScrub={() => setBrowsing(true)}
         onClose={() => router.back()}
-        onIndexChange={(index) => setDeckIndex((prev) => (prev === index ? prev : index))}
+        onIndexChange={(index) => {
+          deckIndexRef.current = index
+          setDeckIndex((prev) => (prev === index ? prev : index))
+        }}
         scrubbable={mode.scrubbable && progress.pointer > 0}
         scrollEnabled={
           mode.scrollable ||
