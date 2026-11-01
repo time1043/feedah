@@ -11,6 +11,10 @@ export const studyModeAtom = storedAtom<StudyModeId>('feedah.study-mode', 'swipe
 /** Whether the word list shows the meaning column (default hidden). */
 export const wordsMeaningAtom = storedAtom<boolean>('feedah.words-meaning', false)
 
+/** The study deck's header: mode/bucket title and the progress bar. */
+export const deckTitleAtom = storedAtom<boolean>('feedah.deck-title', true)
+export const deckProgressBarAtom = storedAtom<boolean>('feedah.deck-progress-bar', true)
+
 /** The deck footers: current page number (bottom right) and round/time (bottom left). */
 export const hudPageAtom = storedAtom<boolean>('feedah.hud-page', true)
 export const hudRoundAtom = storedAtom<boolean>('feedah.hud-round', true)

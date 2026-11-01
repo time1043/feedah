@@ -6,7 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
+import {
+  activeBucketAtom,
+  deckProgressBarAtom,
+  deckTitleAtom,
+  hudPageAtom,
+  hudRoundAtom,
+} from '@/atoms/settings'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
@@ -26,6 +32,8 @@ export default function StudyScreen() {
   const bucketName = useAtomValue(activeBucketAtom)
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
+  const showTitle = useAtomValue(deckTitleAtom)
+  const showProgressBar = useAtomValue(deckProgressBarAtom)
   const { session, actions } = useStudySession(bucketName, mode)
   const deckRef = useRef<WordDeckHandle>(null)
 
@@ -89,17 +97,18 @@ export default function StudyScreen() {
           if (!fromWord) return true
           return to <= from || session.answers[fromWord.position] !== undefined
         }}
+        progressBar={showProgressBar}
         scrubbable={mode.scrubbable}
         headerCenter={
           session.browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>
               <Text className="font-semibold text-white text-[13px]">Resume studying</Text>
             </Pressable>
-          ) : (
+          ) : showTitle ? (
             <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
               {mode.label} · {bucketName}
             </Text>
-          )
+          ) : undefined
         }
         hudLeft={
           showRound ? <Text className={hudTextClass}>round {progress.round}</Text> : undefined

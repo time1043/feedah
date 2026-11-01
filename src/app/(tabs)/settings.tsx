@@ -5,6 +5,8 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import {
+  deckProgressBarAtom,
+  deckTitleAtom,
   hudPageAtom,
   hudRoundAtom,
   searchLocalAtom,
@@ -16,6 +18,8 @@ import { listBuckets } from '@/db/repo'
 
 /** Preferences: deck footers, word list display, search scope. */
 export default function SettingsScreen() {
+  const [showTitle, setShowTitle] = useAtom(deckTitleAtom)
+  const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
   const [showPage, setShowPage] = useAtom(hudPageAtom)
   const [showRound, setShowRound] = useAtom(hudRoundAtom)
   const [showMeaning, setShowMeaning] = useAtom(wordsMeaningAtom)
@@ -49,6 +53,18 @@ export default function SettingsScreen() {
       >
         <Text className="p-4 pb-2 font-bold text-black dark:text-white text-[22px]">Settings</Text>
         <View className="gap-1 px-4">
+          <SettingRow
+            label="Deck title"
+            hint="Mode and bucket label at the top of the study screen"
+            value={showTitle}
+            onChange={setShowTitle}
+          />
+          <SettingRow
+            label="Progress bar"
+            hint="The bar at the top of the study screen"
+            value={showProgressBar}
+            onChange={setShowProgressBar}
+          />
           <SettingRow
             label="Page number"
             hint="Current position of the deck, bottom right"

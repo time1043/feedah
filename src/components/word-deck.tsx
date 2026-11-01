@@ -82,6 +82,8 @@ type WordDeckProps = {
    * turn this off — speaking the word would leak the answer.
    */
   autoSpeak?: boolean
+  /** Whether the header progress bar renders at all. */
+  progressBar?: boolean
   /** Whether the progress bar can be grabbed and scrubbed. */
   scrubbable?: boolean
   /** User gestures scroll the deck. Button-driven modes (quiz/typing)
@@ -135,6 +137,7 @@ export function WordDeck({
   hudRight,
   onClose,
   scrubbable = false,
+  progressBar = true,
   scrollEnabled = true,
   canSettle,
   end,
@@ -333,7 +336,9 @@ export function WordDeck({
             <View className="w-8" />
           )}
         </View>
-        <ProgressBar value={index} max={itemCount} scrubbable={scrubbable} onScrub={scrubTo} />
+        {progressBar && (
+          <ProgressBar value={index} max={itemCount} scrubbable={scrubbable} onScrub={scrubTo} />
+        )}
       </View>
 
       <View
