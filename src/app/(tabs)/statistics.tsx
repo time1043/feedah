@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { TabHeader } from '@/components/header'
 import { Heatmap } from '@/components/heatmap'
 import { listDailyPointers, listDailyStats } from '@/db/repo'
 import { computeDailyUsage, type DailyUsage } from '@/lib/daily'
@@ -52,18 +53,19 @@ export default function StatisticsScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <ScrollView
-        contentContainerStyle={{ gap: 24, padding: 16 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="flex-row items-center justify-between">
-          <Text className="font-bold text-black dark:text-white text-[22px]">Statistics</Text>
+      <TabHeader
+        title="Statistics"
+        right={
           <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
             {formatDayLabel(selectedDay)}
             {isToday ? ' · today' : ''}
           </Text>
-        </View>
-
+        }
+      />
+      <ScrollView
+        contentContainerStyle={{ gap: 24, padding: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View className="gap-3 flex-row">
           <View className="rounded-xl border-gray-300 py-3 dark:border-gray-700 flex-1 items-center border">
             <Text

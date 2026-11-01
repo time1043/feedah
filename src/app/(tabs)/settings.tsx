@@ -12,6 +12,7 @@ import {
   searchLocalAtom,
   wordsMeaningAtom,
 } from '@/atoms/settings'
+import { TabHeader } from '@/components/header'
 import ThemeToggle from '@/components/theme-toggle'
 
 /** Global preferences: theme, study deck chrome, word list display, search. */
@@ -25,8 +26,8 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
+      <TabHeader title="Settings" />
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <Text className="p-4 pb-2 font-bold text-black dark:text-white text-[22px]">Settings</Text>
         <View className="gap-1 px-4">
           <SettingRow
             label="Theme"

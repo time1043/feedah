@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons'
 import {
   useEffect,
   useEffectEvent,
@@ -8,10 +7,11 @@ import {
   type ReactNode,
   type Ref,
 } from 'react'
-import { FlatList, Pressable, View, useColorScheme } from 'react-native'
+import { FlatList, View } from 'react-native'
 
 import type { DeckWord } from '@/types/word'
 
+import { HeaderIconButton } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
 import { WordCard } from '@/components/word-card'
 
@@ -142,7 +142,6 @@ export function WordDeck({
   canSettle,
   end,
 }: WordDeckProps & { ref?: Ref<WordDeckHandle> }) {
-  const scheme = useColorScheme() ?? 'light'
   const itemCount = words.length + (end ? 1 : 0)
   const clamp = (index: number) => Math.max(0, Math.min(index, itemCount - 1))
 
@@ -310,30 +309,12 @@ export function WordDeck({
     <View className="flex-1">
       <View className="px-4 pb-1">
         <View className="min-h-11 py-1 flex-row items-center">
-          <Pressable
-            className="w-8 items-start"
-            onPress={onClose}
-            hitSlop={12}
-            accessibilityLabel="Close"
-          >
-            <Ionicons
-              name="chevron-back"
-              size={28}
-              color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-            />
-          </Pressable>
+          <HeaderIconButton name="chevron-back" onPress={onClose} accessibilityLabel="Close" />
           <View className="flex-1 items-center">{headerCenter}</View>
           {onSearch ? (
-            <Pressable
-              className="w-8 items-end"
-              onPress={onSearch}
-              hitSlop={12}
-              accessibilityLabel="Search words"
-            >
-              <Ionicons name="search" size={20} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
-            </Pressable>
+            <HeaderIconButton name="search" onPress={onSearch} accessibilityLabel="Search words" />
           ) : (
-            <View className="w-8" />
+            <View className="h-9 w-9" />
           )}
         </View>
         {progressBar && (

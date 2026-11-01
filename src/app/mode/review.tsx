@@ -1,13 +1,13 @@
-import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { useEffect, useState } from 'react'
-import { Pressable, Text, View, useColorScheme } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import type { DeckWord } from '@/types/word'
 
 import { activeBucketAtom, hudPageAtom, hudRoundAtom } from '@/atoms/settings'
+import { ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
 import {
   countedReviewCount,
@@ -40,7 +40,6 @@ type ReviewState = {
  * pass. Nothing but the session is recorded.
  */
 export default function ReviewScreen() {
-  const scheme = useColorScheme() ?? 'light'
   const params = useLocalSearchParams<{ bucket?: string; round?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
@@ -88,15 +87,7 @@ export default function ReviewScreen() {
   if (empty) {
     return (
       <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-        <View className="min-h-11 px-4 py-2 flex-row items-center">
-          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Close review">
-            <Ionicons
-              name="chevron-down"
-              size={28}
-              color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-            />
-          </Pressable>
-        </View>
+        <ScreenHeader title="Review" onBack={() => router.back()} />
         <View className="flex-1 items-center justify-center">
           <Text className="text-gray-400 dark:text-gray-500 text-[17px]">Nothing flagged yet</Text>
         </View>

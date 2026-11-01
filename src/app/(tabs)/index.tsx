@@ -1,16 +1,15 @@
-import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
 import { useAtom, useAtomValue } from 'jotai'
 import { useCallback, useState } from 'react'
-import { Pressable, Text, View, useColorScheme } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 
 import { activeBucketAtom, studyModeAtom } from '@/atoms/settings'
+import { HeaderIconButton, TabHeader } from '@/components/header'
 import { getBucketCards, type BucketCard } from '@/db/repo'
 import { STUDY_MODES } from '@/study/modes'
 
 /** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
-  const scheme = useColorScheme() ?? 'light'
   const activeName = useAtomValue(activeBucketAtom)
   const [studyMode] = useAtom(studyModeAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
@@ -28,15 +27,16 @@ export default function Index() {
 
   return (
     <View className="bg-white dark:bg-black flex-1">
-      <View className="px-5 pt-2 flex-row justify-end">
-        <Pressable
-          onPress={() => router.push('/mode/search')}
-          hitSlop={8}
-          accessibilityLabel="Search words"
-        >
-          <Ionicons name="search" size={22} color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'} />
-        </Pressable>
-      </View>
+      <TabHeader
+        title="Home"
+        right={
+          <HeaderIconButton
+            name="search"
+            onPress={() => router.push('/mode/search')}
+            accessibilityLabel="Search words"
+          />
+        }
+      />
 
       <View className="gap-6 p-6 flex-1 items-center justify-center">
         <View className="max-w-sm gap-3 w-full">

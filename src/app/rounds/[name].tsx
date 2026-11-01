@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ScreenHeader } from '@/components/header'
 import { RoundBar } from '@/components/round-bar'
 import { getRoundSummaries, getWordCount, type RoundSummary } from '@/db/repo'
 import { calendarDaysBetween } from '@/lib/date'
@@ -43,24 +44,7 @@ export default function RoundsScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <View className="min-h-11 px-4 py-2 flex-row items-center">
-        <Pressable
-          className="w-8 items-start"
-          onPress={() => router.back()}
-          hitSlop={12}
-          accessibilityLabel="Back"
-        >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-          />
-        </Pressable>
-        <Text className="font-semibold text-black dark:text-white flex-1 text-center text-[17px]">
-          {bucketName}
-        </Text>
-        <View className="w-8" />
-      </View>
+      <ScreenHeader title={bucketName} onBack={() => router.back()} />
 
       <ScrollView
         contentContainerStyle={{ gap: 24, padding: 16 }}

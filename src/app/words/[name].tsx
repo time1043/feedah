@@ -6,9 +6,12 @@ import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { wordsMeaningAtom } from '@/atoms/settings'
+import { ScreenHeader } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
 import { getProgress, getWordsWithRoundFlag, type WordWithFlag } from '@/db/repo'
 import { useNavGuard } from '@/lib/use-nav-guard'
+
+const MUTED = { light: '#9A9EA6', dark: '#7A7E86' } as const
 
 const ROW_HEIGHT = 52
 
@@ -19,7 +22,7 @@ const ROW_HEIGHT = 52
  * opens the word in the browse deck. Pure lookup — nothing is recorded.
  */
 export default function WordsScreen() {
-  const scheme = useColorScheme() ?? 'light'
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
   const { name } = useLocalSearchParams<{ name: string }>()
   const bucketName = Array.isArray(name) ? name[0] : name
   // The eye is per-visit: it starts from the global word-meanings setting on
@@ -69,43 +72,24 @@ export default function WordsScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <View className="min-h-11 px-4 py-2 flex-row items-center">
-        <Pressable
-          className="w-8 items-start"
-          onPress={() => router.back()}
-          hitSlop={12}
-          accessibilityLabel="Back"
-        >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
-          />
-        </Pressable>
-        <Text className="font-semibold text-black dark:text-white flex-1 text-center text-[17px]">
-          {bucketName}
-        </Text>
-        <Pressable
-          className="w-8 items-end"
-          hitSlop={12}
-          accessibilityLabel="Toggle meanings"
-          onPress={() => setShowMeaning(!showMeaning)}
-        >
-          <Ionicons
-            name={showMeaning ? 'eye' : 'eye-off'}
-            size={20}
-            color={
-              showMeaning
-                ? scheme === 'dark'
-                  ? '#4CA0F0'
-                  : '#208AEF'
-                : scheme === 'dark'
-                  ? '#7A7E86'
-                  : '#9A9EA6'
-            }
-          />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={bucketName}
+        onBack={() => router.back()}
+        right={
+          <Pressable
+            className="h-9 w-9 items-center justify-center"
+            hitSlop={4}
+            accessibilityLabel="Toggle meanings"
+            onPress={() => setShowMeaning(!showMeaning)}
+          >
+            <Ionicons
+              name={showMeaning ? 'eye' : 'eye-off'}
+              size={22}
+              color={showMeaning ? '#208AEF' : MUTED[scheme]}
+            />
+          </Pressable>
+        }
+      />
 
       <View className="px-4">
         <ProgressBar

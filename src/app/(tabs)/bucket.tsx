@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, Text, View, useColorScheme } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/settings'
+import { HeaderIconButton, TabHeader } from '@/components/header'
 import { importBucketFile, parseBucketJson } from '@/db/import-bucket'
 import { getBucketCards, type BucketCard } from '@/db/repo'
 
