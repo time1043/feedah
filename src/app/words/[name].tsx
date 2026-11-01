@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { wordsMeaningAtom } from '@/atoms/settings'
 import { ProgressBar } from '@/components/progress-bar'
 import { getProgress, getWordsWithRoundFlag, type WordWithFlag } from '@/db/repo'
+import { useNavGuard } from '@/lib/use-nav-guard'
 
 const ROW_HEIGHT = 52
 
@@ -30,8 +31,7 @@ export default function WordsScreen() {
   const [index, setIndex] = useState(0)
   const [words, setWords] = useState<WordWithFlag[] | null>(null)
   const listRef = useRef<FlatList<WordWithFlag> | null>(null)
-  // Row taps can double-fire while the next screen is pushing.
-  const navigating = useRef(false)
+  const guardedPush = useNavGuard()
 
   // Reloads on every focus: the flag dots follow the bucket's current round.
   useFocusEffect(
@@ -59,17 +59,13 @@ export default function WordsScreen() {
     setIndex(Math.max(0, Math.min((words?.length ?? 1) - 1, Math.round(offsetY / ROW_HEIGHT))))
   }
 
-  const openWord = (word: WordWithFlag) => {
-    if (navigating.current) return
-    navigating.current = true
-    router.push({
-      pathname: '/mode/browse/[position]',
-      params: { position: String(word.position), bucket: bucketName },
-    })
-    setTimeout(() => {
-      navigating.current = false
-    }, 500)
-  }
+  const openWord = (word: WordWithFlag) =>
+    guardedPush(() =>
+      router.push({
+        pathname: '/mode/browse/[position]',
+        params: { position: String(word.position), bucket: bucketName },
+      }),
+    )
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>

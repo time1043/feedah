@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom, searchLocalAtom, searchScopeAtom } from '@/atoms/settings'
 import { listBuckets, searchWords, type SearchResult } from '@/db/repo'
+import { useNavGuard } from '@/lib/use-nav-guard'
 
 /**
  * Word lookup. Without a pinned bucket it spans the configured global scope
@@ -30,8 +31,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const inputRef = useRef<TextInput | null>(null)
-  // Double taps would stack two browse decks.
-  const navigating = useRef(false)
+  const guardedPush = useNavGuard()
 
   useEffect(() => {
     let cancelled = false
@@ -68,21 +68,19 @@ export default function SearchScreen() {
     }
   }, [query, scope])
 
-  const openResult = (result: SearchResult) => {
-    if (navigating.current) return
-    navigating.current = true
-    router.push({
-      pathname: '/mode/browse/[position]',
-      params: {
-        position: String(result.position),
-        bucket: result.bucketId,
-        ...(Number.isInteger(pinnedRound) && pinnedRound > 0 ? { round: String(pinnedRound) } : {}),
-      },
-    })
-    setTimeout(() => {
-      navigating.current = false
-    }, 500)
-  }
+  const openResult = (result: SearchResult) =>
+    guardedPush(() =>
+      router.push({
+        pathname: '/mode/browse/[position]',
+        params: {
+          position: String(result.position),
+          bucket: result.bucketId,
+          ...(Number.isInteger(pinnedRound) && pinnedRound > 0
+            ? { round: String(pinnedRound) }
+            : {}),
+        },
+      }),
+    )
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>

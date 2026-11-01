@@ -13,10 +13,5 @@ export interface Word {
   distractors: Distractor[]
 }
 
-export interface Bucket {
-  name: string
-  words: Word[]
-}
-
 /** A word as the deck consumes it: the static entry plus live flag state. */
 export type DeckWord = Word & { flagged: boolean }

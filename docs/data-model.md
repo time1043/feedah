@@ -66,8 +66,8 @@ the deck cannot scroll while the card on screen is unanswered, so a
 question cannot be skipped — until the user scrubs away, which opens
 browsing (free swiping in every mode) until `Resume studying` returns
 to the frontier. Browse-mode swiping never moves the pointer. Their
-answers append to `answer_log`, never move the pointer and never
-auto-flag.
+answers append to `answer_log` and never move the pointer; a wrong
+pick auto-flags the word (the bookmark can undo it).
 
 **Review sessions** — a review is a walk over one round's full flag list,
 snapshotted (frozen) into the session row at creation; flag edits never

@@ -3,8 +3,6 @@ import { View, useColorScheme } from 'react-native'
 
 import type { RoundWordStatus } from '@/lib/round-status'
 
-export type { RoundWordStatus }
-
 type RoundBarProps = {
   /** One entry per word in bucket order. */
   statuses: RoundWordStatus[]

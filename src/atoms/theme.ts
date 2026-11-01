@@ -1,8 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { atomWithStorage, createJSONStorage } from 'jotai/utils'
+import { storedAtom } from '@/atoms/storage'
 
 export const themes = ['system', 'light', 'dark'] as const
 export type Theme = (typeof themes)[number]
 
-const currentThemeStorage = createJSONStorage<Theme>(() => AsyncStorage)
-export const currentThemeAtom = atomWithStorage<Theme>('theme', 'system', currentThemeStorage)
+// Key predates the feedah.* convention; renaming would drop saved prefs.
+export const currentThemeAtom = storedAtom<Theme>('theme', 'system')

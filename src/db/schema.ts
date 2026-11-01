@@ -178,11 +178,4 @@ export const dailyStat = sqliteTable('daily_stat', {
   updatedAt: integer('updated_at').notNull().default(0),
 })
 
-export type BucketRow = typeof bucket.$inferSelect
-export type WordRow = typeof word.$inferSelect
-export type BucketProgressRow = typeof bucketProgress.$inferSelect
-export type RoundFlagRow = typeof roundFlag.$inferSelect
-export type RoundHistoryRow = typeof roundHistory.$inferSelect
 export type ReviewSessionRow = typeof reviewSession.$inferSelect
-export type DailyPointerRow = typeof dailyPointer.$inferSelect
-export type DailyStatRow = typeof dailyStat.$inferSelect

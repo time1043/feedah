@@ -116,20 +116,6 @@ export async function getBucketCards(): Promise<BucketCard[]> {
   )
 }
 
-/** The given words, in the order the positions were passed in. */
-export async function getWordsByPositions(bucketId: string, positions: number[]): Promise<Word[]> {
-  const db = await getDb()
-  const rows = await db
-    .select()
-    .from(word)
-    .where(and(eq(word.bucketId, bucketId), inArray(word.position, positions)))
-  const byPosition = new Map(rows.map((row) => [row.position, row]))
-  return positions.flatMap((position) => {
-    const row = byPosition.get(position)
-    return row ? [mapWord(row)] : []
-  })
-}
-
 export async function getProgress(bucketId: string): Promise<Progress> {
   const db = await getDb()
   return readProbe(db, bucketId)
@@ -140,6 +126,8 @@ export async function getWordCount(bucketId: string): Promise<number> {
   return readWordCount(db, bucketId)
 }
 
+/** Full word list in deck order. Test/infra helper — screens use the
+ * flag-joined variant. */
 export async function getWords(bucketId: string): Promise<Word[]> {
   const db = await getDb()
   const rows = await db
@@ -674,12 +662,9 @@ export type SearchResult = Word & { bucketId: string }
  * the Chinese meaning. `|` splits the query into alternatives whose results
  * are unioned (`scene|sense`), each keeping the %/_ rules.
  */
-export async function searchWords(
-  bucketId: string,
-  query: string,
-  options: { matchMeaning?: boolean; limit?: number } = {},
-): Promise<SearchResult[]> {
-  const { matchMeaning = true, limit = 100 } = options
+export async function searchWords(bucketId: string, query: string): Promise<SearchResult[]> {
+  const matchMeaning = true
+  const limit = 100
   const db = await getDb()
   const trimmed = query.trim()
   const alternatives = trimmed

@@ -7,9 +7,9 @@ import raw700 from '../../data/700.json'
 import raw2050 from '../../data/2050.json'
 import { bucket, word } from './schema'
 
-export type SeedDistractor = { word: string; meaning: string }
+type SeedDistractor = { word: string; meaning: string }
 
-export type SeedWord = {
+type SeedWord = {
   position: number
   word: string
   ipa: string
@@ -26,14 +26,14 @@ export type SeedFile = { name: string; words: SeedWord[] }
 // bundle that changes a bucket's words OR its data-only fields (e.g.
 // distractors) re-seeds that bucket on the device, while an unchanged
 // bundle leaves existing data untouched.
-export const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
+const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
 
 // Rows per batched INSERT; keeps the statement far below SQLite's bound
 // parameter limit once a bucket holds thousands of words.
 const SEED_CHUNK = 500
 
 /** Stable short hash (djb2) of the serialized word content. */
-export function contentHash(words: SeedWord[]): string {
+function contentHash(words: SeedWord[]): string {
   const json = JSON.stringify(words)
   let hash = 5381
   for (let i = 0; i < json.length; i++) hash = ((hash << 5) + hash + json.charCodeAt(i)) | 0
