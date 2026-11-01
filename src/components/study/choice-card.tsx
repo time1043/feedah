@@ -4,7 +4,7 @@ import type { QuizOption } from '@/lib/quiz'
 import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { BookmarkButton, CardHeadword } from '@/components/study/card-parts'
+import { BookmarkButton, CardHeadword, CardMeaning } from '@/components/study/card-parts'
 
 type ChoiceCardProps = {
   word: DeckWord
@@ -34,6 +34,8 @@ export function ChoiceCard({
 
   return (
     <View className="flex-1">
+      {/* Mirrors the swipe card's top half: same reserved meaning slot keeps
+          the headword at the exact same position as the feed. */}
       <View className="px-8 flex-1 items-center justify-center">
         <CardHeadword
           position={word.position}
@@ -41,6 +43,9 @@ export function ChoiceCard({
           ipa={word.ipa}
           onReplay={onReplay}
         />
+        <View className="mt-4 h-[110px] items-center justify-start">
+          {locked && <CardMeaning meaning={word.meaning} />}
+        </View>
       </View>
 
       <View className="gap-2 px-8 pb-10 flex-1 justify-center">
