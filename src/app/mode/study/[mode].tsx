@@ -94,8 +94,13 @@ export default function StudyScreen() {
   const { words, progress, payloads, answers, drafts } = loaded
   const frontier = Math.min(progress.pointer, words.length)
 
-  const patch = (changes: Partial<StudyState>) =>
-    setLoaded({ words, progress, payloads, answers, drafts, ...changes })
+  // Functional form keeps multi-field updates atomic: two patches in one
+  // tick must not overwrite each other with stale closure state.
+  const patch = (changes: Partial<StudyState> | ((prev: StudyState) => Partial<StudyState>)) =>
+    setLoaded((prev) => {
+      if (!prev) return prev
+      return { ...prev, ...(typeof changes === 'function' ? changes(prev) : changes) }
+    })
 
   const resumeStudying = () => {
     setBrowsing(false)
@@ -123,7 +128,16 @@ export default function StudyScreen() {
             payload: payloads.get(word.position),
             answered: answers[word.position],
             onAnswer: (correct, picked) => {
-              patch({ answers: { ...answers, [word.position]: { correct, picked } } })
+              // One atomic patch: the highlight and the auto-flag land together.
+              patch((prev) => ({
+                answers: { ...prev.answers, [word.position]: { correct, picked } },
+                words:
+                  !correct && mode.autoFlagOnWrong
+                    ? prev.words.map((w) =>
+                        w.position === word.position ? { ...w, flagged: true } : w,
+                      )
+                    : prev.words,
+              }))
               void recordAnswer({
                 bucketId: bucketName,
                 round: progress.round,
@@ -131,13 +145,9 @@ export default function StudyScreen() {
                 mode: mode.id,
                 correct,
               })
-              // A wrong pick auto-flags the word (the bookmark can undo it).
-              if (!correct && mode.autoFlagOnWrong && !word.flagged) {
-                patch({
-                  words: words.map((w) =>
-                    w.position === word.position ? { ...w, flagged: true } : w,
-                  ),
-                })
+              // A wrong pick auto-flags the word (the bookmark can undo it);
+              // a correct answer never un-flags a carried one.
+              if (!correct && mode.autoFlagOnWrong) {
                 void setRoundFlag(bucketName, progress.round, word.position, true)
               }
               // A correct answer advances on its own — but only while the
