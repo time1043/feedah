@@ -1,27 +1,30 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { searchScopeAtom, studyModeAtom } from '@/atoms/settings'
-import { listBuckets } from '@/db/repo'
+import { activeBucketAtom, searchScopeAtom, studyModeAtom } from '@/atoms/settings'
+import { getBucketCards, type BucketCard } from '@/db/repo'
 import { STUDY_MODES } from '@/study/modes'
 
 /**
- * Settings for the bucket list itself: the default study mode its cards
- * launch with, and which buckets take part in global search.
+ * Settings for the bucket list itself: which bucket is being studied, the
+ * default study mode, and which buckets take part in global search.
  */
 export default function BucketSettingsScreen() {
+  const scheme = useColorScheme() ?? 'light'
+  const activeName = useAtomValue(activeBucketAtom)
+  const setActiveName = useSetAtom(activeBucketAtom)
   const [studyMode, setStudyMode] = useAtom(studyModeAtom)
   const [scope, setScope] = useAtom(searchScopeAtom)
-  const [allIds, setAllIds] = useState<string[]>([])
+  const [cards, setCards] = useState<BucketCard[]>([])
 
   useEffect(() => {
     let cancelled = false
-    void listBuckets().then((rows) => {
-      if (!cancelled) setAllIds(rows.map((row) => row.id))
+    void getBucketCards().then((rows) => {
+      if (!cancelled) setCards(rows)
     })
     return () => {
       cancelled = true
@@ -32,7 +35,7 @@ export default function BucketSettingsScreen() {
   // explicit once the user touches it.
   const includes = (id: string) => scope.length === 0 || scope.includes(id)
   const toggleScope = (id: string) => {
-    const all = allIds.filter((entry) => entry !== id)
+    const all = cards.map((card) => card.id)
     if (includes(id)) {
       setScope((scope.length === 0 ? all : scope).filter((entry) => entry !== id))
     } else {
@@ -50,7 +53,11 @@ export default function BucketSettingsScreen() {
           hitSlop={12}
           accessibilityLabel="Back"
         >
-          <Ionicons name="chevron-back" size={24} color="#9A9EA6" />
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color={scheme === 'dark' ? '#7A7E86' : '#9A9EA6'}
+          />
         </Pressable>
         <Text className="font-semibold text-black dark:text-white flex-1 text-center text-[17px]">
           Bucket settings
@@ -58,8 +65,53 @@ export default function BucketSettingsScreen() {
         <View className="w-8" />
       </View>
 
-      {/* Default study mode */}
       <View className="px-4 pt-2">
+        <Text className="font-semibold text-black dark:text-white text-[15px]">Active bucket</Text>
+        <Text className="mt-1 text-gray-500 dark:text-gray-400 text-[13px]">
+          The bucket Home's readout and Continue study.
+        </Text>
+        <View className="mt-3 gap-2">
+          {cards.map((card) => {
+            const isStudying = card.id === activeName
+            return (
+              <Pressable
+                key={card.id}
+                onPress={() => setActiveName(card.id)}
+                className={`rounded-xl p-3 flex-row items-center justify-between border ${
+                  isStudying
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                    : 'border-gray-300 dark:border-gray-700'
+                }`}
+              >
+                <View>
+                  <Text
+                    className={`font-semibold text-[15px] ${
+                      isStudying ? 'text-blue-500' : 'text-black dark:text-white'
+                    }`}
+                  >
+                    {card.id}
+                  </Text>
+                  <Text
+                    className="mt-0.5 text-gray-500 dark:text-gray-400 text-[13px]"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    round {card.round} - {card.pointer}/{card.wordCount}
+                  </Text>
+                </View>
+                {isStudying && (
+                  <View className="gap-1.5 flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={18} color="#208AEF" />
+                    <Text className="font-semibold text-blue-500 text-[13px]">studying</Text>
+                  </View>
+                )}
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
+
+      {/* Default study mode */}
+      <View className="px-4 pt-8">
         <Text className="font-semibold text-black dark:text-white text-[15px]">
           Default study mode
         </Text>
@@ -99,22 +151,24 @@ export default function BucketSettingsScreen() {
           {scope.length === 0 ? 'all buckets' : scope.join(', ')}
         </Text>
         <View className="mt-3 gap-2 flex-row flex-wrap">
-          {allIds.map((id) => (
+          {cards.map((card) => (
             <Pressable
-              key={id}
-              onPress={() => toggleScope(id)}
+              key={card.id}
+              onPress={() => toggleScope(card.id)}
               className={`px-4 py-2 rounded-full border ${
-                includes(id)
+                includes(card.id)
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                   : 'border-gray-300 dark:border-gray-700'
               }`}
             >
               <Text
                 className={`text-[13px] ${
-                  includes(id) ? 'font-semibold text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                  includes(card.id)
+                    ? 'font-semibold text-blue-500'
+                    : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
-                {id}
+                {card.id}
               </Text>
             </Pressable>
           ))}
