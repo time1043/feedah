@@ -48,6 +48,8 @@ export default function StudyScreen() {
   const [loaded, setLoaded] = useState<StudyState | null>(null)
   const [browsing, setBrowsing] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
+  // Pending auto-advance after a correct answer; cancelled on unmount.
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Reloads on every focus: a review pushed on top may have re-flagged words.
   useFocusEffect(
@@ -115,7 +117,15 @@ export default function StudyScreen() {
                 mode: mode.id,
                 correct,
               })
+              if (correct && mode.autoAdvanceMs) {
+                if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+                autoAdvanceTimer.current = setTimeout(
+                  () => deckRef.current?.advance(),
+                  mode.autoAdvanceMs,
+                )
+              }
             },
+            onNext: () => deckRef.current?.advance(),
             onSkip: () => patch({ answers: { ...answers, [word.position]: { skipped: true } } }),
             draft: drafts[word.position] ?? '',
             onDraft: (value) => patch({ drafts: { ...drafts, [word.position]: value } }),
@@ -137,6 +147,7 @@ export default function StudyScreen() {
         onScrub={() => setBrowsing(true)}
         onClose={() => router.back()}
         scrubbable={mode.scrubbable && progress.pointer > 0}
+        scrollEnabled={mode.scrollable}
         headerCenter={
           browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>

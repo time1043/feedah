@@ -23,6 +23,7 @@ const swipeMode: StudyMode = {
   ),
   speakOnSettle: true,
   scrubbable: true,
+  scrollable: true,
   endCopy: ({ nextRound }) => ({
     title: 'Round complete',
     subtitle: `Round ${nextRound} starts in a moment`,
@@ -51,13 +52,16 @@ const choiceMode: StudyMode = {
       options={(props.payload as QuizOption[] | undefined) ?? []}
       answered={props.answered}
       onAnswer={props.onAnswer}
+      onNext={props.onNext}
       onReplay={props.onReplay}
       onToggleFlag={props.onToggleFlag}
     />
   ),
   // Speaking the English word is safe here — the options are Chinese.
   speakOnSettle: true,
-  scrubbable: true,
+  scrubbable: false,
+  scrollable: false,
+  autoAdvanceMs: 650,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} correct · Round ${nextRound} starts in a moment`,
@@ -74,6 +78,7 @@ const typingMode: StudyMode = {
       draft={props.draft}
       onDraft={props.onDraft}
       onAnswer={props.onAnswer}
+      onNext={props.onNext}
       onSkip={props.onSkip}
       onReplay={props.onReplay}
       onToggleFlag={props.onToggleFlag}
@@ -82,6 +87,8 @@ const typingMode: StudyMode = {
   // Speaking the word would leak the answer; scrubbing skips past typing.
   speakOnSettle: false,
   scrubbable: false,
+  scrollable: false,
+  autoAdvanceMs: 900,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} typed right · Round ${nextRound} starts in a moment`,

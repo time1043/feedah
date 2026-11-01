@@ -25,6 +25,8 @@ export interface StudyCardProps {
   onAnswer: (correct: boolean, picked?: string) => void
   /** Reveal without recording an answer (typing's "show answer"). */
   onSkip: () => void
+  /** Advance to the next card (button-driven modes: the Next button). */
+  onNext?: () => void
   /** The card's draft text (typing input), lifted to the screen so it
    * survives FlatList recycling. */
   draft?: string
@@ -53,6 +55,12 @@ export interface StudyMode {
   /** Whether the progress bar may be scrubbed (scrubbing flips the deck
    * into browse mode, which records nothing). */
   scrubbable: boolean
+  /** Whether user gestures scroll the deck. Button-driven modes are false:
+   * the only way forward is answering. */
+  scrollable: boolean
+  /** After a CORRECT answer the deck auto-advances after this many ms.
+   * Wrong/skipped cards wait for the card's Next button. */
+  autoAdvanceMs?: number
   /** End-page copy. nextRound is the round that starts after the linger. */
   endCopy: (facts: { nextRound: number; total: number; correct: number; answered: number }) => {
     title: string

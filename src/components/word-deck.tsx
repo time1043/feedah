@@ -21,6 +21,9 @@ const END_LINGER_MS = 2000
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
   scrollTo(index: number): void
+  /** Moves to the next card through the settle path (probe records, end
+   * page fires). Button-driven modes advance through this. */
+  advance(): void
 }
 
 export interface WordDeckEnd {
@@ -77,6 +80,9 @@ type WordDeckProps = {
   autoSpeak?: boolean
   /** Whether the progress bar can be grabbed and scrubbed. */
   scrubbable?: boolean
+  /** User gestures scroll the deck. Button-driven modes (quiz/typing)
+   * turn this off and advance through the handle. */
+  scrollEnabled?: boolean
   end?: WordDeckEnd
 }
 
@@ -116,6 +122,7 @@ export function WordDeck({
   hudRight,
   onClose,
   scrubbable = false,
+  scrollEnabled = true,
   end,
 }: WordDeckProps & { ref?: Ref<WordDeckHandle> }) {
   const scheme = useColorScheme() ?? 'light'
@@ -228,6 +235,9 @@ export function WordDeck({
       listRef.current?.scrollToIndex({ index: clamped, animated: false })
       setIndex(clamped)
     },
+    advance: () => {
+      settle(indexRef.current + 1)
+    },
   }))
 
   // Speak the card the deck opens on; a resetKey change opens a new session.
@@ -321,6 +331,7 @@ export function WordDeck({
             )}
             horizontal={false}
             pagingEnabled
+            scrollEnabled={scrollEnabled}
             showsVerticalScrollIndicator={false}
             initialNumToRender={2}
             maxToRenderPerBatch={2}

@@ -11,6 +11,7 @@ type ChoiceCardProps = {
   options: QuizOption[]
   answered: AnswerState
   onAnswer: (correct: boolean, picked?: string) => void
+  onNext?: () => void
   onReplay: () => void
   onToggleFlag: () => void
 }
@@ -77,7 +78,7 @@ export function ChoiceCard({
               onPress={() => onAnswer(option.isCorrect, option.key)}
               className={`rounded-xl p-3 border ${classes}`}
             >
-              <Text className={`text-left text-[17px] ${textClass}`}>{option.meaning}</Text>
+              <Text className={`text-left text-[14px] ${textClass}`}>{option.meaning}</Text>
             </Pressable>
           )
         })}

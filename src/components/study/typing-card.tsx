@@ -1,4 +1,4 @@
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 
 import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
@@ -13,6 +13,7 @@ type TypingCardProps = {
   draft?: string
   onDraft?: (value: string) => void
   onAnswer: (correct: boolean) => void
+  onNext?: () => void
   onSkip: () => void
   onReplay: () => void
   onToggleFlag: () => void
@@ -31,6 +32,7 @@ export function TypingCard({
   draft = '',
   onDraft = () => {},
   onAnswer,
+  onNext = () => {},
   onSkip,
   onReplay,
   onToggleFlag,
@@ -42,6 +44,8 @@ export function TypingCard({
 
   const submit = () => {
     if (revealed || draft.trim().length === 0) return
+    // Put the keyboard away so the feedback and the Next button are visible.
+    Keyboard.dismiss()
     onAnswer(matches)
   }
 
@@ -93,6 +97,8 @@ export function TypingCard({
 
       <View className="px-8 flex-1 items-center justify-center">
         {!revealed ? (
+          // answered-but-not-correct waits for Next; correct auto-advances.
+
           <View className="gap-4 items-center">
             <Pressable
               onPress={submit}
@@ -105,6 +111,14 @@ export function TypingCard({
               <Text className="text-gray-400 dark:text-gray-500 text-[13px]">show answer</Text>
             </Pressable>
           </View>
+        ) : typeof answered === 'object' && 'correct' in answered && !answered.correct ? (
+          <Pressable
+            onPress={onNext}
+            className="rounded-xl bg-blue-500 px-10 py-3"
+            accessibilityLabel="Next word"
+          >
+            <Text className="font-semibold text-white">Next</Text>
+          </Pressable>
         ) : (
           <CardForms forms={word.forms} />
         )}
