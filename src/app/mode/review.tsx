@@ -27,7 +27,6 @@ import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
 import { getStudyMode } from '@/study/modes'
 
-/** Round walk: a counted pass over one round's flag list. */
 type RoundWalk = {
   kind: 'round'
   session: ReviewSessionRow
@@ -35,7 +34,6 @@ type RoundWalk = {
   countedCount: number
   startIndex: number
 }
-/** Day walk: the words completed on one day, across buckets — uncounted. */
 type DayWalk = {
   kind: 'day'
   day: string
@@ -46,22 +44,11 @@ type Walk = RoundWalk | DayWalk
 
 type ReviewState = {
   walk: Walk
-  /** Cards seen, for the footer page number. */
   seen: number
-  /** Per-card answer state. Keys: round walk = `pos`; day walk = `bucket:pos`. */
   answers: Record<string, AnswerState>
-  /** Per-card draft text (typing), surviving card recycling. */
   drafts: Record<string, string>
 }
 
-/**
- * Review walks in any study mode:
- *   - round walk — one round's flag list, counted (time N), session tracked;
- *   - day walk — the words completed on one day across buckets, uncounted.
- * The queue is the session's frozen snapshot; unflagging during the walk
- * updates the round's flag list and the bookmark, but the word stays until
- * the next pass.
- */
 export default function ReviewScreen() {
   const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
@@ -74,7 +61,6 @@ export default function ReviewScreen() {
   const [loaded, setLoaded] = useState<ReviewState | null>(null)
   const [empty, setEmpty] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
-  // Pending auto-advance after a correct answer; cancelled on unmount.
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -99,14 +85,11 @@ export default function ReviewScreen() {
         const word = byPosition.get(position)
         return word ? [word] : []
       })
-      // The draft's displayed number is the one it is aiming for.
       const countedCount = reviewSession.counted
         ? (reviewSession.number ?? 1) - 1
         : await countedReviewCount(bucketName, round)
       const rawStart = queue.findIndex((word) => word.position >= reviewSession.lastPosition)
       const startIndex = rawStart < 0 ? 0 : rawStart
-      // The choice options build from the whole bucket — the flag list alone
-      // is too small a distractor pool.
       mode.prepare?.(words)
       if (!cancelled) {
         setLoaded({
@@ -128,14 +111,6 @@ export default function ReviewScreen() {
     }
   }, [bucketName, params.round, mode])
 
-  // A pending auto-advance must not fire after the screen is gone.
-  useEffect(
-    () => () => {
-      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
-    },
-    [],
-  )
-
   if (empty) {
     return (
       <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -153,8 +128,6 @@ export default function ReviewScreen() {
   const { walk, seen, answers, drafts } = loaded
   const roundWalk = walk.kind === 'round' ? walk : undefined
   const countedCount = roundWalk ? roundWalk.countedCount : undefined
-  // Answer keys: round walk keys by position; the day walk spans buckets so
-  // its keys are composite (bucket:position).
   const answerKeyOf = (word: DeckWord & { bucketId?: string }): string =>
     walk.kind === 'day' ? `${word.bucketId}:${word.position}` : `${word.position}`
   const timeLabel = roundWalk
@@ -170,7 +143,6 @@ export default function ReviewScreen() {
         words={walk.queue}
         resetKey={`${bucketName}:${walk.kind}:${walk.kind === 'round' ? walk.session.id : walk.day}`}
         initialIndex={walk.startIndex}
-        autoSpeak={mode.speakOnSettle}
         onSpeak={(word) => speakWord(word.word)}
         renderCard={(word: DeckWord, helpers) =>
           mode.renderCard({
@@ -181,7 +153,10 @@ export default function ReviewScreen() {
                 prev
                   ? {
                       ...prev,
-                      answers: { ...prev.answers, [answerKeyOf(word)]: { correct, picked } },
+                      answers: {
+                        ...prev.answers,
+                        [answerKeyOf(word)]: { correct, picked },
+                      },
                     }
                   : prev,
               )
@@ -192,8 +167,6 @@ export default function ReviewScreen() {
                 mode: mode.id,
                 correct,
               })
-              // A correct answer advances on its own — but only while the
-              // answered card is still the one on screen.
               if (correct && mode.autoAdvanceMs) {
                 if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
                 autoAdvanceTimer.current = setTimeout(() => {
@@ -222,7 +195,7 @@ export default function ReviewScreen() {
                 prev
                   ? {
                       ...prev,
-                      queue: prev.queue.map((w) =>
+                      queue: prev.walk.queue.map((w) =>
                         w.position === word.position ? { ...w, flagged } : w,
                       ),
                     }
@@ -235,11 +208,9 @@ export default function ReviewScreen() {
                 flagged,
               )
             },
-            onNext: () => deckRef.current?.advance(),
           })
         }
         canSettle={(from, to) => {
-          // Gated modes: the card being left must be answered or revealed.
           if (mode.scrollable) return true
           const fromWord = walk.queue[from]
           if (!fromWord) return true
@@ -252,12 +223,6 @@ export default function ReviewScreen() {
         onScrub={(index) => {
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
-        onSearch={() =>
-          router.push({
-            pathname: '/mode/search',
-            params: { bucket: bucketName, round: String(session.round) },
-          })
-        }
         onClose={() => router.back()}
         scrubbable={mode.scrubbable}
         scrollEnabled={mode.scrollable}
