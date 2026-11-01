@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View, useColorScheme } from 'react-native'
 
@@ -8,11 +8,11 @@ import { activeBucketAtom, studyModeAtom } from '@/atoms/settings'
 import { getBucketCards, type BucketCard } from '@/db/repo'
 import { STUDY_MODES } from '@/study/modes'
 
+/** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
   const scheme = useColorScheme() ?? 'light'
   const activeName = useAtomValue(activeBucketAtom)
-  const setActiveName = useSetAtom(activeBucketAtom)
-  const [studyMode, setStudyMode] = useAtom(studyModeAtom)
+  const [studyMode] = useAtom(studyModeAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
 
   useFocusEffect(
@@ -24,6 +24,7 @@ export default function Index() {
   // The active card drives the readout; it may not be loaded yet on first frame.
   const active = cards.find((card) => card.id === activeName)
   const started = active ? active.pointer > 0 || active.round > 1 : false
+  const modeLabel = STUDY_MODES.find((mode) => mode.id === studyMode)?.label ?? 'Feed'
 
   return (
     <View className="bg-white dark:bg-black flex-1">
@@ -39,24 +40,8 @@ export default function Index() {
 
       <View className="gap-6 p-6 flex-1 items-center justify-center">
         <View className="max-w-sm gap-3 w-full">
-          <View className="gap-2 flex-row">
-            {cards.map((card) => (
-              <Pressable
-                key={card.id}
-                onPress={() => setActiveName(card.id)}
-                className={`rounded-lg p-3 flex-1 items-center border ${
-                  card.id === activeName
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-700'
-                }`}
-              >
-                <Text className="text-black dark:text-white">{card.id}</Text>
-              </Pressable>
-            ))}
-          </View>
-
           <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
-            Round {active?.round ?? 1}
+            {activeName} · round {active?.round ?? 1} · {modeLabel}
           </Text>
           <Text
             className="font-extrabold text-black dark:text-white text-center text-[40px]"
@@ -64,28 +49,6 @@ export default function Index() {
           >
             {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
           </Text>
-
-          <View className="gap-2 flex-row">
-            {STUDY_MODES.map((mode) => (
-              <Pressable
-                key={mode.id}
-                onPress={() => setStudyMode(mode.id)}
-                className={`rounded-lg p-2.5 flex-1 items-center border ${
-                  mode.id === studyMode
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-700'
-                }`}
-              >
-                <Text
-                  className={`font-semibold text-[13px] ${
-                    mode.id === studyMode ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {mode.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
 
           <Pressable
             className="rounded-lg bg-blue-500 p-4 items-center"
@@ -102,6 +65,13 @@ export default function Index() {
             onPress={() => router.push('/mode/review')}
           >
             <Text className="font-semibold text-blue-500">Review · {active?.flagCount ?? 0}</Text>
+          </Pressable>
+
+          <Pressable
+            className="rounded-lg border-gray-300 p-3 dark:border-gray-700 items-center border"
+            onPress={() => router.push({ pathname: '/bucket' })}
+          >
+            <Text className="text-black dark:text-white">Buckets & modes</Text>
           </Pressable>
         </View>
       </View>

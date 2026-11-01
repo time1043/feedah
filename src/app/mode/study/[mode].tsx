@@ -27,9 +27,12 @@ import { useStudySession } from '@/study/use-study-session'
  * src/study/types.ts.
  */
 export default function StudyScreen() {
-  const params = useLocalSearchParams<{ mode?: string }>()
+  const params = useLocalSearchParams<{ mode?: string; bucket?: string }>()
   const mode = getStudyMode(typeof params.mode === 'string' ? params.mode : '')
-  const bucketName = useAtomValue(activeBucketAtom)
+  // The opener can pin a bucket (the bucket tab launches any of them);
+  // otherwise the active one.
+  const activeName = useAtomValue(activeBucketAtom)
+  const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
   const showTitle = useAtomValue(deckTitleAtom)
