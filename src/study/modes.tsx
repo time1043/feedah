@@ -86,8 +86,9 @@ const typingMode: StudyMode = {
       onToggleFlag={props.onToggleFlag}
     />
   ),
-  // Speaking the word would leak the answer.
-  speakOnSettle: false,
+  // The TTS pronounces the word as a dictation cue — the user hears it and
+  // types what they hear. The spelling stays hidden until they submit.
+  speakOnSettle: true,
   scrubbable: true,
   scrollable: false,
   endCopy: ({ nextRound, correct, answered }) => ({
