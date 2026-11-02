@@ -21,10 +21,8 @@ type TypingCardProps = {
  * The typing card mirrors the feed card's layout exactly: the position sits
  * on top, the input line occupies the word's place, and the reserved meaning
  * slot below shows the Chinese prompt (always visible — it IS the prompt).
- * Enter submits the answer. Once submitted, the input line becomes the
- * verdict (green "✓ Correct", or red showing the attempt), while the
- * headword above reveals the right answer and the forms take their feed
- * positions.
+ * Enter submits the answer. Once submitted, the word and its forms appear
+ * in their feed positions, so the submitted card is the feed card.
  */
 export function TypingCard({
   word,
@@ -79,27 +77,6 @@ export function TypingCard({
               </Text>
             )}
           </>
-        )}
-        {/* The verdict takes the input line's exact slot: green confirms, red
-            marks the attempt — the right answer stands revealed above. */}
-        {revealed && (
-          <View
-            className={`mt-4 rounded-xl px-4 h-[64px] items-center justify-center border-2 ${
-              correct
-                ? 'border-green-500 bg-green-50 dark:bg-green-950'
-                : 'border-red-500 bg-red-50 dark:bg-red-950'
-            }`}
-            style={{ width: underlineWidth }}
-          >
-            <Text
-              numberOfLines={1}
-              className={`font-semibold text-center text-[20px] ${
-                correct ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              }`}
-            >
-              {correct ? '✓ Correct' : `✗ ${draft.trim()}`}
-            </Text>
-          </View>
         )}
         {/* Same reserved slot as the feed card: the Chinese prompt lives here. */}
         <View className="mt-4 h-[110px] items-center justify-start">
