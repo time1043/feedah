@@ -49,6 +49,19 @@ type ReviewState = {
   drafts: Record<string, string>
 }
 
+/** Flips one word's flag inside the walk queue. The branch is not noise: it
+ * keeps each walk kind's queue element type exact (the day walk's words
+ * carry bucketId, which a union-wide map would infer away). */
+function withQueueFlag(state: ReviewState, position: number, flagged: boolean): ReviewState {
+  const { walk } = state
+  if (walk.kind === 'round') {
+    const queue = walk.queue.map((w) => (w.position === position ? { ...w, flagged } : w))
+    return { ...state, walk: { ...walk, queue } }
+  }
+  const queue = walk.queue.map((w) => (w.position === position ? { ...w, flagged } : w))
+  return { ...state, walk: { ...walk, queue } }
+}
+
 export default function ReviewScreen() {
   const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
@@ -191,16 +204,7 @@ export default function ReviewScreen() {
             onReplay: helpers.onReplay,
             onToggleFlag: () => {
               const flagged = !word.flagged
-              setLoaded((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      queue: prev.walk.queue.map((w) =>
-                        w.position === word.position ? { ...w, flagged } : w,
-                      ),
-                    }
-                  : prev,
-              )
+              setLoaded((prev) => (prev ? withQueueFlag(prev, word.position, flagged) : prev))
               void setRoundFlag(
                 bucketName,
                 walk.kind === 'round' ? walk.session.round : 0,
