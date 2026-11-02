@@ -91,6 +91,9 @@ const typingMode: StudyMode = {
   speakOnSettle: true,
   scrubbable: true,
   scrollable: false,
+  // Correct submits slide on by themselves; wrong ones stay put so the
+  // revealed answer gets read before the next swipe.
+  autoAdvanceMs: 900,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} typed right · Round ${nextRound} starts in a moment`,
