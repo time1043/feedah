@@ -1,4 +1,4 @@
-import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
+import { Keyboard, Text, TextInput, View } from 'react-native'
 
 import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
@@ -13,7 +13,6 @@ type TypingCardProps = {
   draft?: string
   onDraft?: (value: string) => void
   onAnswer: (correct: boolean) => void
-  onSkip: () => void
   onReplay: () => void
   onToggleFlag: () => void
 }
@@ -22,8 +21,8 @@ type TypingCardProps = {
  * The typing card mirrors the feed card's layout exactly: the position sits
  * on top, the input line occupies the word's place, and the reserved meaning
  * slot below shows the Chinese prompt (always visible — it IS the prompt).
- * Once answered or revealed, the word and its forms appear in their feed
- * positions, so the revealed card is the feed card.
+ * Enter submits the answer. Once submitted, the word and its forms appear
+ * in their feed positions, so the submitted card is the feed card.
  */
 export function TypingCard({
   word,
@@ -31,7 +30,6 @@ export function TypingCard({
   draft = '',
   onDraft = () => {},
   onAnswer,
-  onSkip,
   onReplay,
   onToggleFlag,
 }: TypingCardProps) {
@@ -42,7 +40,7 @@ export function TypingCard({
 
   const submit = () => {
     if (revealed || draft.trim().length === 0) return
-    // Put the keyboard away so the feedback and the Next button are visible.
+    // Put the keyboard away so the feedback is visible.
     Keyboard.dismiss()
     onAnswer(matches)
   }
@@ -70,20 +68,15 @@ export function TypingCard({
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
+              placeholder="type the word…"
+              placeholderTextColor="#9CA3AF"
               className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] border-b-2 text-center text-[32px]"
               style={{ width: underlineWidth }}
             />
             {word.ipa && word.ipa.length > 0 && (
-              <Pressable
-                onPress={onReplay}
-                hitSlop={8}
-                className="mt-2"
-                accessibilityLabel="Play word"
-              >
-                <Text className="text-lg text-gray-400 dark:text-gray-500 text-center">
-                  {word.ipa}
-                </Text>
-              </Pressable>
+              <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">
+                {word.ipa}
+              </Text>
             )}
           </>
         )}
@@ -94,24 +87,7 @@ export function TypingCard({
       </View>
 
       <View className="px-8 flex-1 items-center justify-center">
-        {!revealed ? (
-          // answered-but-not-correct waits for Next; correct auto-advances.
-
-          <View className="gap-4 items-center">
-            <Pressable
-              onPress={submit}
-              className="rounded-xl bg-blue-500 px-10 py-3"
-              accessibilityLabel="Submit answer"
-            >
-              <Text className="font-semibold text-white">Check</Text>
-            </Pressable>
-            <Pressable onPress={onSkip} hitSlop={8} accessibilityLabel="Show answer">
-              <Text className="text-gray-400 dark:text-gray-500 text-[13px]">show answer</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <CardForms forms={word.forms} />
-        )}
+        {revealed && <CardForms forms={word.forms} />}
       </View>
 
       <BookmarkButton flagged={word.flagged} onToggleFlag={onToggleFlag} />
