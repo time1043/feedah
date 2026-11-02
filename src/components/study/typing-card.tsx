@@ -68,8 +68,6 @@ export function TypingCard({
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
-              placeholder="type the word…"
-              placeholderTextColor="#9CA3AF"
               className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] border-b-2 text-center text-[32px]"
               style={{ width: underlineWidth }}
             />

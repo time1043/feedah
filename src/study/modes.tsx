@@ -82,7 +82,6 @@ const typingMode: StudyMode = {
       draft={props.draft}
       onDraft={props.onDraft}
       onAnswer={props.onAnswer}
-      onSkip={props.onSkip}
       onReplay={props.onReplay}
       onToggleFlag={props.onToggleFlag}
     />
