@@ -180,6 +180,18 @@ export default function ReviewScreen() {
                 mode: mode.id,
                 correct,
               })
+              // Wrong picks auto-flag when the mode says so — the bookmark is
+              // the undo. Round walks queue from flags already, so this only
+              // lands on day replays (or a word unflagged mid-walk).
+              if (!correct && mode.autoFlagOnWrong && !word.flagged) {
+                setLoaded((prev) => (prev ? withQueueFlag(prev, word.position, true) : prev))
+                void setRoundFlag(
+                  bucketName,
+                  walk.kind === 'round' ? walk.session.round : 0,
+                  word.position,
+                  true,
+                )
+              }
               if (correct && mode.autoAdvanceMs) {
                 if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
                 autoAdvanceTimer.current = setTimeout(() => {

@@ -94,6 +94,9 @@ const typingMode: StudyMode = {
   // Correct submits slide on by themselves; wrong ones stay put so the
   // revealed answer gets read before the next swipe.
   autoAdvanceMs: 900,
+  // A misspelling is exactly what the flag list exists for: wrong submits
+  // join the round's review queue, and the bookmark stays as the undo.
+  autoFlagOnWrong: true,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
     subtitle: `${correct} of ${answered} typed right · Round ${nextRound} starts in a moment`,
