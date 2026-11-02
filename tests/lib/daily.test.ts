@@ -1,4 +1,4 @@
-import { computeDailyUsage } from '@/lib/daily'
+import { aggregateMonths, computeDailyUsage } from '@/lib/daily'
 
 describe('computeDailyUsage', () => {
   it('sums time per day and derives word counts from pointer deltas', () => {
@@ -29,5 +29,39 @@ describe('computeDailyUsage', () => {
       ],
     )
     expect(usage.get('2026-10-27')?.words).toBe(0)
+  })
+})
+
+describe('aggregateMonths', () => {
+  it('folds days into month sums, newest first', () => {
+    const months = aggregateMonths(
+      new Map([
+        ['2026-11-01', { words: 30, feedSeconds: 600, appSeconds: 900 }],
+        ['2026-11-02', { words: 12, feedSeconds: 300, appSeconds: 600 }],
+        ['2025-12-24', { words: 8, feedSeconds: 120, appSeconds: 240 }],
+      ]),
+    )
+
+    expect(months.map((month) => month.key)).toEqual(['2026-11', '2025-12'])
+    expect(months[0]).toEqual({
+      key: '2026-11',
+      label: 'Nov 2026',
+      words: 42,
+      feedSeconds: 900,
+      appSeconds: 1500,
+      activeDays: 2,
+    })
+  })
+
+  it('keeps a time-only month but grants it no active days', () => {
+    const months = aggregateMonths(
+      new Map([['2026-10-31', { words: 0, feedSeconds: 120, appSeconds: 240 }]]),
+    )
+    expect(months).toHaveLength(1)
+    expect(months[0]).toMatchObject({ words: 0, feedSeconds: 120, activeDays: 0 })
+  })
+
+  it('is empty when no day has any usage', () => {
+    expect(aggregateMonths(new Map())).toEqual([])
   })
 })

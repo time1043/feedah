@@ -1,3 +1,5 @@
+import { formatMonthLabel } from '@/lib/format'
+
 /**
  * Aggregates daily activity. Word counts come from the difference of
  * consecutive daily high-water pointer snapshots (never from per-card
@@ -50,4 +52,44 @@ export function computeDailyUsage(
   }
 
   return usage
+}
+
+/** One month's ledger folded into a single row. */
+export type MonthAggregate = {
+  key: string
+  label: string
+  words: number
+  feedSeconds: number
+  appSeconds: number
+  /** Days that actually moved words — time-only days don't count. */
+  activeDays: number
+}
+
+/**
+ * Folds daily usage into per-month aggregates, newest first. A month exists
+ * only when at least one of its days has a recorded row — empty months
+ * never appear.
+ */
+export function aggregateMonths(usage: Map<string, DailyUsage>): MonthAggregate[] {
+  const byMonth = new Map<string, MonthAggregate>()
+  for (const [day, value] of usage) {
+    const key = day.slice(0, 7)
+    let month = byMonth.get(key)
+    if (!month) {
+      month = {
+        key,
+        label: formatMonthLabel(key),
+        words: 0,
+        feedSeconds: 0,
+        appSeconds: 0,
+        activeDays: 0,
+      }
+      byMonth.set(key, month)
+    }
+    month.words += value.words
+    month.feedSeconds += value.feedSeconds
+    month.appSeconds += value.appSeconds
+    if (value.words > 0) month.activeDays += 1
+  }
+  return [...byMonth.values()].sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0))
 }

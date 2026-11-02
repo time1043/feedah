@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { HeaderIconButton, TabHeader } from '@/components/header'
 import { Heatmap } from '@/components/heatmap'
 import { listDailyPointers, listDailyStats } from '@/db/repo'
-import { computeDailyUsage, type DailyUsage } from '@/lib/daily'
+import { aggregateMonths, computeDailyUsage, type DailyUsage } from '@/lib/daily'
 import { todayLocalDate } from '@/lib/date'
 import { formatDayLabel, formatMinutes } from '@/lib/format'
 
@@ -53,6 +53,9 @@ export default function StatisticsScreen() {
       yearTotals.appSeconds += value.appSeconds
     }
   }
+
+  // Newest-first month ledger; months without recorded days don't exist.
+  const months = aggregateMonths(usage)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -145,6 +148,49 @@ export default function StatisticsScreen() {
             {`${yearTotals.words} feed · ${formatMinutes(yearTotals.feedSeconds)} / ${formatMinutes(yearTotals.appSeconds)}`}
           </Text>
         </View>
+
+        {/* Month ledger: its own scroll region, so the heatmap above never
+            scrolls away. Month titles pin while their totals slide under. */}
+        {months.length > 0 && (
+          <View className="gap-2 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">
+            <Text className="font-semibold text-black dark:text-white text-[15px]">Monthly</Text>
+            <ScrollView
+              style={{ maxHeight: 300 }}
+              nestedScrollEnabled
+              stickyHeaderIndices={months.map((_, index) => index * 2)}
+              showsVerticalScrollIndicator={false}
+            >
+              {months.flatMap((month) => [
+                <Text
+                  key={`${month.key}-title`}
+                  className="bg-white pb-1 dark:bg-black font-semibold text-black dark:text-white text-[15px]"
+                >
+                  {month.label}
+                </Text>,
+                <View
+                  key={`${month.key}-totals`}
+                  className="mb-2 rounded-xl border-gray-200 p-3 dark:border-gray-800 gap-3 flex-row items-center border"
+                >
+                  <Text
+                    className="font-extrabold text-black dark:text-white min-w-[52px] text-right text-[20px]"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    {month.words}
+                  </Text>
+                  <View className="flex-1">
+                    <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
+                      words · {month.activeDays} {month.activeDays === 1 ? 'day' : 'days'}
+                    </Text>
+                    <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
+                      {formatMinutes(month.feedSeconds)} studying /{' '}
+                      {formatMinutes(month.appSeconds)} in app
+                    </Text>
+                  </View>
+                </View>,
+              ])}
+            </ScrollView>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   )

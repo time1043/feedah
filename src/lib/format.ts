@@ -35,3 +35,10 @@ export function formatYearMonthDay(dayOrTimestamp: string | number): string {
   }
   return `${year} ${MONTHS[month - 1]} ${date}`
 }
+
+/** Formats a YYYY-MM month key as a short label like "Nov 2026". */
+export function formatMonthLabel(month: string): string {
+  const [year, monthIndex] = month.split('-').map(Number)
+  if (!year || !monthIndex) return month
+  return `${MONTHS[monthIndex - 1]} ${year}`
+}
