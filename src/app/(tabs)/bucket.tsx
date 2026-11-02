@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
-import * as FileSystem from 'expo-file-system'
+import { File } from 'expo-file-system'
 import { router, useFocusEffect } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback, useState } from 'react'
@@ -39,7 +39,7 @@ export default function BucketScreen() {
     const asset = result.assets[0]
     setImporting(true)
     try {
-      const text = await FileSystem.readAsStringAsync(asset.uri)
+      const text = await new File(asset.uri).text()
       const file = parseBucketJson(text)
       const run = async () => {
         await importBucketFile(file)
