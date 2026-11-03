@@ -17,6 +17,7 @@ import {
   roundHistory,
   word,
 } from './schema'
+import { BUNDLED_BUCKET_IDS, seedBuckets } from './seed'
 
 export type Progress = { round: number; pointer: number; roundStartedAt: number }
 
@@ -86,7 +87,7 @@ async function readWordCount(db: Db, bucketId: string): Promise<number> {
 
 export async function listBuckets() {
   const db = await getDb()
-  return db.select().from(bucket).orderBy(bucket.id)
+  return db.select().from(bucket).where(isNull(bucket.deletedAt)).orderBy(bucket.id)
 }
 
 export type BucketCard = {
@@ -100,7 +101,7 @@ export type BucketCard = {
 /** One row per bucket for list screens: the probe plus the current round's flags. */
 export async function getBucketCards(): Promise<BucketCard[]> {
   const db = await getDb()
-  const rows = await db.select().from(bucket).orderBy(bucket.id)
+  const rows = await db.select().from(bucket).where(isNull(bucket.deletedAt)).orderBy(bucket.id)
   return Promise.all(
     rows.map(async (row) => {
       const probe = await readProbe(db, row.id)
@@ -114,6 +115,47 @@ export async function getBucketCards(): Promise<BucketCard[]> {
       }
     }),
   )
+}
+
+// --- bucket lifecycle -----------------------------------------------------
+
+/**
+ * Soft-deletes a bucket: the row and every child (words, progress, flags,
+ * rounds, sessions, daily pointers) stay, but every list stops showing it.
+ * The statistics diary never shrinks retroactively, and re-importing the
+ * same JSON un-tombstones the bucket exactly as it was.
+ */
+export async function deleteBucket(id: string): Promise<void> {
+  const db = await getDb()
+  await db
+    .update(bucket)
+    .set({ deletedAt: Date.now() })
+    .where(and(eq(bucket.id, id), isNull(bucket.deletedAt)))
+}
+
+/** Bundled bucket ids currently tombstoned — the restore row's audience. */
+export async function tombstonedBuckets(): Promise<string[]> {
+  const db = await getDb()
+  const rows = await db
+    .select({ id: bucket.id })
+    .from(bucket)
+    .where(and(isNotNull(bucket.deletedAt), inArray(bucket.id, BUNDLED_BUCKET_IDS)))
+  return rows.map((row) => row.id)
+}
+
+/**
+ * Un-tombstones the given bundled buckets and re-runs the seed: their rows
+ * never left, so a restored bucket reappears with its full history intact
+ * (and a bundle changed while deleted gets its words refreshed).
+ */
+export async function restoreBuckets(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const db = await getDb()
+  await db
+    .update(bucket)
+    .set({ deletedAt: null })
+    .where(and(inArray(bucket.id, ids), isNotNull(bucket.deletedAt)))
+  await seedBuckets(db, withTransaction)
 }
 
 export async function getProgress(bucketId: string): Promise<Progress> {

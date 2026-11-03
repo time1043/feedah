@@ -7,6 +7,15 @@ export const bucket = sqliteTable('bucket', {
   // Hash of the seeded word content — seed idempotency key next to
   // word_count, so data-only changes (e.g. new distractors) re-seed too.
   contentHash: text('content_hash').notNull().default(''),
+  /**
+   * Deletion tombstone (epoch ms). Deleting a bucket hides it from every
+   * list but keeps the row and all children: the statistics diary (heatmap
+   * words, day review queues) must never shrink retroactively, and
+   * re-importing the same JSON un-tombstones the bucket exactly as it was.
+   * The bundled seed skips tombstoned ids, so a deleted built-in bucket
+   * stays deleted across cold starts.
+   */
+  deletedAt: integer('deleted_at'),
 })
 
 export const word = sqliteTable(

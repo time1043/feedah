@@ -5,21 +5,27 @@ jest.mock('@/db/index', () => require('./harness').dbIndex())
 
 import type { WordWithFlag } from '@/db/repo'
 
+import { importBucketFile } from '@/db/import-bucket'
 import { getDb } from '@/db/index'
 import {
   completeRound,
   countRoundFlags,
-  recordAnswer,
+  deleteBucket,
   finishReview,
   getProgress,
   getRoundSummaries,
   getWords,
   getWordCount,
   getWordsWithRoundFlag,
+  listBuckets,
+  listDailyPointers,
   openReviewSession,
+  recordAnswer,
+  restoreBuckets,
   settleCard,
   settleReview,
   setRoundFlag,
+  tombstonedBuckets,
 } from '@/db/repo'
 import { roundStatuses } from '@/lib/round-status'
 
@@ -262,5 +268,65 @@ describe('review session counting (the zeroing rule)', () => {
 
   it('returns no session when the round has no flags', async () => {
     expect(await openReviewSession(BUCKET, 1)).toBeNull()
+  })
+})
+
+describe('bucket deletion', () => {
+  const file: SeedFile = {
+    name: 'custom',
+    words: [
+      { position: 1, word: 'alpha', ipa: '', meaning: 'm1', forms: [] },
+      { position: 2, word: 'beta', ipa: '', meaning: 'm2', forms: [] },
+    ],
+  }
+
+  async function seedCustom(): Promise<void> {
+    const db = await getDb()
+    const { withTransaction } = require('./harness').dbIndex()
+    await seedBucketsFrom(db, withTransaction, [file])
+  }
+
+  it('hides the bucket from lists but keeps every row and statistic', async () => {
+    await seedCustom()
+    // Progress plus a daily pointer (feed usage) exist before the delete.
+    await settleCard('custom', 1)
+    await deleteBucket('custom')
+
+    const ids = (await listBuckets()).map((b) => b.id)
+    expect(ids).not.toContain('custom')
+    expect(ids).toContain(BUCKET)
+    // Words, probe and the day's pointer rows all survive the tombstone.
+    expect(await getWords('custom')).toHaveLength(2)
+    expect(await getProgress('custom')).toMatchObject({ round: 1, pointer: 1 })
+    expect((await listDailyPointers()).some((p) => p.bucketId === 'custom')).toBe(true)
+  })
+
+  it('a cold start does not resurrect a deleted bundled bucket', async () => {
+    await deleteBucket(BUCKET)
+    const { withTransaction } = require('./harness').dbIndex()
+    await seedBuckets(await getDb(), withTransaction)
+    expect((await listBuckets()).map((b) => b.id)).not.toContain(BUCKET)
+    // The study history stays exactly where it was.
+    expect(await getWords(BUCKET)).not.toHaveLength(0)
+  })
+
+  it('re-importing the same JSON restores the bucket as it was', async () => {
+    await seedCustom()
+    await settleCard('custom', 2)
+    await deleteBucket('custom')
+
+    await importBucketFile(file)
+    expect((await listBuckets()).map((b) => b.id)).toContain('custom')
+    expect(await getProgress('custom')).toMatchObject({ round: 1, pointer: 2 })
+  })
+
+  it('restore brings bundled buckets back with their history', async () => {
+    await deleteBucket(BUCKET)
+    expect(await tombstonedBuckets()).toEqual([BUCKET])
+
+    await restoreBuckets(await tombstonedBuckets())
+    expect(await tombstonedBuckets()).toEqual([])
+    expect((await listBuckets()).map((b) => b.id)).toContain(BUCKET)
+    expect(await getProgress(BUCKET)).toMatchObject({ round: 1, pointer: 0 })
   })
 })

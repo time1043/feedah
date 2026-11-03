@@ -16,6 +16,9 @@ export type ExportedBucket = {
   id: string
   wordCount: number
   contentHash: string
+  /** Deletion tombstone (epoch ms): the bucket is hidden but every row —
+   * and therefore its statistics contribution — is still here. */
+  deletedAt: number | null
   progress: { round: number; pointer: number; roundStartedAt: number }
   rounds: { round: number; startedAt: number; finishedAt: number }[]
   flags: { round: number; position: number; flaggedAt: number }[]
@@ -39,7 +42,8 @@ export type ExportedBucket = {
 
 export type StudyExport = {
   format: 'feedah-study-export'
-  version: 1
+  // v2: buckets carry the deletedAt tombstone.
+  version: 2
   exportedAt: string
   dailyStats: { day: string; feedSeconds: number; appSeconds: number }[]
   buckets: ExportedBucket[]
@@ -107,7 +111,7 @@ export async function buildStudyExport(): Promise<StudyExport> {
 
   return {
     format: 'feedah-study-export',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     dailyStats: statRows.map((row) => ({
       day: row.day,
@@ -145,6 +149,7 @@ export async function buildStudyExport(): Promise<StudyExport> {
         id: bucketRow.id,
         wordCount: bucketRow.wordCount,
         contentHash: bucketRow.contentHash,
+        deletedAt: bucketRow.deletedAt ?? null,
         progress: {
           round: progress?.round ?? 1,
           pointer: progress?.pointer ?? 0,

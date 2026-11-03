@@ -28,6 +28,9 @@ export type SeedFile = { name: string; words: SeedWord[] }
 // bundle leaves existing data untouched.
 const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
 
+/** The ids the app bundles — the restore path un-tombstones exactly these. */
+export const BUNDLED_BUCKET_IDS = BUNDLED_BUCKETS.map((file) => file.name)
+
 // Rows per batched INSERT; keeps the statement far below SQLite's bound
 // parameter limit once a bucket holds thousands of words.
 const SEED_CHUNK = 500
@@ -56,10 +59,17 @@ export async function seedBucketsFrom(
   for (const file of files) {
     const hash = contentHash(file.words)
     const existing = await db
-      .select({ wordCount: bucket.wordCount, contentHash: bucket.contentHash })
+      .select({
+        wordCount: bucket.wordCount,
+        contentHash: bucket.contentHash,
+        deletedAt: bucket.deletedAt,
+      })
       .from(bucket)
       .where(eq(bucket.id, file.name))
       .get()
+    // A tombstoned bucket stays deleted: even a changed bundled file must
+    // not resurrect it (the check sits before the hash comparison).
+    if (existing && existing.deletedAt !== null) continue
     if (existing && existing.wordCount === file.words.length && existing.contentHash === hash) {
       continue
     }

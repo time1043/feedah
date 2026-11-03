@@ -1,4 +1,7 @@
+import { eq } from 'drizzle-orm'
+
 import { getDb, withTransaction } from './index'
+import { bucket } from './schema'
 import { seedBucketsFrom, type SeedFile, type SeedWord } from './seed'
 
 export { contentHash, type SeedFile, type SeedWord } from './seed'
@@ -100,9 +103,14 @@ export function parseBucketJson(text: string): SeedFile {
 /**
  * Imports (or replaces) a user bucket: same upsert semantics as the bundled
  * seed — an unchanged bucket is skipped, a changed one has its words
- * replaced while study progress is preserved.
+ * replaced while study progress is preserved. Importing a deleted bucket is
+ * the explicit restore gesture: the tombstone lifts and the bucket returns
+ * with its full history.
  */
 export async function importBucketFile(file: SeedFile): Promise<void> {
   const db = await getDb()
-  await seedBucketsFrom(db, withTransaction, [file])
+  await withTransaction(async (tx) => {
+    await tx.update(bucket).set({ deletedAt: null }).where(eq(bucket.id, file.name))
+    await seedBucketsFrom(tx, withTransaction, [file])
+  })
 }
