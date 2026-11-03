@@ -6,7 +6,7 @@ import { Modal, Pressable, ScrollView, Text, View, useColorScheme } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom, searchScopeAtom, studyModeAtom } from '@/atoms/settings'
-import { getBucketCards, type BucketCard } from '@/db/repo'
+import { getBucketCards, restoreBuckets, tombstonedBuckets, type BucketCard } from '@/db/repo'
 import { STUDY_MODES } from '@/study/modes'
 
 /**
@@ -21,18 +21,30 @@ export default function BucketSettingsScreen() {
   const [studyMode, setStudyMode] = useAtom(studyModeAtom)
   const [scope, setScope] = useAtom(searchScopeAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
+  const [tombstoned, setTombstoned] = useState<string[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
   const active = cards.find((card) => card.id === activeName)
 
   useEffect(() => {
     let cancelled = false
-    void getBucketCards().then((rows) => {
-      if (!cancelled) setCards(rows)
-    })
+    void (async () => {
+      const [rows, deleted] = await Promise.all([getBucketCards(), tombstonedBuckets()])
+      if (!cancelled) {
+        setCards(rows)
+        setTombstoned(deleted)
+      }
+    })()
     return () => {
       cancelled = true
     }
   }, [])
+
+  /** Un-tombstones the deleted built-ins; their history was never gone. */
+  const restoreDeleted = async () => {
+    await restoreBuckets(tombstoned)
+    setCards(await getBucketCards())
+    setTombstoned(await tombstonedBuckets())
+  }
 
   // An empty scope means every bucket is included; the picker keeps it
   // explicit once the user touches it.
@@ -165,6 +177,28 @@ export default function BucketSettingsScreen() {
             ))}
           </View>
         </View>
+
+        {/* Restore built-ins: only exists while something is deleted. The
+            rows never left, so this is pure recovery — no confirmation. */}
+        {tombstoned.length > 0 && (
+          <View className="px-4 pt-8">
+            <Text className="font-semibold text-black dark:text-white text-[15px]">
+              Restore built-in buckets
+            </Text>
+            <Text className="mt-1 text-gray-500 dark:text-gray-400 text-[13px]">
+              Bring deleted word lists back with their study history: {tombstoned.join(', ')}.
+            </Text>
+            <Pressable
+              onPress={() => void restoreDeleted()}
+              className="mt-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 items-center border"
+              accessibilityLabel="Restore built-in buckets"
+            >
+              <Text className="font-semibold text-blue-500 text-[15px]">
+                Restore {tombstoned.join(', ')}
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
 
       {/* Active-bucket picker */}

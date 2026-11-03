@@ -39,32 +39,48 @@ export default function Index() {
 
       <View className="gap-6 p-6 flex-1 items-center justify-center">
         <View className="max-w-sm gap-3 w-full">
-          <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
-            {activeName} · round {active?.round ?? 1} · {modeLabel}
-          </Text>
-          <Text
-            className="font-extrabold text-black dark:text-white text-center text-[40px]"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
-          </Text>
+          {cards.length === 0 ? (
+            // Every bucket deleted (or none imported): nothing to resume.
+            <View className="gap-1 items-center">
+              <Text className="font-semibold text-black dark:text-white text-[17px]">
+                No buckets yet
+              </Text>
+              <Text className="text-gray-400 dark:text-gray-500 text-[15px]">
+                Import one on the Bucket tab
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
+                {activeName} · round {active?.round ?? 1} · {modeLabel}
+              </Text>
+              <Text
+                className="font-extrabold text-black dark:text-white text-center text-[40px]"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
+              </Text>
 
-          <Pressable
-            className="rounded-lg bg-blue-500 p-4 items-center"
-            onPress={() =>
-              router.push({ pathname: '/mode/study/[mode]', params: { mode: studyMode } })
-            }
-          >
-            <Text className="font-bold text-white">{started ? 'Continue' : 'Start'}</Text>
-          </Pressable>
+              <Pressable
+                className="rounded-lg bg-blue-500 p-4 items-center"
+                onPress={() =>
+                  router.push({ pathname: '/mode/study/[mode]', params: { mode: studyMode } })
+                }
+              >
+                <Text className="font-bold text-white">{started ? 'Continue' : 'Start'}</Text>
+              </Pressable>
 
-          <Pressable
-            disabled={!active || active.flagCount === 0}
-            className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
-            onPress={() => router.push('/mode/review')}
-          >
-            <Text className="font-semibold text-blue-500">Review · {active?.flagCount ?? 0}</Text>
-          </Pressable>
+              <Pressable
+                disabled={!active || active.flagCount === 0}
+                className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
+                onPress={() => router.push('/mode/review')}
+              >
+                <Text className="font-semibold text-blue-500">
+                  Review · {active?.flagCount ?? 0}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
     </View>
