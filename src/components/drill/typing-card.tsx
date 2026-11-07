@@ -1,4 +1,4 @@
-import { Keyboard, Text, TextInput, View } from 'react-native'
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 
 import type { AnswerState } from '@/types/drill'
 import type { DeckWord } from '@/types/word'
@@ -76,9 +76,14 @@ export function TypingCard({
               style={{ width: underlineWidth }}
             />
             {word.ipa && word.ipa.length > 0 && (
-              <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">
-                {word.ipa}
-              </Text>
+              // Pre-reveal the word is the answer, so it can't carry the
+              // replay tap — the ipa line does: tap to hear the dictation
+              // cue again.
+              <Pressable onPress={onReplay} hitSlop={12}>
+                <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">
+                  {word.ipa}
+                </Text>
+              </Pressable>
             )}
           </>
         )}
