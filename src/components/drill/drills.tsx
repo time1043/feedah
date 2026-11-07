@@ -1,11 +1,10 @@
 import type { QuizOption } from '@/lib/quiz'
+import type { Drill } from '@/types/drill'
 
 import { ChoiceCard } from '@/components/drill/choice-card'
 import { TypingCard } from '@/components/drill/typing-card'
 import { WordCard } from '@/components/drill/word-card'
 import { buildOptions, pickDistractors } from '@/lib/quiz'
-
-import type { Drill } from './types'
 
 // The quiz drill's per-card options, rebuilt by prepare() on every data
 // load and read by renderCard. Module-level on purpose: the data must stay

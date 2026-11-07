@@ -6,8 +6,8 @@ import { Modal, Pressable, ScrollView, Text, View, useColorScheme } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom, searchScopeAtom, studyDrillAtom } from '@/atoms/settings'
+import { DRILLS } from '@/components/drill/drills'
 import { getBucketCards, restoreBuckets, tombstonedBuckets, type BucketCard } from '@/db/repo'
-import { DRILLS } from '@/drill/drills'
 
 /**
  * Settings for the bucket list itself: which bucket is being studied, the

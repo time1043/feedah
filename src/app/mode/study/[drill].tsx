@@ -13,12 +13,12 @@ import {
   hudPageAtom,
   hudRoundAtom,
 } from '@/atoms/settings'
+import { getDrill } from '@/components/drill/drills'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
-import { getDrill } from '@/drill/drills'
 import { speakWord } from '@/lib/speech'
+import { countsOf, frontierOf } from '@/lib/study-session'
+import { useStudySession } from '@/lib/use-study-session'
 import { useStudyUsage } from '@/lib/use-study-usage'
-import { countsOf, frontierOf } from '@/study/session'
-import { useStudySession } from '@/study/use-study-session'
 
 /**
  * The generalized study screen: chrome, deck wiring and the auto-advance

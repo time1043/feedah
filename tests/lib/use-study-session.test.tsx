@@ -12,14 +12,14 @@ jest.mock('expo-router', () => ({
 jest.mock('@/db/index', () => require('../db/harness').dbIndex())
 
 import type { WordWithFlag } from '@/db/repo'
-import type { StudySession } from '@/study/session'
-import type { Drill } from '@/drill/types'
+import type { StudySession } from '@/lib/study-session'
+import type { Drill } from '@/types/drill'
 import type { DeckWord } from '@/types/word'
 
 import { getDb } from '@/db/index'
 import { getProgress, getWordsWithRoundFlag, settleCard } from '@/db/repo'
 import { seedBuckets } from '@/db/seed'
-import { useStudySession } from '@/study/use-study-session'
+import { useStudySession } from '@/lib/use-study-session'
 
 const BUCKET = '2050'
 

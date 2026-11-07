@@ -6,7 +6,7 @@ import {
   studyReducer,
   type StudyAction,
   type StudySession,
-} from '@/study/session'
+} from '@/lib/study-session'
 
 const BUCKET_POSITIONS = [1701, 1702, 1703, 1704, 1705]
 

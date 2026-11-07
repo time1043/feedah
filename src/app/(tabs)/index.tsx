@@ -4,9 +4,9 @@ import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 import { activeBucketAtom, studyDrillAtom } from '@/atoms/settings'
+import { DRILLS } from '@/components/drill/drills'
 import { HeaderIconButton, TabHeader } from '@/components/header'
 import { getBucketCards, type BucketCard } from '@/db/repo'
-import { DRILLS } from '@/drill/drills'
 
 /** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
