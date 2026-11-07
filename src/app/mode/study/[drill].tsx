@@ -39,6 +39,8 @@ export default function StudyScreen() {
   const showProgressBar = useAtomValue(deckProgressBarAtom)
   const { session, actions } = useStudySession(bucketName, drill)
   const deckRef = useRef<WordDeckHandle>(null)
+  // Time on the deck accrues to the daily "studying" metric.
+  useStudyUsage()
 
   // Executes the reducer's auto-advance decision: slides to the pending
   // card when it is still on screen, then reports back. The countdown is

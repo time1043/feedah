@@ -92,6 +92,8 @@ export default function ReviewScreen() {
   const [loaded, setLoaded] = useState<ReviewState | null>(null)
   const [empty, setEmpty] = useState(false)
   const deckRef = useRef<WordDeckHandle>(null)
+  // Review decks count toward the daily "studying" metric too.
+  useStudyUsage()
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

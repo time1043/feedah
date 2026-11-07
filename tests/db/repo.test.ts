@@ -404,8 +404,14 @@ describe('flag review reconstruction', () => {
 
   it('replays the day flags in flag order, one entry per flag', async () => {
     await seedCustom()
+    const db = await getDb()
     await setRoundFlag('custom', 1, 2, true) // beta first
     await setRoundFlag('custom', 1, 1, true) // then alpha
+    // Same-millisecond flags tie in SQL ordering; stamp explicit times so
+    // the flag order within the round is deterministic.
+    const t0 = Date.now() - 1000
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t0} WHERE position = 2`)
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t0 + 500} WHERE position = 1`)
     await finishFeedRound2()
 
     // Round 2 also inherits round 1's flags (回显), so both words carry a
