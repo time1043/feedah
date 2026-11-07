@@ -258,11 +258,13 @@ export default function ReviewScreen() {
         }
         end={{
           render: () => (
-            <View className="gap-2 flex-1 items-center justify-center">
-              <Text className="font-bold text-black dark:text-white text-[28px]">
+            <View className="gap-2 px-8 flex-1 items-center justify-center">
+              <Text className="font-bold text-black dark:text-white text-center text-[28px]">
                 Review complete
               </Text>
-              <Text className="text-gray-400 dark:text-gray-500 text-[17px]">{timeLabel}</Text>
+              <Text className="text-gray-400 dark:text-gray-500 text-center text-[17px]">
+                {timeLabel}
+              </Text>
             </View>
           ),
           onReached: () => {

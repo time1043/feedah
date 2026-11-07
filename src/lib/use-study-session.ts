@@ -15,7 +15,7 @@ import {
   setRoundFlag,
   type WordWithFlag,
 } from '@/db/repo'
-import { LOADING_SESSION, studyReducer } from '@/lib/study-session'
+import { countsOf, LOADING_SESSION, studyReducer } from '@/lib/study-session'
 
 /**
  * Owns the study session state (reducer) and every db write the policy
@@ -111,7 +111,10 @@ export function useStudySession(bucket: string, drill: Drill) {
       if (session.status !== 'ready') return false
       if (session.browsing || session.progress.pointer < session.words.length - 1) return false
       const nextRound = session.progress.round + 1
-      dispatch({ type: 'roundAdvanced', now: Date.now() })
+      // Freeze the round's tallies before the reset wipes the answers — the
+      // end page shows them for its whole linger.
+      const { answered, correct } = countsOf(session)
+      dispatch({ type: 'roundAdvanced', now: Date.now(), answered, correct })
       void (async () => {
         // The reload must wait for the advance transaction: it carries the
         // finished round's flags into the new one (回显).

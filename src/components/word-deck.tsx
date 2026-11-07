@@ -33,8 +33,8 @@ export interface WordDeckEnd {
   render: () => ReactNode
   /**
    * Fired once when the user swipes onto the end page. Return false to veto
-   * the landing (no linger, the deck stays put and can be swiped off again);
-   * anything else lingers END_LINGER_MS, then performs action.
+   * the landing (the deck snaps back to the last word and the swipe can be
+   * tried again); anything else lingers END_LINGER_MS, then performs action.
    */
   onReached?: () => boolean | void
   /** What happens after the linger: 'reset' scrolls back to the first card,
@@ -227,7 +227,13 @@ export function WordDeck({
       endReached.current = true
       if (end.onReached?.() === false) {
         endReached.current = false
-        setIndex(target)
+        // A vetoed landing must not park on the end page — its copy assumes
+        // a completed round. Snap back to the last word; the user can try
+        // the swipe again once the veto's reason is gone.
+        const last = Math.max(0, words.length - 1)
+        suppressSettle.current = true
+        setIndex(last)
+        listRef.current?.scrollToIndex({ index: last, animated: false })
         return
       }
       setIndex(target)

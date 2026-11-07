@@ -20,6 +20,10 @@ export type StudySession =
       /** The reducer's decision: this card auto-advances at `dueAt`. Cleared
        * by browsing, manual settles and round completion. */
       pendingAutoAdvance: { position: number; dueAt: number } | null
+      /** The completed round's tallies, frozen at roundAdvanced: the end
+       * page renders them for its whole linger, and live counts would read
+       * 0 of 0 the moment the wipe of `answers` lands. */
+      endFacts: { answered: number; correct: number } | null
     }
 
 export const LOADING_SESSION: StudySession = { status: 'loading' }
@@ -45,7 +49,13 @@ export type StudyAction =
   | { type: 'browsingStarted' }
   | { type: 'resumed' }
   /** Optimistic round reset; the DB transaction completes separately. */
-  | { type: 'roundAdvanced'; now: number }
+  | {
+      type: 'roundAdvanced'
+      now: number
+      /** The completed round's tallies, frozen into endFacts. */
+      answered: number
+      correct: number
+    }
   | { type: 'roundWordsLoaded'; words: WordWithFlag[] }
   | { type: 'autoAdvanceDone' }
 
@@ -67,6 +77,7 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         answers: {},
         drafts: {},
         pendingAutoAdvance: null,
+        endFacts: null,
       }
     case 'answered': {
       if (session.status !== 'ready') return session
@@ -142,6 +153,7 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         drafts: {},
         browsing: false,
         pendingAutoAdvance: null,
+        endFacts: { answered: action.answered, correct: action.correct },
       }
     }
     case 'roundWordsLoaded': {

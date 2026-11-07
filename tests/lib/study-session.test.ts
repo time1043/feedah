@@ -31,6 +31,7 @@ function readySession(overrides: Partial<ReadySession> = {}): ReadySession {
     answers: {},
     drafts: {},
     pendingAutoAdvance: null,
+    endFacts: null,
   }
   return { ...base, ...overrides }
 }
@@ -83,10 +84,13 @@ describe('studyReducer', () => {
     s = reduce(s, { type: 'resumed' })
     expect(s.browsing).toBe(false)
 
-    s = reduce(s, { type: 'roundAdvanced', now: 123 })
+    s = reduce(s, { type: 'roundAdvanced', now: 123, answered: 4, correct: 3 })
     expect(s.progress).toMatchObject({ round: 2, pointer: 0, roundStartedAt: 123 })
     expect(s.answers).toEqual({})
     expect(s.browsing).toBe(false)
+    // The completed round's tallies survive the wipe: the end page reads
+    // them while its answers are already gone.
+    expect(s.endFacts).toEqual({ answered: 4, correct: 3 })
   })
 
   it('flagToggled flips the word; drafted writes the draft', () => {
