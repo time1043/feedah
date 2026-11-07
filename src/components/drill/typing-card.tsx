@@ -24,9 +24,9 @@ type TypingCardProps = {
  * slot below shows the Chinese prompt (always visible — it IS the prompt).
  * Enter submits the answer. Once submitted, the word and its forms appear
  * in their feed positions, so the submitted card is the feed card. A wrong
- * submit adds one line to that card — the attempt, struck through in red,
- * under the reveal — so the spelling can be diffed against the answer; a
- * correct submit (and a skip) leaves the reveal untouched.
+ * submit adds one line to that card — the attempt in the quiz's red
+ * wrong-pick chip, under the reveal — so the spelling can be diffed against
+ * the answer; a correct submit (and a skip) leaves the reveal untouched.
  */
 export function TypingCard({
   word,
@@ -84,18 +84,20 @@ export function TypingCard({
         )}
         {/* The diff is the wrong-submit feedback (quiz paints the wrong
             pick; typing has no container to paint): the attempt stays
-            visible under the reveal in the quiz's wrong-pick colors. The
+            visible under the reveal in the quiz's wrong-pick chip. The
             headword above stays the readable feed card. */}
         {wrong && (
-          <Text
-            accessibilityLabel={`Your answer: ${draft} (incorrect)`}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-            className="mt-2 text-red-600 dark:text-red-400 text-center text-[15px] line-through"
-          >
-            {draft}
-          </Text>
+          <View className="mt-3 border-red-500 bg-red-50 px-4 py-1.5 dark:bg-red-950 max-w-[320px] rounded-full border">
+            <Text
+              accessibilityLabel={`Your answer: ${draft} (incorrect)`}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+              className="font-semibold text-red-600 dark:text-red-400 text-center text-[15px]"
+            >
+              {`✗ ${draft}`}
+            </Text>
+          </View>
         )}
         {/* Same reserved slot as the feed card: the Chinese prompt lives here. */}
         <View className="mt-4 h-[110px] items-center justify-start">
