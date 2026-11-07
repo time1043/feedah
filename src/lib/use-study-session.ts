@@ -2,8 +2,8 @@ import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { useReducer } from 'react'
 
+import type { Drill } from '@/drills/contract'
 import type { StudyAction, StudySession } from '@/lib/study-session'
-import type { Drill } from '@/types/drill'
 import type { DeckWord } from '@/types/word'
 
 import {

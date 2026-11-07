@@ -1,6 +1,6 @@
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 
-import type { AnswerState } from '@/types/drill'
+import type { AnswerState } from '@/drills/contract'
 import type { DeckWord } from '@/types/word'
 
 import { normalizeAnswer } from '@/lib/quiz'

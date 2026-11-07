@@ -1,4 +1,4 @@
-import type { DrillId } from '@/types/drill'
+import type { DrillId } from '@/drills/contract'
 
 import { storedAtom } from '@/atoms/storage'
 

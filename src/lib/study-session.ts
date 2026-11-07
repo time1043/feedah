@@ -1,5 +1,5 @@
 import type { Progress, WordWithFlag } from '@/db/repo'
-import type { AnswerRecord, AnswerState } from '@/types/drill'
+import type { AnswerRecord, AnswerState } from '@/drills/contract'
 
 /**
  * The study session's client state. The deck owns the on-screen index; this

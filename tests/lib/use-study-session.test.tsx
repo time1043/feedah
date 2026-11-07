@@ -12,8 +12,8 @@ jest.mock('expo-router', () => ({
 jest.mock('@/db/index', () => require('../db/harness').dbIndex())
 
 import type { WordWithFlag } from '@/db/repo'
+import type { Drill } from '@/drills/contract'
 import type { StudySession } from '@/lib/study-session'
-import type { Drill } from '@/types/drill'
 import type { DeckWord } from '@/types/word'
 
 import { getDb } from '@/db/index'

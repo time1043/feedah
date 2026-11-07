@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native'
 
+import type { AnswerState } from '@/drills/contract'
 import type { QuizOption } from '@/lib/quiz'
-import type { AnswerState } from '@/types/drill'
 import type { DeckWord } from '@/types/word'
 
 import { BookmarkButton, CardHeadword, CardMeaning } from './card-parts'
