@@ -39,7 +39,7 @@ const testMode: Drill = {
     void words
   },
   renderCard: () => null,
-  endCopy: ({ nextRound }) => ({ title: 'Round complete', subtitle: `r${nextRound}` }),
+  endCopy: ({ nextRound }) => ({ title: 'Round complete', note: `r${nextRound}` }),
 }
 
 /**

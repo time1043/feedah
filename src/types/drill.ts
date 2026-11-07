@@ -59,9 +59,15 @@ export interface Drill {
   autoAdvanceMs?: number
   /** A wrong answer auto-flags the word (the user can unflag freely). */
   autoFlagOnWrong?: boolean
-  /** End-page copy. nextRound is the round that starts after the linger. */
+  /** End-page copy. nextRound is the round that starts after the linger.
+   * The page renders title, then stats (when present), then note — one
+   * line each, never a packed single line. */
   endCopy: (facts: { nextRound: number; total: number; correct: number; answered: number }) => {
     title: string
-    subtitle: string
+    /** The round's tally line, e.g. "4 of 4 correct" — absent when the
+     * drill records no answers. */
+    stats?: string
+    /** The closing line, e.g. "Round 6 starts in a moment". */
+    note: string
   }
 }

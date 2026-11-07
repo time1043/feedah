@@ -139,8 +139,13 @@ export default function StudyScreen() {
                 <Text className="font-bold text-black dark:text-white text-center text-[28px]">
                   {copy.title}
                 </Text>
+                {copy.stats && (
+                  <Text className="text-gray-400 dark:text-gray-500 text-center text-[17px]">
+                    {copy.stats}
+                  </Text>
+                )}
                 <Text className="text-gray-400 dark:text-gray-500 text-center text-[17px]">
-                  {copy.subtitle}
+                  {copy.note}
                 </Text>
               </View>
             )

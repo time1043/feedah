@@ -31,7 +31,7 @@ const swipeDrill: Drill = {
   scrollable: true,
   endCopy: ({ nextRound }) => ({
     title: 'Round complete',
-    subtitle: `Round ${nextRound} starts in a moment`,
+    note: `Round ${nextRound} starts in a moment`,
   }),
 }
 
@@ -68,7 +68,8 @@ const choiceDrill: Drill = {
   autoFlagOnWrong: true,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
-    subtitle: `${correct} of ${answered} correct · Round ${nextRound} starts in a moment`,
+    stats: `${correct} of ${answered} correct`,
+    note: `Round ${nextRound} starts in a moment`,
   }),
 }
 
@@ -99,7 +100,8 @@ const typingDrill: Drill = {
   autoFlagOnWrong: true,
   endCopy: ({ nextRound, correct, answered }) => ({
     title: 'Round complete',
-    subtitle: `${correct} of ${answered} typed right · Round ${nextRound} starts in a moment`,
+    stats: `${correct} of ${answered} typed right`,
+    note: `Round ${nextRound} starts in a moment`,
   }),
 }
 
