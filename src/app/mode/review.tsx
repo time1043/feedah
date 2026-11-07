@@ -240,6 +240,7 @@ export default function ReviewScreen() {
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onClose={() => router.back()}
+        onSearch={() => router.push({ pathname: '/mode/search', params: { bucket: bucketName } })}
         scrubbable={drill.scrubbable}
         autoSpeak={drill.speakOnSettle}
         headerCenter={
