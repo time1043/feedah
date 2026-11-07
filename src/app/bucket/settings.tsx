@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 import { Modal, Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { activeBucketAtom, searchScopeAtom, studyModeAtom } from '@/atoms/settings'
+import { activeBucketAtom, searchScopeAtom, studyDrillAtom } from '@/atoms/settings'
 import { getBucketCards, restoreBuckets, tombstonedBuckets, type BucketCard } from '@/db/repo'
-import { STUDY_MODES } from '@/study/modes'
+import { DRILLS } from '@/drill/drills'
 
 /**
  * Settings for the bucket list itself: which bucket is being studied, the
@@ -18,7 +18,7 @@ export default function BucketSettingsScreen() {
   const muted = scheme === 'dark' ? '#7A7E86' : '#9A9EA6'
   const activeName = useAtomValue(activeBucketAtom)
   const setActiveName = useSetAtom(activeBucketAtom)
-  const [studyMode, setStudyMode] = useAtom(studyModeAtom)
+  const [studyDrill, setStudyDrill] = useAtom(studyDrillAtom)
   const [scope, setScope] = useAtom(searchScopeAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
   const [tombstoned, setTombstoned] = useState<string[]>([])
@@ -122,22 +122,22 @@ export default function BucketSettingsScreen() {
             Used by Continue on the home screen.
           </Text>
           <View className="mt-3 gap-2 flex-row">
-            {STUDY_MODES.map((mode) => (
+            {DRILLS.map((drill) => (
               <Pressable
-                key={mode.id}
-                onPress={() => setStudyMode(mode.id)}
+                key={drill.id}
+                onPress={() => setStudyDrill(drill.id)}
                 className={`rounded-lg p-2.5 flex-1 items-center border ${
-                  mode.id === studyMode
+                  drill.id === studyDrill
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
                     : 'border-gray-300 dark:border-gray-700'
                 }`}
               >
                 <Text
                   className={`font-semibold text-[13px] ${
-                    mode.id === studyMode ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                    drill.id === studyDrill ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  {mode.label}
+                  {drill.label}
                 </Text>
               </Pressable>
             ))}

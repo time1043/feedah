@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { AnswerState } from '@/study/types'
+import type { AnswerState } from '@/drill/types'
 import type { DeckWord } from '@/types/word'
 
-import { activeBucketAtom, hudPageAtom, hudRoundAtom, studyModeAtom } from '@/atoms/settings'
+import { activeBucketAtom, hudPageAtom, hudRoundAtom, studyDrillAtom } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import {
@@ -22,10 +22,10 @@ import {
   setRoundFlag,
   type ReviewSessionRow,
 } from '@/db/repo'
+import { getDrill } from '@/drill/drills'
 import { formatDayLabel } from '@/lib/format'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
-import { getStudyMode } from '@/study/modes'
 
 type RoundWalk = {
   kind: 'round'
@@ -66,8 +66,8 @@ export default function ReviewScreen() {
   const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
-  const [studyMode] = useAtom(studyModeAtom)
-  const mode = getStudyMode(studyMode)
+  const [studyDrill] = useAtom(studyDrillAtom)
+  const drill = getDrill(studyDrill)
   const showPage = useAtomValue(hudPageAtom)
   const showRound = useAtomValue(hudRoundAtom)
 
@@ -103,7 +103,7 @@ export default function ReviewScreen() {
         : await countedReviewCount(bucketName, round)
       const rawStart = queue.findIndex((word) => word.position >= reviewSession.lastPosition)
       const startIndex = rawStart < 0 ? 0 : rawStart
-      mode.prepare?.(words)
+      drill.prepare?.(words)
       if (!cancelled) {
         setLoaded({
           walk: {
@@ -122,7 +122,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true
     }
-  }, [bucketName, params.round, mode])
+  }, [bucketName, params.round, drill])
 
   if (empty) {
     return (
@@ -158,7 +158,7 @@ export default function ReviewScreen() {
         initialIndex={walk.startIndex}
         onSpeak={(word) => speakWord(word.word)}
         renderCard={(word: DeckWord, helpers) =>
-          mode.renderCard({
+          drill.renderCard({
             word,
             answered: answers[answerKeyOf(word)],
             onAnswer: (correct, picked) => {
@@ -177,13 +177,13 @@ export default function ReviewScreen() {
                 bucketId: bucketName,
                 round: walk.kind === 'round' ? walk.session.round : 0,
                 position: word.position,
-                mode: mode.id,
+                mode: drill.id,
                 correct,
               })
-              // Wrong picks auto-flag when the mode says so — the bookmark is
+              // Wrong picks auto-flag when the drill says so — the bookmark is
               // the undo. Round walks queue from flags already, so this only
               // lands on day replays (or a word unflagged mid-walk).
-              if (!correct && mode.autoFlagOnWrong && !word.flagged) {
+              if (!correct && drill.autoFlagOnWrong && !word.flagged) {
                 setLoaded((prev) => (prev ? withQueueFlag(prev, word.position, true) : prev))
                 void setRoundFlag(
                   bucketName,
@@ -192,11 +192,11 @@ export default function ReviewScreen() {
                   true,
                 )
               }
-              if (correct && mode.autoAdvanceMs) {
+              if (correct && drill.autoAdvanceMs) {
                 if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
                 autoAdvanceTimer.current = setTimeout(() => {
                   if (deckRef.current?.showsWord(word.position)) deckRef.current.advance()
-                }, mode.autoAdvanceMs)
+                }, drill.autoAdvanceMs)
               }
             },
             onSkip: () =>
@@ -227,7 +227,7 @@ export default function ReviewScreen() {
           })
         }
         canSettle={(from, to) => {
-          if (mode.scrollable) return true
+          if (drill.scrollable) return true
           const fromWord = walk.queue[from]
           if (!fromWord) return true
           return answers[answerKeyOf(fromWord)] !== undefined
@@ -240,11 +240,11 @@ export default function ReviewScreen() {
           setLoaded((prev) => (prev ? { ...prev, seen: index + 1 } : prev))
         }}
         onClose={() => router.back()}
-        scrubbable={mode.scrubbable}
-        autoSpeak={mode.speakOnSettle}
+        scrubbable={drill.scrubbable}
+        autoSpeak={drill.speakOnSettle}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-            {`Review(${mode.label}) ${bucketName}`}
+            {`Review(${drill.label}) ${bucketName}`}
             {walk.kind === 'round' ? ` ${walk.session.round}` : ''}
           </Text>
         }

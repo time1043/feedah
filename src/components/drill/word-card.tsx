@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 
-import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from '@/components/study/card-parts'
+import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from './card-parts'
 
 type WordCardProps = {
   position: number

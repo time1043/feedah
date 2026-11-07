@@ -1,17 +1,18 @@
 import type { QuizOption } from '@/lib/quiz'
-import type { StudyMode } from '@/study/types'
 
-import { ChoiceCard } from '@/components/study/choice-card'
-import { TypingCard } from '@/components/study/typing-card'
-import { WordCard } from '@/components/word-card'
+import { ChoiceCard } from '@/components/drill/choice-card'
+import { TypingCard } from '@/components/drill/typing-card'
+import { WordCard } from '@/components/drill/word-card'
 import { buildOptions, pickDistractors } from '@/lib/quiz'
 
-// The choice mode's per-card options, rebuilt by prepare() on every data
+import type { Drill } from './types'
+
+// The quiz drill's per-card options, rebuilt by prepare() on every data
 // load and read by renderCard. Module-level on purpose: the data must stay
 // stable across FlatList card recycling (and HMR simply restarts it).
 const quizOptions = new Map<number, QuizOption[]>()
 
-const swipeMode: StudyMode = {
+const swipeDrill: Drill = {
   id: 'swipe',
   label: 'Swipe',
   renderCard: (props) => (
@@ -35,7 +36,7 @@ const swipeMode: StudyMode = {
   }),
 }
 
-const choiceMode: StudyMode = {
+const choiceDrill: Drill = {
   id: 'quiz',
   label: 'Quiz',
   // Options are computed once per load: curated distractors topped up from
@@ -72,7 +73,7 @@ const choiceMode: StudyMode = {
   }),
 }
 
-const typingMode: StudyMode = {
+const typingDrill: Drill = {
   id: 'type',
   label: 'Type',
   renderCard: (props) => (
@@ -104,12 +105,12 @@ const typingMode: StudyMode = {
 }
 
 /**
- * The study modes. Registry entries are module-level constants: their
- * renderCard references stay stable across renders, which keeps the deck's
- * compiled subtree from invalidating on every settle.
+ * The drills. Registry entries are module-level constants: their renderCard
+ * references stay stable across renders, which keeps the deck's compiled
+ * subtree from invalidating on every settle.
  */
-export const STUDY_MODES: StudyMode[] = [swipeMode, choiceMode, typingMode]
+export const DRILLS: Drill[] = [swipeDrill, choiceDrill, typingDrill]
 
-export function getStudyMode(id: string): StudyMode {
-  return STUDY_MODES.find((mode) => mode.id === id) ?? swipeMode
+export function getDrill(id: string): Drill {
+  return DRILLS.find((drill) => drill.id === id) ?? swipeDrill
 }

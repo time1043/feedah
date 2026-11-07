@@ -11,9 +11,9 @@ import { FlatList, View } from 'react-native'
 
 import type { DeckWord } from '@/types/word'
 
+import { WordCard } from '@/components/drill/word-card'
 import { HeaderIconButton } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
-import { WordCard } from '@/components/word-card'
 
 /** How long the end page lingers before performing its action. */
 const END_LINGER_MS = 2000

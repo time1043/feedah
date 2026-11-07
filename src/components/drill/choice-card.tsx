@@ -1,10 +1,10 @@
 import { Pressable, Text, View } from 'react-native'
 
+import type { AnswerState } from '@/drill/types'
 import type { QuizOption } from '@/lib/quiz'
-import type { AnswerState } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
-import { BookmarkButton, CardHeadword, CardMeaning } from '@/components/study/card-parts'
+import { BookmarkButton, CardHeadword, CardMeaning } from './card-parts'
 
 type ChoiceCardProps = {
   word: DeckWord

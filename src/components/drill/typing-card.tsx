@@ -1,10 +1,11 @@
 import { Keyboard, Text, TextInput, View } from 'react-native'
 
-import type { AnswerState } from '@/study/types'
+import type { AnswerState } from '@/drill/types'
 import type { DeckWord } from '@/types/word'
 
-import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from '@/components/study/card-parts'
 import { normalizeAnswer } from '@/lib/quiz'
+
+import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from './card-parts'
 
 type TypingCardProps = {
   word: DeckWord

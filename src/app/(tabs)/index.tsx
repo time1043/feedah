@@ -3,15 +3,15 @@ import { useAtom, useAtomValue } from 'jotai'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
-import { activeBucketAtom, studyModeAtom } from '@/atoms/settings'
+import { activeBucketAtom, studyDrillAtom } from '@/atoms/settings'
 import { HeaderIconButton, TabHeader } from '@/components/header'
 import { getBucketCards, type BucketCard } from '@/db/repo'
-import { STUDY_MODES } from '@/study/modes'
+import { DRILLS } from '@/drill/drills'
 
 /** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
-  const [studyMode] = useAtom(studyModeAtom)
+  const [studyDrill] = useAtom(studyDrillAtom)
   const [cards, setCards] = useState<BucketCard[]>([])
 
   useFocusEffect(
@@ -23,7 +23,7 @@ export default function Index() {
   // The active card drives the readout; it may not be loaded yet on first frame.
   const active = cards.find((card) => card.id === activeName)
   const started = active ? active.pointer > 0 || active.round > 1 : false
-  const modeLabel = STUDY_MODES.find((mode) => mode.id === studyMode)?.label ?? 'Feed'
+  const drillLabel = DRILLS.find((drill) => drill.id === studyDrill)?.label ?? 'Swipe'
 
   return (
     <View className="bg-white dark:bg-black flex-1">
@@ -52,7 +52,7 @@ export default function Index() {
           ) : (
             <>
               <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
-                {activeName} · round {active?.round ?? 1} · {modeLabel}
+                {activeName} · round {active?.round ?? 1} · {drillLabel}
               </Text>
               <Text
                 className="font-extrabold text-black dark:text-white text-center text-[40px]"
@@ -64,7 +64,7 @@ export default function Index() {
               <Pressable
                 className="rounded-lg bg-blue-500 p-4 items-center"
                 onPress={() =>
-                  router.push({ pathname: '/mode/study/[mode]', params: { mode: studyMode } })
+                  router.push({ pathname: '/mode/study/[drill]', params: { drill: studyDrill } })
                 }
               >
                 <Text className="font-bold text-white">{started ? 'Continue' : 'Start'}</Text>

@@ -13,7 +13,7 @@ jest.mock('@/db/index', () => require('../db/harness').dbIndex())
 
 import type { WordWithFlag } from '@/db/repo'
 import type { StudySession } from '@/study/session'
-import type { StudyMode } from '@/study/types'
+import type { Drill } from '@/drill/types'
 import type { DeckWord } from '@/types/word'
 
 import { getDb } from '@/db/index'
@@ -26,7 +26,7 @@ const BUCKET = '2050'
 // A minimal mode with the gated-answer profile (like quiz) and a prepare
 // side effect the tests can observe.
 let prepared = 0
-const testMode: StudyMode = {
+const testMode: Drill = {
   id: 'quiz',
   label: 'Quiz',
   speakOnSettle: false,

@@ -14,21 +14,21 @@ import {
   hudRoundAtom,
 } from '@/atoms/settings'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
+import { getDrill } from '@/drill/drills'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
-import { getStudyMode } from '@/study/modes'
 import { countsOf, frontierOf } from '@/study/session'
 import { useStudySession } from '@/study/use-study-session'
 
 /**
  * The generalized study screen: chrome, deck wiring and the auto-advance
  * executor. Session state, the answer gate and policy db-writes live in
- * useStudySession; the mode contributes cards, payloads and copy. See
- * src/study/types.ts.
+ * useStudySession; the drill contributes cards, payloads and copy. See
+ * src/drill/types.ts.
  */
 export default function StudyScreen() {
-  const params = useLocalSearchParams<{ mode?: string; bucket?: string }>()
-  const mode = getStudyMode(typeof params.mode === 'string' ? params.mode : '')
+  const params = useLocalSearchParams<{ drill?: string; bucket?: string }>()
+  const drill = getDrill(typeof params.drill === 'string' ? params.drill : '')
   // The opener can pin a bucket (the bucket tab launches any of them);
   // otherwise the active one.
   const activeName = useAtomValue(activeBucketAtom)
@@ -37,7 +37,7 @@ export default function StudyScreen() {
   const showRound = useAtomValue(hudRoundAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
-  const { session, actions } = useStudySession(bucketName, mode)
+  const { session, actions } = useStudySession(bucketName, drill)
   const deckRef = useRef<WordDeckHandle>(null)
 
   // Executes the reducer's auto-advance decision: slides to the pending
@@ -73,12 +73,12 @@ export default function StudyScreen() {
       <WordDeck
         ref={deckRef}
         words={session.words}
-        resetKey={`${bucketName}:${mode.id}`}
+        resetKey={`${bucketName}:${drill.id}`}
         initialIndex={frontier}
-        autoSpeak={mode.speakOnSettle}
+        autoSpeak={drill.speakOnSettle}
         onSpeak={(word) => speakWord(word.word)}
         renderCard={(word: DeckWord, helpers) =>
-          mode.renderCard({
+          drill.renderCard({
             word,
             answered: session.answers[word.position],
             onAnswer: (correct, picked) => actions.answer(word, correct, picked),
@@ -95,13 +95,13 @@ export default function StudyScreen() {
         canSettle={(from, to) => {
           // Browsing opens swiping; the end page stays reachable. Leaving an
           // unanswered card is the only thing the gate refuses.
-          if (mode.scrollable || session.browsing) return true
+          if (drill.scrollable || session.browsing) return true
           const fromWord = session.words[from]
           if (!fromWord) return true
           return to <= from || session.answers[fromWord.position] !== undefined
         }}
         progressBar={showProgressBar}
-        scrubbable={mode.scrubbable}
+        scrubbable={drill.scrubbable}
         headerCenter={
           session.browsing ? (
             <Pressable className="bg-blue-500 px-4 py-1.5 rounded-full" onPress={resumeStudying}>
@@ -109,7 +109,7 @@ export default function StudyScreen() {
             </Pressable>
           ) : showTitle ? (
             <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-              Study({mode.label}) {bucketName}
+              Study({drill.label}) {bucketName}
             </Text>
           ) : undefined
         }
@@ -126,7 +126,7 @@ export default function StudyScreen() {
         onSearch={() => router.push({ pathname: '/mode/search', params: { bucket: bucketName } })}
         end={{
           render: () => {
-            const copy = mode.endCopy({
+            const copy = drill.endCopy({
               nextRound: progress.round + 1,
               total: words.length,
               correct: correctCount,

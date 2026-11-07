@@ -2,8 +2,8 @@ import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { useReducer } from 'react'
 
+import type { Drill } from '@/drill/types'
 import type { StudyAction, StudySession } from '@/study/session'
-import type { StudyMode } from '@/study/types'
 import type { DeckWord } from '@/types/word'
 
 import {
@@ -21,7 +21,7 @@ import { LOADING_SESSION, studyReducer } from '@/study/session'
  * Owns the study session state (reducer) and every db write the policy
  * triggers. Timers, the deck handle and chrome stay in the screen.
  */
-export function useStudySession(bucket: string, mode: StudyMode) {
+export function useStudySession(bucket: string, drill: Drill) {
   const [session, dispatch] = useReducer(studyReducer, LOADING_SESSION)
 
   // Reloads on every focus: a review pushed on top may have re-flagged words.
@@ -34,12 +34,12 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         const words = await getWordsWithRoundFlag(bucket, progress.round)
         if (cancelled) return
         dispatch({ type: 'loaded', words, progress })
-        mode.prepare?.(words)
+        drill.prepare?.(words)
       })()
       return () => {
         cancelled = true
       }
-    }, [bucket, mode]),
+    }, [bucket, drill]),
   )
 
   const actions = {
@@ -64,17 +64,17 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         position: word.position,
         correct,
         picked,
-        autoFlag: mode.autoFlagOnWrong ?? false,
-        autoAdvanceDueAt: mode.autoAdvanceMs ? Date.now() + mode.autoAdvanceMs : null,
+        autoFlag: drill.autoFlagOnWrong ?? false,
+        autoAdvanceDueAt: drill.autoAdvanceMs ? Date.now() + drill.autoAdvanceMs : null,
       })
       void recordAnswer({
         bucketId: bucket,
         round: session.status === 'ready' ? session.progress.round : 1,
         position: word.position,
-        mode: mode.id,
+        mode: drill.id,
         correct,
       })
-      if (!correct && (mode.autoFlagOnWrong ?? false)) {
+      if (!correct && (drill.autoFlagOnWrong ?? false)) {
         void setRoundFlag(
           bucket,
           session.status === 'ready' ? session.progress.round : 1,
@@ -118,7 +118,7 @@ export function useStudySession(bucket: string, mode: StudyMode) {
         await completeRound(bucket)
         const fresh: WordWithFlag[] = await getWordsWithRoundFlag(bucket, nextRound)
         dispatch({ type: 'roundWordsLoaded', words: fresh })
-        mode.prepare?.(fresh)
+        drill.prepare?.(fresh)
       })()
       return true
     },
