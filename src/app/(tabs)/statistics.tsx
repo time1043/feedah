@@ -56,8 +56,10 @@ export default function StatisticsScreen() {
     }
   }
 
-  // Newest-first month ledger; months without recorded days don't exist.
-  const months = aggregateMonths(usage)
+  // Newest-first month ledger for the heatmap's selected year — switching
+  // the year switches the ledger with it. Months without recorded days
+  // don't exist.
+  const months = aggregateMonths(usage).filter((month) => month.key.startsWith(`${year}-`))
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
