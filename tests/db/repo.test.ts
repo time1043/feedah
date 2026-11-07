@@ -3,6 +3,8 @@ import { seedBuckets, seedBucketsFrom, type SeedFile } from '@/db/seed'
 jest.mock('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }))
 jest.mock('@/db/index', () => require('./harness').dbIndex())
 
+import { sql } from 'drizzle-orm'
+
 import type { WordWithFlag } from '@/db/repo'
 
 import { importBucketFile } from '@/db/import-bucket'
@@ -10,6 +12,7 @@ import { getDb } from '@/db/index'
 import {
   completeRound,
   getWordsCompletedOn,
+  getWordsFlaggedOn,
   countRoundFlags,
   deleteBucket,
   finishReview,
@@ -383,3 +386,78 @@ describe('day review reconstruction', () => {
     expect(day.find((w) => w.round === 2 && w.position === 1)?.flagged).toBe(false)
   })
 })
+
+describe('flag review reconstruction', () => {
+  const file: SeedFile = {
+    name: 'custom',
+    words: [
+      { position: 1, word: 'alpha', ipa: '', meaning: 'm1', forms: [] },
+      { position: 2, word: 'beta', ipa: '', meaning: 'm2', forms: [] },
+    ],
+  }
+
+  async function seedCustom(): Promise<void> {
+    const db = await getDb()
+    const { withTransaction } = require('./harness').dbIndex()
+    await seedBucketsFrom(db, withTransaction, [file])
+  }
+
+  it('replays the day flags in flag order, one entry per flag', async () => {
+    await seedCustom()
+    await setRoundFlag('custom', 1, 2, true) // beta first
+    await setRoundFlag('custom', 1, 1, true) // then alpha
+    await finishFeedRound2()
+
+    // Round 2 also inherits round 1's flags (回显), so both words carry a
+    // round-2 flag too. The carry and the fresh flag can land in the same
+    // millisecond, so only the flag order across clear timestamps holds:
+    // the first entry is the day's first flag (1:2, beta), and every flag
+    // is present exactly once per round.
+    const day = await getWordsFlaggedOn(todayLocalDate())
+    expect(day).toHaveLength(4)
+    expect(day.every((w) => w.flagged)).toBe(true)
+    expect(day[0]).toMatchObject({ word: 'beta', bucketId: 'custom', round: 1 })
+    expect(
+      day
+        .filter((w) => w.position === 1)
+        .map((w) => w.round)
+        .sort(),
+    ).toEqual([1, 2])
+    expect(
+      day
+        .filter((w) => w.position === 2)
+        .map((w) => w.round)
+        .sort(),
+    ).toEqual([1, 2])
+  })
+
+  it('ignores flags from other days and words unflagged since', async () => {
+    await seedCustom()
+    const db = await getDb()
+    // A flag planted yesterday: setRoundFlag stamps now, so rewrite it.
+    await setRoundFlag('custom', 1, 1, true)
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    await db.run(
+      sql`UPDATE round_flag SET flagged_at = ${yesterday.getTime()} WHERE bucket_id = 'custom' AND position = 1`,
+    )
+    // Today's flag of word 2, then unflagged — the row is gone.
+    await setRoundFlag('custom', 1, 2, true)
+    await setRoundFlag('custom', 1, 2, false)
+
+    const day = await getWordsFlaggedOn(todayLocalDate())
+    expect(day).toEqual([])
+    const yesterdayFlags = await getWordsFlaggedOn(
+      `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`,
+    )
+    expect(yesterdayFlags.map((w) => w.position)).toEqual([1])
+  })
+})
+
+/** Walks the custom bucket through round 1's end and into round 2. */
+async function finishFeedRound2(): Promise<void> {
+  await settleCard('custom', 1)
+  await settleCard('custom', 2)
+  await completeRound('custom')
+  await setRoundFlag('custom', 2, 1, true) // alpha again, in round 2
+}

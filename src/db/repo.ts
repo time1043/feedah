@@ -762,6 +762,38 @@ export async function getWordsCompletedOn(day: string): Promise<DayWord[]> {
   return out
 }
 
+/**
+ * The words flagged on a local day, across all buckets and rounds, in flag
+ * order — one entry per round_flag row, so a word flagged in several rounds
+ * of one day appears once per flag (no dedup, like the day replay). Every
+ * entry is currently flagged: unflagging deletes the row, leaving nothing
+ * to review. Each entry shows flagged: true by definition.
+ */
+export async function getWordsFlaggedOn(day: string): Promise<DayWord[]> {
+  const db = await getDb()
+  const flags = await db.select().from(roundFlag).orderBy(roundFlag.flaggedAt)
+  // Local-date filtering in TS: flaggedAt → local day, immune to DST and
+  // UTC shifts. The flag table is sparse (one row per live flag), so the
+  // scan is cheap.
+  const ofDay = flags.filter((row) => todayLocalDate(new Date(row.flaggedAt)) === day)
+
+  const wordsByBucket = new Map<string, Map<number, Word>>()
+  const out: DayWord[] = []
+  for (const flag of ofDay) {
+    let byPosition = wordsByBucket.get(flag.bucketId)
+    if (!byPosition) {
+      const rows = await db.select().from(word).where(eq(word.bucketId, flag.bucketId))
+      byPosition = new Map(rows.map((row) => [row.position, mapWord(row)]))
+      wordsByBucket.set(flag.bucketId, byPosition)
+    }
+    const found = byPosition.get(flag.position)
+    if (found) {
+      out.push({ ...found, bucketId: flag.bucketId, round: flag.round, flagged: true })
+    }
+  }
+  return out
+}
+
 export async function listDailyPointers() {
   const db = await getDb()
   return db.select().from(dailyPointer).orderBy(dailyPointer.day)

@@ -16,6 +16,7 @@ import {
   finishReview,
   getProgress,
   getWordsCompletedOn,
+  getWordsFlaggedOn,
   getWordsWithRoundFlag,
   openReviewSession,
   recordAnswer,
@@ -52,21 +53,35 @@ type ReviewState = {
   drafts: Record<string, string>
 }
 
+/** The enriched queue entries date walks carry; round walks pass plain
+ * DeckWords without them. */
+type DayEntry = DeckWord & { bucketId?: string; round?: number }
+
 /** Flips one word's flag inside the walk queue. The branch is not noise: it
- * keeps each walk kind's queue element type exact (the day walk's words
- * carry bucketId, which a union-wide map would infer away). */
-function withQueueFlag(state: ReviewState, position: number, flagged: boolean): ReviewState {
+ * keeps each walk kind's queue element type exact (the date walk's words
+ * carry bucketId, which a union-wide map would infer away). Date walks
+ * match on bucket + round + position — positions collide across buckets,
+ * and the same word may be flagged in several rounds of one day. */
+function withQueueFlag(state: ReviewState, word: DayEntry, flagged: boolean): ReviewState {
   const { walk } = state
+  const same = (w: DayEntry): boolean =>
+    w.position === word.position &&
+    (word.bucketId === undefined || (w.bucketId === word.bucketId && w.round === word.round))
   if (walk.kind === 'round') {
-    const queue = walk.queue.map((w) => (w.position === position ? { ...w, flagged } : w))
+    const queue = walk.queue.map((w) => (same(w) ? { ...w, flagged } : w))
     return { ...state, walk: { ...walk, queue } }
   }
-  const queue = walk.queue.map((w) => (w.position === position ? { ...w, flagged } : w))
+  const queue = walk.queue.map((w) => (same(w) ? { ...w, flagged } : w))
   return { ...state, walk: { ...walk, queue } }
 }
 
 export default function ReviewScreen() {
-  const params = useLocalSearchParams<{ bucket?: string; round?: string; day?: string }>()
+  const params = useLocalSearchParams<{
+    bucket?: string
+    round?: string
+    day?: string
+    flagDay?: string
+  }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
   const [studyDrill] = useAtom(studyDrillAtom)
@@ -84,10 +99,15 @@ export default function ReviewScreen() {
     setLoaded(null)
     setEmpty(false)
     void (async () => {
-      // A day param replays everything studied that date, across buckets and
-      // rounds; without it the walk is one round's flag list.
-      if (typeof params.day === 'string' && params.day) {
-        const queue = await getWordsCompletedOn(params.day)
+      // Date walks replay a date across buckets and rounds: params.day walks
+      // what was studied, params.flagDay what was flagged. Without either,
+      // the walk is one round's flag list.
+      const flagDay = typeof params.flagDay === 'string' && params.flagDay ? params.flagDay : ''
+      const studyDay = typeof params.day === 'string' && params.day ? params.day : ''
+      if (flagDay || studyDay) {
+        const queue = flagDay
+          ? await getWordsFlaggedOn(flagDay)
+          : await getWordsCompletedOn(studyDay)
         if (cancelled) return
         if (queue.length === 0) {
           setEmpty(true)
@@ -96,7 +116,7 @@ export default function ReviewScreen() {
         drill.prepare?.(queue)
         if (!cancelled) {
           setLoaded({
-            walk: { kind: 'day', day: params.day, queue, startIndex: 0 },
+            walk: { kind: 'day', day: flagDay || studyDay, queue, startIndex: 0 },
             seen: 1,
             answers: {},
             drafts: {},
@@ -145,7 +165,7 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true
     }
-  }, [bucketName, params.round, params.day, drill])
+  }, [bucketName, params.round, params.day, params.flagDay, drill])
 
   if (empty) {
     return (
@@ -153,9 +173,11 @@ export default function ReviewScreen() {
         <ScreenHeader title="Review" onBack={() => router.back()} />
         <View className="flex-1 items-center justify-center">
           <Text className="text-gray-400 dark:text-gray-500 text-[17px]">
-            {typeof params.day === 'string' && params.day
-              ? 'Nothing studied on this day'
-              : 'Nothing flagged yet'}
+            {typeof params.flagDay === 'string' && params.flagDay
+              ? 'Nothing flagged on this day'
+              : typeof params.day === 'string' && params.day
+                ? 'Nothing studied on this day'
+                : 'Nothing flagged yet'}
           </Text>
         </View>
       </SafeAreaView>
@@ -222,7 +244,7 @@ export default function ReviewScreen() {
               // the undo. Round walks queue from flags already, so this only
               // lands on day replays (or a word unflagged mid-walk).
               if (!correct && drill.autoFlagOnWrong && !word.flagged) {
-                setLoaded((prev) => (prev ? withQueueFlag(prev, word.position, true) : prev))
+                setLoaded((prev) => (prev ? withQueueFlag(prev, word, true) : prev))
                 void setRoundFlag(
                   bucketName,
                   walk.kind === 'round' ? walk.session.round : 0,
@@ -254,10 +276,10 @@ export default function ReviewScreen() {
             onReplay: helpers.onReplay,
             onToggleFlag: () => {
               const flagged = !word.flagged
-              setLoaded((prev) => (prev ? withQueueFlag(prev, word.position, flagged) : prev))
+              setLoaded((prev) => (prev ? withQueueFlag(prev, word, flagged) : prev))
               void setRoundFlag(
-                bucketName,
-                walk.kind === 'round' ? walk.session.round : 0,
+                walk.kind === 'round' ? bucketName : ((word as DayEntry).bucketId ?? bucketName),
+                walk.kind === 'round' ? walk.session.round : ((word as DayEntry).round ?? 0),
                 word.position,
                 flagged,
               )

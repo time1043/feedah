@@ -7,9 +7,11 @@ import { WordCard } from '@/components/drill/word-card'
 import { buildOptions, pickDistractors } from '@/lib/quiz'
 
 // The quiz drill's per-card options, rebuilt by prepare() on every data
-// load and read by renderCard. Module-level on purpose: the data must stay
-// stable across FlatList card recycling (and HMR simply restarts it).
-const quizOptions = new Map<number, QuizOption[]>()
+// load and read by renderCard. Keyed by bucket AND position: date-walk
+// decks span buckets, where positions collide. Module-level on purpose:
+// the data must stay stable across FlatList card recycling (and HMR
+// simply restarts it).
+const quizOptions = new Map<string, QuizOption[]>()
 
 const swipeDrill: Drill = {
   id: 'swipe',
@@ -45,7 +47,7 @@ const choiceDrill: Drill = {
     quizOptions.clear()
     for (const word of words) {
       quizOptions.set(
-        word.position,
+        `${word.bucketId ?? ''}:${word.position}`,
         buildOptions(word, pickDistractors(word, word.distractors, words)),
       )
     }
@@ -53,7 +55,7 @@ const choiceDrill: Drill = {
   renderCard: (props) => (
     <ChoiceCard
       word={props.word}
-      options={quizOptions.get(props.word.position) ?? []}
+      options={quizOptions.get(`${props.word.bucketId ?? ''}:${props.word.position}`) ?? []}
       answered={props.answered}
       onAnswer={props.onAnswer}
       onReplay={props.onReplay}

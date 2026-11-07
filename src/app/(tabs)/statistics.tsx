@@ -74,32 +74,43 @@ export default function StatisticsScreen() {
         contentContainerStyle={{ gap: 24, padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Today readout: words (tap = review the day) and the time split. */}
-        <View className="gap-3 flex-row">
-          <Pressable
-            disabled={!dayUsage || dayUsage.words === 0}
-            className="rounded-xl border-gray-300 py-3 dark:border-gray-700 flex-[1] items-center border disabled:opacity-40"
-            onPress={() => router.push({ pathname: '/mode/review', params: { day: selectedDay } })}
-          >
-            <Text
-              className="font-extrabold text-black dark:text-white text-[24px]"
-              style={{ fontVariant: ['tabular-nums'] }}
+        {/* Today readout: words (tap = review the day, long-press = review
+            the day's flags) and the time split. */}
+        <View className="gap-1">
+          <View className="gap-3 flex-row">
+            <Pressable
+              className="rounded-xl border-gray-300 py-3 dark:border-gray-700 flex-[1] items-center border"
+              onPress={() =>
+                router.push({ pathname: '/mode/review', params: { day: selectedDay } })
+              }
+              onLongPress={() =>
+                router.push({ pathname: '/mode/review', params: { flagDay: selectedDay } })
+              }
+              accessibilityLabel={`Review the words studied on ${selectedDay}, long-press for its flags`}
             >
-              {dayUsage?.words ?? 0}
-            </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-[13px]">words</Text>
-          </Pressable>
-          <View className="rounded-xl border-gray-300 py-3 dark:border-gray-700 flex-[2] items-center border">
-            <Text
-              className="font-extrabold text-black dark:text-white text-[24px]"
-              style={{ fontVariant: ['tabular-nums'] }}
-            >
-              {formatMinutes(dayUsage?.feedSeconds ?? 0)}
-            </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
-              studying / {formatMinutes(dayUsage?.appSeconds ?? 0)} in app
-            </Text>
+              <Text
+                className="font-extrabold text-black dark:text-white text-[24px]"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {dayUsage?.words ?? 0}
+              </Text>
+              <Text className="text-gray-500 dark:text-gray-400 text-[13px]">words</Text>
+            </Pressable>
+            <View className="rounded-xl border-gray-300 py-3 dark:border-gray-700 flex-[2] items-center border">
+              <Text
+                className="font-extrabold text-black dark:text-white text-[24px]"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {formatMinutes(dayUsage?.feedSeconds ?? 0)}
+              </Text>
+              <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
+                studying / {formatMinutes(dayUsage?.appSeconds ?? 0)} in app
+              </Text>
+            </View>
           </View>
+          <Text className="text-gray-400 dark:text-gray-500 text-[13px]">
+            Long-press the words card to review the day's flags.
+          </Text>
         </View>
 
         <View className="gap-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">

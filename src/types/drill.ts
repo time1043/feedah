@@ -14,9 +14,11 @@ export interface AnswerRecord {
 export type AnswerState = AnswerRecord | { skipped: true }
 
 /** Per-card render input, assembled by the mode screen. Cards hold no
- * session state of their own — FlatList recycles them. */
+ * session state of their own — FlatList recycles them. Date-walk screens
+ * (day replay, flag review) pass entries enriched with their bucket and
+ * round; single-bucket decks may omit them. */
 export interface DrillCardProps {
-  word: DeckWord
+  word: DeckWord & { bucketId?: string; round?: number }
   /** undefined = not answered yet (or the drill has no answers). */
   answered: AnswerState | undefined
   onAnswer: (correct: boolean, picked?: string) => void
@@ -42,8 +44,9 @@ export interface Drill {
   /** Home chip + headerCenter drill label, e.g. Review(Swipe). */
   label: string
   /** Runs once per data load: rebuilds the drill's private per-card data
-   * (e.g. shuffled options). All randomness lives here. */
-  prepare?: (words: Word[]) => void
+   * (e.g. shuffled options). All randomness lives here. Date-walk screens
+   * pass bucket-enriched entries, so the bucket id may be present. */
+  prepare?: (words: (Word & { bucketId?: string; round?: number })[]) => void
   renderCard: (props: DrillCardProps) => ReactNode
   /** The deck auto-speaks on open/settle/scrub. Typing must be false —
    * speaking the word would leak the answer. */
