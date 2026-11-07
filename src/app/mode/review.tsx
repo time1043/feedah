@@ -38,6 +38,9 @@ type RoundWalk = {
 type DayWalk = {
   kind: 'day'
   day: string
+  /** The bucket's current round (its probe) — what the title stamps. The
+   * replayed day may itself span several rounds of the bucket. */
+  round: number
   /** One entry per (round, position) walked that day — a word re-studied in
    * a later round appears again, deliberately without dedup. */
   queue: (DeckWord & { bucketId: string; round: number })[]
@@ -87,7 +90,10 @@ export default function ReviewScreen() {
       // A day param replays everything studied that date, across buckets and
       // rounds; without it the walk is one round's flag list.
       if (typeof params.day === 'string' && params.day) {
-        const queue = await getWordsCompletedOn(params.day)
+        const [queue, progress] = await Promise.all([
+          getWordsCompletedOn(params.day),
+          getProgress(bucketName),
+        ])
         if (cancelled) return
         if (queue.length === 0) {
           setEmpty(true)
@@ -96,7 +102,7 @@ export default function ReviewScreen() {
         drill.prepare?.(queue)
         if (!cancelled) {
           setLoaded({
-            walk: { kind: 'day', day: params.day, queue, startIndex: 0 },
+            walk: { kind: 'day', day: params.day, round: progress.round, queue, startIndex: 0 },
             seen: 1,
             answers: {},
             drafts: {},
@@ -175,18 +181,6 @@ export default function ReviewScreen() {
       ? `time ${roundWalk.session.number}`
       : `time ${roundWalk.countedCount + 1} · uncounted`
     : undefined
-  // The day replay's title names the round(s) its words came from — a day
-  // can span several rounds of the bucket, shown as a compact range.
-  const dayRounds =
-    walk.kind === 'day'
-      ? [...new Set(walk.queue.filter((w) => w.bucketId === bucketName).map((w) => w.round))]
-      : []
-  const dayRoundLabel =
-    dayRounds.length === 0
-      ? ''
-      : dayRounds.length === 1
-        ? `${dayRounds[0]}`
-        : `${dayRounds[0]}-${dayRounds[dayRounds.length - 1]}`
   const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
   return (
@@ -290,12 +284,9 @@ export default function ReviewScreen() {
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
             {/* Round reviews stamp today (the walk happens now); day replays
-                stamp the day they replay, plus the round(s) its words came
-                from — one round, or a compact range. */}
+                stamp the day they replay plus the bucket's current round. */}
             {`Review(${drill.label}) ${walk.kind === 'round' ? todayLocalDate() : walk.day} ${bucketName}`}
-            {walk.kind === 'round'
-              ? ` ${walk.session.round}`
-              : dayRoundLabel && ` ${dayRoundLabel}`}
+            {walk.kind === 'round' ? ` ${walk.session.round}` : ` ${(walk as DayWalk).round}`}
           </Text>
         }
         hudLeft={showRound ? <Text className={hudTextClass}>{timeLabel}</Text> : undefined}
