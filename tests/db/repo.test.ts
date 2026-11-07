@@ -452,6 +452,20 @@ describe('flag review reconstruction', () => {
     )
     expect(yesterdayFlags.map((w) => w.position)).toEqual([1])
   })
+
+  it('groups flags by round even when an earlier round is revisited', async () => {
+    await seedCustom()
+    await settleCard('custom', 1)
+    await settleCard('custom', 2)
+    await completeRound('custom') // probe → round 2, no flags carried
+    await setRoundFlag('custom', 2, 2, true) // flagged during round 2
+    await setRoundFlag('custom', 1, 1, true) // back in round 1: two more
+    await setRoundFlag('custom', 1, 2, true)
+
+    const day = await getWordsFlaggedOn(todayLocalDate())
+    // Round-major despite the flag timeline bouncing 1 → 2 → 1.
+    expect(day.map((w) => `${w.round}:${w.position}`)).toEqual(['1:1', '1:2', '2:2'])
+  })
 })
 
 /** Walks the custom bucket through round 1's end and into round 2. */
