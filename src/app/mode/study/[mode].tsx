@@ -109,7 +109,7 @@ export default function StudyScreen() {
             </Pressable>
           ) : showTitle ? (
             <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-              {mode.label} · {bucketName}
+              Study({mode.label}) {bucketName}
             </Text>
           ) : undefined
         }

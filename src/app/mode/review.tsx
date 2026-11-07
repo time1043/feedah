@@ -244,7 +244,8 @@ export default function ReviewScreen() {
         autoSpeak={mode.speakOnSettle}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-            Review {bucketName} {walk.kind === 'round' ? walk.session.round : ''}
+            {`Review(${mode.label}) ${bucketName}`}
+            {walk.kind === 'round' ? ` ${walk.session.round}` : ''}
           </Text>
         }
         hudLeft={showRound ? <Text className={hudTextClass}>{timeLabel}</Text> : undefined}
