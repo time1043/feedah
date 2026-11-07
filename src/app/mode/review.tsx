@@ -175,6 +175,18 @@ export default function ReviewScreen() {
       ? `time ${roundWalk.session.number}`
       : `time ${roundWalk.countedCount + 1} · uncounted`
     : undefined
+  // The day replay's title names the round(s) its words came from — a day
+  // can span several rounds of the bucket, shown as a compact range.
+  const dayRounds =
+    walk.kind === 'day'
+      ? [...new Set(walk.queue.filter((w) => w.bucketId === bucketName).map((w) => w.round))]
+      : []
+  const dayRoundLabel =
+    dayRounds.length === 0
+      ? ''
+      : dayRounds.length === 1
+        ? `${dayRounds[0]}`
+        : `${dayRounds[0]}-${dayRounds[dayRounds.length - 1]}`
   const hudTextClass = 'text-[13px] text-gray-400 dark:text-gray-500'
 
   return (
@@ -278,9 +290,12 @@ export default function ReviewScreen() {
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
             {/* Round reviews stamp today (the walk happens now); day replays
-                stamp the day they replay. */}
+                stamp the day they replay, plus the round(s) its words came
+                from — one round, or a compact range. */}
             {`Review(${drill.label}) ${walk.kind === 'round' ? todayLocalDate() : walk.day} ${bucketName}`}
-            {walk.kind === 'round' ? ` ${walk.session.round}` : ''}
+            {walk.kind === 'round'
+              ? ` ${walk.session.round}`
+              : dayRoundLabel && ` ${dayRoundLabel}`}
           </Text>
         }
         hudLeft={showRound ? <Text className={hudTextClass}>{timeLabel}</Text> : undefined}
