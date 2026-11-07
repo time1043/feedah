@@ -39,7 +39,9 @@ export default function StatisticsScreen() {
 
   const heatValues = new Map<string, number>()
   for (const [day, value] of usage) {
-    heatValues.set(day, metric === 'words' ? value.words : Math.round(value.feedSeconds / 60))
+    // Ceil: any studying at all must light the cell up — rounding a 40-second
+    // session down to 0 would hide a study day from the calendar.
+    heatValues.set(day, metric === 'words' ? value.words : Math.ceil(value.feedSeconds / 60))
   }
 
   // Year totals for the year the heatmap is showing, subordinate to the
