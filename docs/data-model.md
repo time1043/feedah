@@ -59,9 +59,12 @@ pointer, which counts card indices. Everything that relates flags to
 progress translates positions into card ordinals first (the 0-based index
 in the bucket's position-ordered word list).
 
-**Study modes** — swipe / quiz / type share one probe, one flag list
-and one round-advance protocol; a mode is only a different card renderer
-plus per-card payloads (`src/study/`). Quiz/type are answer-gated:
+**Drills** — swipe / quiz / type share one probe, one flag list
+and one round-advance protocol; a drill is only a different card renderer
+plus per-card payloads. Drills are plugins: the contract is
+`src/drills/contract.ts`, registration is the manifest in
+`src/drills/registry.ts`, and the core never imports a drill directly.
+Quiz/type are answer-gated:
 the deck cannot scroll while the card on screen is unanswered, so a
 question cannot be skipped — until the user scrubs away, which opens
 browsing (free swiping in every mode) until `Resume studying` returns
