@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { AnswerState } from '@/types/drill'
+import type { AnswerState } from '@/drills/contract'
 import type { DeckWord } from '@/types/word'
 
 import { activeBucketAtom, hudPageAtom, hudRoundAtom, studyDrillAtom } from '@/atoms/settings'
-import { getDrill } from '@/components/drill/drills'
 import { ScreenHeader } from '@/components/header'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import {
@@ -24,6 +23,7 @@ import {
   setRoundFlag,
   type ReviewSessionRow,
 } from '@/db/repo'
+import { getDrill } from '@/drills/registry'
 import { todayLocalDate } from '@/lib/date'
 import { formatDayLabel } from '@/lib/format'
 import { speakWord } from '@/lib/speech'

@@ -13,8 +13,8 @@ import {
   hudPageAtom,
   hudRoundAtom,
 } from '@/atoms/settings'
-import { getDrill } from '@/components/drill/drills'
 import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
+import { getDrill } from '@/drills/registry'
 import { speakWord } from '@/lib/speech'
 import { countsOf, frontierOf } from '@/lib/study-session'
 import { useStudySession } from '@/lib/use-study-session'
@@ -24,7 +24,7 @@ import { useStudyUsage } from '@/lib/use-study-usage'
  * The generalized study screen: chrome, deck wiring and the auto-advance
  * executor. Session state, the answer gate and policy db-writes live in
  * useStudySession; the drill contributes cards, payloads and copy. See
- * src/drill/types.ts.
+ * src/drills/contract.ts.
  */
 export default function StudyScreen() {
   const params = useLocalSearchParams<{ drill?: string; bucket?: string }>()

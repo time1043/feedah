@@ -6,8 +6,8 @@ import { Modal, Pressable, ScrollView, Text, View, useColorScheme } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom, searchScopeAtom, studyDrillAtom } from '@/atoms/settings'
-import { DRILLS } from '@/components/drill/drills'
 import { getBucketCards, restoreBuckets, tombstonedBuckets, type BucketCard } from '@/db/repo'
+import { getDrills } from '@/drills/registry'
 
 /**
  * Settings for the bucket list itself: which bucket is being studied, the
@@ -122,7 +122,7 @@ export default function BucketSettingsScreen() {
             Used by Continue on the home screen.
           </Text>
           <View className="mt-3 gap-2 flex-row">
-            {DRILLS.map((drill) => (
+            {getDrills().map((drill) => (
               <Pressable
                 key={drill.id}
                 onPress={() => setStudyDrill(drill.id)}

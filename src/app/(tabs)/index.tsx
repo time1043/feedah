@@ -4,9 +4,9 @@ import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 import { activeBucketAtom, studyDrillAtom } from '@/atoms/settings'
-import { DRILLS } from '@/components/drill/drills'
 import { HeaderIconButton, TabHeader } from '@/components/header'
 import { getBucketCards, type BucketCard } from '@/db/repo'
+import { getDrill } from '@/drills/registry'
 
 /** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
@@ -23,7 +23,7 @@ export default function Index() {
   // The active card drives the readout; it may not be loaded yet on first frame.
   const active = cards.find((card) => card.id === activeName)
   const started = active ? active.pointer > 0 || active.round > 1 : false
-  const drillLabel = DRILLS.find((drill) => drill.id === studyDrill)?.label ?? 'Swipe'
+  const drillLabel = getDrill(studyDrill).label
 
   return (
     <View className="bg-white dark:bg-black flex-1">
