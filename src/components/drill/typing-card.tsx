@@ -23,7 +23,10 @@ type TypingCardProps = {
  * on top, the input line occupies the word's place, and the reserved meaning
  * slot below shows the Chinese prompt (always visible — it IS the prompt).
  * Enter submits the answer. Once submitted, the word and its forms appear
- * in their feed positions, so the submitted card is the feed card.
+ * in their feed positions, so the submitted card is the feed card. A wrong
+ * submit adds one line to that card — the attempt, struck through in red,
+ * under the reveal — so the spelling can be diffed against the answer; a
+ * correct submit (and a skip) leaves the reveal untouched.
  */
 export function TypingCard({
   word,
@@ -36,7 +39,7 @@ export function TypingCard({
 }: TypingCardProps) {
   const submitted = typeof answered === 'object' && 'correct' in answered
   const revealed = answered !== undefined
-  const correct = submitted && answered.correct
+  const wrong = submitted && !answered.correct
   const matches = normalizeAnswer(draft) === normalizeAnswer(word.word)
 
   const submit = () => {
@@ -78,6 +81,21 @@ export function TypingCard({
               </Text>
             )}
           </>
+        )}
+        {/* The diff is the wrong-submit feedback (quiz paints the wrong
+            pick; typing has no container to paint): the attempt stays
+            visible under the reveal in the quiz's wrong-pick colors. The
+            headword above stays the readable feed card. */}
+        {wrong && (
+          <Text
+            accessibilityLabel={`Your answer: ${draft} (incorrect)`}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+            className="mt-2 text-red-600 dark:text-red-400 text-center text-[15px] line-through"
+          >
+            {draft}
+          </Text>
         )}
         {/* Same reserved slot as the feed card: the Chinese prompt lives here. */}
         <View className="mt-4 h-[110px] items-center justify-start">
