@@ -23,6 +23,7 @@ import {
   setRoundFlag,
   type ReviewSessionRow,
 } from '@/db/repo'
+import { todayLocalDate } from '@/lib/date'
 import { formatDayLabel } from '@/lib/format'
 import { speakWord } from '@/lib/speech'
 import { useStudyUsage } from '@/lib/use-study-usage'
@@ -245,7 +246,9 @@ export default function ReviewScreen() {
         autoSpeak={drill.speakOnSettle}
         headerCenter={
           <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
-            {`Review(${drill.label}) ${bucketName}`}
+            {/* Round reviews stamp today (the walk happens now); day replays
+                stamp the day they replay. */}
+            {`Review(${drill.label}) ${walk.kind === 'round' ? todayLocalDate() : walk.day} ${bucketName}`}
             {walk.kind === 'round' ? ` ${walk.session.round}` : ''}
           </Text>
         }
