@@ -38,7 +38,9 @@ type RoundWalk = {
 type DayWalk = {
   kind: 'day'
   day: string
-  queue: (DeckWord & { bucketId: string })[]
+  /** One entry per (round, position) walked that day — a word re-studied in
+   * a later round appears again, deliberately without dedup. */
+  queue: (DeckWord & { bucketId: string; round: number })[]
   startIndex: number
 }
 type Walk = RoundWalk | DayWalk
@@ -82,6 +84,26 @@ export default function ReviewScreen() {
     setLoaded(null)
     setEmpty(false)
     void (async () => {
+      // A day param replays everything studied that date, across buckets and
+      // rounds; without it the walk is one round's flag list.
+      if (typeof params.day === 'string' && params.day) {
+        const queue = await getWordsCompletedOn(params.day)
+        if (cancelled) return
+        if (queue.length === 0) {
+          setEmpty(true)
+          return
+        }
+        drill.prepare?.(queue)
+        if (!cancelled) {
+          setLoaded({
+            walk: { kind: 'day', day: params.day, queue, startIndex: 0 },
+            seen: 1,
+            answers: {},
+            drafts: {},
+          })
+        }
+        return
+      }
       const requested = Number(params.round)
       const round =
         Number.isInteger(requested) && requested > 0
@@ -123,14 +145,18 @@ export default function ReviewScreen() {
     return () => {
       cancelled = true
     }
-  }, [bucketName, params.round, drill])
+  }, [bucketName, params.round, params.day, drill])
 
   if (empty) {
     return (
       <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
         <ScreenHeader title="Review" onBack={() => router.back()} />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400 dark:text-gray-500 text-[17px]">Nothing flagged yet</Text>
+          <Text className="text-gray-400 dark:text-gray-500 text-[17px]">
+            {typeof params.day === 'string' && params.day
+              ? 'Nothing studied on this day'
+              : 'Nothing flagged yet'}
+          </Text>
         </View>
       </SafeAreaView>
     )
@@ -142,8 +168,8 @@ export default function ReviewScreen() {
   const { walk, seen, answers, drafts } = loaded
   const roundWalk = walk.kind === 'round' ? walk : undefined
   const countedCount = roundWalk ? roundWalk.countedCount : undefined
-  const answerKeyOf = (word: DeckWord & { bucketId?: string }): string =>
-    walk.kind === 'day' ? `${word.bucketId}:${word.position}` : `${word.position}`
+  const answerKeyOf = (word: DeckWord & { bucketId?: string; round?: number }): string =>
+    walk.kind === 'day' ? `${word.bucketId}:${word.round}:${word.position}` : `${word.position}`
   const timeLabel = roundWalk
     ? roundWalk.session.counted
       ? `time ${roundWalk.session.number}`
@@ -176,7 +202,12 @@ export default function ReviewScreen() {
               )
               void recordAnswer({
                 bucketId: bucketName,
-                round: walk.kind === 'round' ? walk.session.round : 0,
+                // The queue entry carries the round it was walked in; a
+                // plain DeckWord (round walk) does not, hence the cast.
+                round:
+                  walk.kind === 'round'
+                    ? walk.session.round
+                    : ((word as DeckWord & { round?: number }).round ?? 0),
                 position: word.position,
                 mode: drill.id,
                 correct,

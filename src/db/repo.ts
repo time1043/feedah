@@ -674,14 +674,23 @@ export async function getRoundFlagPositions(bucketId: string, round: number): Pr
   return rows.map((row) => row.position)
 }
 
+/** One entry of a day review: the word, its bucket, the round it was
+ * walked in and that round's flag state — the same word may appear under
+ * several rounds of one day, flagged differently in each. */
+export type DayWord = Word & { bucketId: string; round: number; flagged: boolean }
+
 /**
- * Distinct words completed on a local day, across all buckets, rebuilt from
- * the daily pointer high-water marks: the day's globalPosition gain over the
- * previous recorded snapshot names exactly the global positions settled that
- * day — the same rule the stats word counts use, so the queue always matches
- * the number. Rows carry their bucket id (a day review spans buckets).
+ * The words studied on a local day, across all buckets, in study order —
+ * rebuilt from the daily pointer high-water marks: the day's globalPosition
+ * gain over the previous recorded snapshot names exactly the global
+ * positions settled that day (the same rule the stats word counts use, so
+ * the queue always matches the number). A global position maps to
+ * (round, position) through the bucket's word count, so a day spanning
+ * several rounds of one bucket contributes every round's stretch — the same
+ * word appears once per round it was walked in, deliberately without
+ * dedup. Rows carry their bucket id (a day review spans buckets).
  */
-export async function getWordsCompletedOn(day: string): Promise<(Word & { bucketId: string })[]> {
+export async function getWordsCompletedOn(day: string): Promise<DayWord[]> {
   const db = await getDb()
   const pointers = await db
     .select()
@@ -699,25 +708,55 @@ export async function getWordsCompletedOn(day: string): Promise<(Word & { bucket
     prevByBucket.set(row.bucketId, row.globalPosition)
   }
 
-  const out: (Word & { bucketId: string })[] = []
-  const seen = new Set<string>()
+  // Per-bucket expansion table, fetched once and reused across ranges
+  // (rounds repeat positions; the word itself does not change).
+  const buckets = new Map<string, { wordCount: number; words: Map<number, Word> }>()
+  const out: DayWord[] = []
   for (const range of ranges) {
-    const rows = await db
-      .select()
-      .from(word)
+    let entry = buckets.get(range.bucketId)
+    if (!entry) {
+      // The global position encodes (round, position) against the bucket's
+      // declared word count — the same number settleCard encoded with.
+      const bucketRow = await db
+        .select({ wordCount: bucket.wordCount })
+        .from(bucket)
+        .where(eq(bucket.id, range.bucketId))
+        .get()
+      const rows = await db.select().from(word).where(eq(word.bucketId, range.bucketId))
+      entry = {
+        wordCount: bucketRow?.wordCount ?? 0,
+        words: new Map(rows.map((row) => [row.position, mapWord(row)])),
+      }
+      buckets.set(range.bucketId, entry)
+    }
+    if (entry.wordCount === 0) continue
+    // The entry shows the flag state of its own round: a replay of the day
+    // should look the way the day looked.
+    const firstRound = Math.floor((range.from - 1) / entry.wordCount) + 1
+    const lastRound = Math.floor((range.to - 1) / entry.wordCount) + 1
+    const flagRows = await db
+      .select({ round: roundFlag.round, position: roundFlag.position })
+      .from(roundFlag)
       .where(
         and(
-          eq(word.bucketId, range.bucketId),
-          gte(word.position, range.from),
-          lte(word.position, range.to),
+          eq(roundFlag.bucketId, range.bucketId),
+          gte(roundFlag.round, firstRound),
+          lte(roundFlag.round, lastRound),
         ),
       )
-      .orderBy(word.position)
-    for (const row of rows) {
-      const key = `${row.bucketId}:${row.position}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push({ ...mapWord(row), bucketId: row.bucketId })
+    const flagged = new Set(flagRows.map((row) => `${row.round}:${row.position}`))
+    for (let global = range.from; global <= range.to; global++) {
+      const round = Math.floor((global - 1) / entry.wordCount) + 1
+      const position = ((global - 1) % entry.wordCount) + 1
+      const found = entry.words.get(position)
+      if (found) {
+        out.push({
+          ...found,
+          bucketId: range.bucketId,
+          round,
+          flagged: flagged.has(`${round}:${position}`),
+        })
+      }
     }
   }
   return out

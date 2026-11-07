@@ -9,6 +9,7 @@ import { importBucketFile } from '@/db/import-bucket'
 import { getDb } from '@/db/index'
 import {
   completeRound,
+  getWordsCompletedOn,
   countRoundFlags,
   deleteBucket,
   finishReview,
@@ -27,6 +28,7 @@ import {
   setRoundFlag,
   tombstonedBuckets,
 } from '@/db/repo'
+import { todayLocalDate } from '@/lib/date'
 import { roundStatuses } from '@/lib/round-status'
 
 const BUCKET = '2050'
@@ -328,5 +330,56 @@ describe('bucket deletion', () => {
     expect(await tombstonedBuckets()).toEqual([])
     expect((await listBuckets()).map((b) => b.id)).toContain(BUCKET)
     expect(await getProgress(BUCKET)).toMatchObject({ round: 1, pointer: 0 })
+  })
+})
+
+describe('day review reconstruction', () => {
+  const file: SeedFile = {
+    name: 'custom',
+    words: [
+      { position: 1, word: 'alpha', ipa: '', meaning: 'm1', forms: [] },
+      { position: 2, word: 'beta', ipa: '', meaning: 'm2', forms: [] },
+    ],
+  }
+
+  async function seedCustom(): Promise<void> {
+    const db = await getDb()
+    const { withTransaction } = require('./harness').dbIndex()
+    await seedBucketsFrom(db, withTransaction, [file])
+  }
+
+  it('a day spanning two rounds replays every round without dedup', async () => {
+    await seedCustom()
+    // Round 1: walk word 1, complete the round (its end is recorded too).
+    await settleCard('custom', 1)
+    await completeRound('custom')
+    // Round 2: walk both words.
+    await settleCard('custom', 1)
+    await settleCard('custom', 2)
+
+    const day = await getWordsCompletedOn(todayLocalDate())
+    // Round 1's stretch (words 1-2) + round 2's stretch (words 1-2) = 4
+    // entries; alpha and beta each appear twice, once per round.
+    expect(day.map((w) => `${w.round}:${w.position}`)).toEqual(['1:1', '1:2', '2:1', '2:2'])
+    expect(day[0]).toMatchObject({ word: 'alpha', bucketId: 'custom', round: 1 })
+    expect(day[2]).toMatchObject({ word: 'alpha', bucketId: 'custom', round: 2 })
+
+    // The queue matches the stats number: the day's global gain is 4.
+    const pointers = await listDailyPointers()
+    expect(pointers).toHaveLength(1)
+    expect(pointers[0]).toMatchObject({ bucketId: 'custom', globalPosition: 4 })
+  })
+
+  it('shows each round its own flag state', async () => {
+    await seedCustom()
+    await settleCard('custom', 1)
+    await setRoundFlag('custom', 1, 1, true) // flagged during round 1
+    await completeRound('custom') // ...and carried into round 2 (回显)
+    await setRoundFlag('custom', 2, 1, false) // unflagged during round 2
+    await settleCard('custom', 1)
+
+    const day = await getWordsCompletedOn(todayLocalDate())
+    expect(day.find((w) => w.round === 1 && w.position === 1)?.flagged).toBe(true)
+    expect(day.find((w) => w.round === 2 && w.position === 1)?.flagged).toBe(false)
   })
 })
