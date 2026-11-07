@@ -90,7 +90,7 @@ describe('studyReducer', () => {
     expect(s.browsing).toBe(false)
     // The completed round's tallies survive the wipe: the end page reads
     // them while its answers are already gone.
-    expect(s.endFacts).toEqual({ answered: 4, correct: 3 })
+    expect(s.endFacts).toEqual({ answered: 4, correct: 3, nextRound: 2 })
   })
 
   it('flagToggled flips the word; drafted writes the draft', () => {

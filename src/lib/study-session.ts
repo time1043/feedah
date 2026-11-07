@@ -20,10 +20,11 @@ export type StudySession =
       /** The reducer's decision: this card auto-advances at `dueAt`. Cleared
        * by browsing, manual settles and round completion. */
       pendingAutoAdvance: { position: number; dueAt: number } | null
-      /** The completed round's tallies, frozen at roundAdvanced: the end
-       * page renders them for its whole linger, and live counts would read
-       * 0 of 0 the moment the wipe of `answers` lands. */
-      endFacts: { answered: number; correct: number } | null
+      /** The completed round's facts, frozen at roundAdvanced: the end page
+       * renders them for its whole linger — live counts would read 0 of 0
+       * and the live round number is already the NEXT one by the time the
+       * page first paints. */
+      endFacts: { answered: number; correct: number; nextRound: number } | null
     }
 
 export const LOADING_SESSION: StudySession = { status: 'loading' }
@@ -153,7 +154,13 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         drafts: {},
         browsing: false,
         pendingAutoAdvance: null,
-        endFacts: { answered: action.answered, correct: action.correct },
+        endFacts: {
+          answered: action.answered,
+          correct: action.correct,
+          // Frozen before the increment below: the round that starts in a
+          // moment is the completed one's successor.
+          nextRound: session.progress.round + 1,
+        },
       }
     }
     case 'roundWordsLoaded': {

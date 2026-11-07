@@ -59,9 +59,10 @@ export default function StudyScreen() {
   }
   const { words, progress } = session
   const frontier = frontierOf(session)
-  // The end page shows the frozen tallies of the round that just completed:
-  // live counts read 0 of 0 the moment roundAdvanced wipes the answers.
-  const endCounts = session.endFacts ?? countsOf(session)
+  // The end page shows the frozen facts of the round that just completed:
+  // live counts read 0 of 0 (roundAdvanced wipes the answers) and the live
+  // round number is already the next one when the page first paints.
+  const endFacts = session.endFacts ?? { ...countsOf(session), nextRound: progress.round + 1 }
 
   const resumeStudying = () => {
     actions.resume()
@@ -129,10 +130,10 @@ export default function StudyScreen() {
         end={{
           render: () => {
             const copy = drill.endCopy({
-              nextRound: progress.round + 1,
+              nextRound: endFacts.nextRound,
               total: words.length,
-              correct: endCounts.correct,
-              answered: endCounts.answered,
+              correct: endFacts.correct,
+              answered: endFacts.answered,
             })
             return (
               <View className="gap-2 px-8 flex-1 items-center justify-center">
