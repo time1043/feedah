@@ -8,11 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import type { Word } from '@/types/bucket'
 
 import { wordsMeaningAtom } from '@/atoms/words'
-import { ListHeader } from '@/components/header'
+import { ListHeader, MUTED } from '@/components/header'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
-const MUTED = { light: '#9A9EA6', dark: '#7A7E86' } as const
 const ROW_HEIGHT = 52
 
 /**
@@ -31,7 +30,12 @@ export default function WordsScreen() {
   const bucket = buckets.find((candidate) => candidate.name === bucketName)
   const words = bucket?.words ?? []
   const meaningDefault = useAtomValue(wordsMeaningAtom)
-  const [showMeaning, setShowMeaning] = useState(meaningDefault)
+  // The eye follows the stored setting once it has hydrated — a mount-time
+  // seed would capture the factory value on a cold-start deep link — and a
+  // tap overrides it for this visit only (null = no override yet). It never
+  // writes back to the setting.
+  const [override, setOverride] = useState<boolean | null>(null)
+  const showMeaning = override ?? meaningDefault
   const guardedPush = useNavGuard()
 
   const openWord = (word: Word) => {
@@ -53,8 +57,9 @@ export default function WordsScreen() {
           <Pressable
             className="h-9 w-9 items-center justify-center"
             hitSlop={4}
-            accessibilityLabel="Toggle meanings"
-            onPress={() => setShowMeaning(!showMeaning)}
+            accessibilityRole="button"
+            accessibilityLabel={showMeaning ? 'Hide meanings' : 'Show meanings'}
+            onPress={() => setOverride(!showMeaning)}
           >
             <Ionicons
               name={showMeaning ? 'eye' : 'eye-off'}
@@ -75,6 +80,8 @@ export default function WordsScreen() {
           keyExtractor={(word) => String(word.position)}
           renderItem={({ item }) => (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${item.word}, ${item.meaning}`}
               onPress={() => openWord(item)}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >

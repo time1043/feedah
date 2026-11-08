@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View, useColorScheme } from 'react-native'
 
-const MUTED = { light: '#9A9EA6', dark: '#7A7E86' } as const
+export const MUTED = { light: '#9A9EA6', dark: '#7A7E86' } as const
 
 /** Icon button for screen headers: one size (22 in a 36px hit box) and one
  * muted color everywhere, so icons never jitter between pages. */
@@ -61,12 +61,16 @@ export function ScreenHeader({ title, onBack, onSearch }: ScreenHeaderProps) {
 }
 
 /** Header row of the four tabs: 22px bold title left, optional right slot.
- * The title is optional — the home header carries only its search icon. */
+ * The title is optional — an untitled tab renders a spacer so its right
+ * slot still lands on the right edge (the home header carries only its
+ * search icon). */
 export function TabHeader({ title, right }: { title?: string; right?: ReactNode }) {
   return (
     <View className="px-4 pb-2 pt-3 flex-row items-center justify-between">
-      {title !== undefined && (
+      {title !== undefined ? (
         <Text className="font-bold text-black dark:text-white text-[22px]">{title}</Text>
+      ) : (
+        <View className="flex-1" />
       )}
       {right}
     </View>
