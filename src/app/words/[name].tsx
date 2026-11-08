@@ -8,11 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import type { Word } from '@/types/bucket'
 
 import { wordsMeaningAtom } from '@/atoms/words'
-import { ListHeader } from '@/components/header'
+import { ListHeader, MUTED } from '@/components/header'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
-const MUTED = { light: '#9A9EA6', dark: '#7A7E86' } as const
 const ROW_HEIGHT = 52
 
 /**
