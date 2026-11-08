@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -9,6 +9,7 @@ import type { Word } from '@/types/bucket'
 
 import { wordsMeaningAtom } from '@/atoms/words'
 import { ListHeader, MUTED } from '@/components/header'
+import { ProgressBar } from '@/components/progress-bar'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
@@ -16,7 +17,8 @@ const ROW_HEIGHT = 52
 
 /**
  * The word list of one bucket: every word in order, the meaning column
- * behind the eye toggle. The eye is per-visit — it starts from the global
+ * behind the eye toggle, and a progress bar that mirrors the top visible
+ * row and scrubs the list. The eye is per-visit — it starts from the global
  * word-meanings setting on every entry and never writes back to it. Tapping
  * a row opens the word in the browse deck, by its card number. Pure lookup
  * — nothing is recorded.
@@ -37,6 +39,20 @@ export default function WordsScreen() {
   const [override, setOverride] = useState<boolean | null>(null)
   const showMeaning = override ?? meaningDefault
   const guardedPush = useNavGuard()
+  // The top visible row, mirrored by the progress bar.
+  const [index, setIndex] = useState(0)
+  const listRef = useRef<FlatList<Word> | null>(null)
+
+  const jumpTo = (target: number) => {
+    if (words.length === 0) return
+    const clamped = Math.max(0, Math.min(target, words.length - 1))
+    setIndex(clamped)
+    listRef.current?.scrollToIndex({ index: clamped, animated: false })
+  }
+
+  const trackScroll = (offsetY: number) => {
+    setIndex(Math.max(0, Math.min(words.length - 1, Math.round(offsetY / ROW_HEIGHT))))
+  }
 
   const openWord = (word: Word) => {
     if (!bucket) return
@@ -75,24 +91,39 @@ export default function WordsScreen() {
           <Text className="text-gray-400 dark:text-gray-500">Bucket not found</Text>
         </View>
       ) : (
-        <FlatList
-          data={words}
-          keyExtractor={(word) => String(word.position)}
-          renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${item.word}, ${item.meaning}`}
-              onPress={() => openWord(item)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            >
-              <Row word={item} showMeaning={showMeaning} />
-            </Pressable>
-          )}
-          getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
-          initialNumToRender={20}
-          windowSize={7}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          <View className="px-4">
+            {words.length > 0 && (
+              <ProgressBar
+                value={index}
+                max={Math.max(words.length, 1)}
+                scrubbable
+                onScrub={jumpTo}
+              />
+            )}
+          </View>
+          <FlatList
+            ref={listRef}
+            data={words}
+            keyExtractor={(word) => String(word.position)}
+            renderItem={({ item }) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${item.word}, ${item.meaning}`}
+                onPress={() => openWord(item)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              >
+                <Row word={item} showMeaning={showMeaning} />
+              </Pressable>
+            )}
+            getItemLayout={(_, i) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * i, index: i })}
+            initialNumToRender={20}
+            windowSize={7}
+            showsVerticalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+            onScrollEndDrag={(event) => trackScroll(event.nativeEvent.contentOffset.y)}
+          />
+        </>
       )}
     </SafeAreaView>
   )
