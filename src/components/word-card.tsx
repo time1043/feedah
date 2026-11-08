@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native'
+import { useState } from 'react'
+import { Pressable, Text, View } from 'react-native'
 
 import type { Word } from '@/types/bucket'
 
@@ -14,14 +15,21 @@ type WordCardProps = {
  * The full-screen word card, split into two fixed halves — the project's
  * layout convention, so nothing jitters as content changes:
  *   - top 50%: position, the word, the ipa, and a fixed-height slot for the
- *     meaning. The headword stays anchored whether the meaning runs one
- *     line or three.
- *   - bottom 50%: the supplementary word forms, in the fixed grid.
+ *     meaning. The headword stays anchored whether the meaning is hidden or
+ *     runs three lines.
+ *   - bottom 50%: the supplementary word forms, in the fixed grid, shown
+ *     together with the meaning.
+ * Tapping anywhere on the card reveals or hides the meaning and the forms —
+ * recall first, then check.
  */
 export function WordCard({ word }: WordCardProps) {
+  const [revealed, setRevealed] = useState(false)
+
+  const toggle = () => setRevealed((value) => !value)
+
   return (
     <View className="flex-1">
-      <View className="px-8 flex-1 items-center justify-center">
+      <Pressable className="px-8 flex-1 items-center justify-center" onPress={toggle}>
         <Text
           className="mb-4 font-semibold text-gray-500 dark:text-gray-400 text-[28px]"
           style={{ fontVariant: ['tabular-nums'] }}
@@ -47,16 +55,16 @@ export function WordCard({ word }: WordCardProps) {
         {/* Reserved slot: keeps number and word anchored while the meaning
             toggles or wraps. */}
         <View className="mt-4 h-[110px] items-center justify-start">
-          {word.meaning.length > 0 && (
+          {revealed && word.meaning.length > 0 && (
             <Text className="text-xl text-gray-500 dark:text-gray-400 text-center">
               {word.meaning}
             </Text>
           )}
         </View>
-      </View>
+      </Pressable>
 
-      <View className="px-8 flex-1 items-center justify-center">
-        {word.forms.length > 0 && (
+      <Pressable className="px-8 flex-1 items-center justify-center" onPress={toggle}>
+        {revealed && word.forms.length > 0 && (
           <View className="mb-6 w-full flex-row flex-wrap">
             {Array.from({ length: FORMS_GRID_CELLS }).map((_, i) => (
               <View key={i} className="mb-2 h-7 px-2 w-1/2 justify-center">
@@ -73,7 +81,7 @@ export function WordCard({ word }: WordCardProps) {
             ))}
           </View>
         )}
-      </View>
+      </Pressable>
     </View>
   )
 }
