@@ -1,6 +1,5 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useEffect } from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -10,7 +9,7 @@ import {
   speechRateReadyAtom,
   tapToRevealAtom,
 } from '@/atoms/settings'
-import { WordCard } from '@/components/word-card'
+import { WordDeck } from '@/components/word-deck'
 import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/bucket'
 
@@ -26,24 +25,17 @@ export default function BrowseScreen() {
   const autoSpeak = useAtomValue(autoSpeakAtom)
   const tapToReveal = useAtomValue(tapToRevealAtom)
 
-  // Opening the card speaks the word — the screen's speech policy; the card
-  // stays a pure displayer. The gate matters: the atom settles on its stored
-  // rate only after the storage read, which races this screen's first frame.
-  // The rate and the auto-speak toggle read fresh at call time — flipping
-  // either mid-card must not re-speak.
-  useEffect(() => {
-    if (!word || !speechRateReady || !autoSpeak) return
-    speakWord(word.word, speechRate)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- rate is read fresh at call time
-  }, [word?.word, speechRateReady])
-
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       {word ? (
-        <WordCard
-          word={word}
+        <WordDeck
+          words={words}
+          initialIndex={index}
           tapToReveal={tapToReveal}
-          onReplay={() => speakWord(word.word, speechRate)}
+          // Same seams as study: the deck decides when to speak, the screen
+          // decides how and whether.
+          canSpeak={speechRateReady && autoSpeak}
+          onSpeak={(spoken) => speakWord(spoken.word, speechRate)}
         />
       ) : (
         <View className="flex-1 items-center justify-center">

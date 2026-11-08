@@ -18,6 +18,8 @@ type WordDeckProps = {
   canSpeak?: boolean
   /** Whether the meaning waits for a tap; forwarded to every card. */
   tapToReveal?: boolean
+  /** Card to open on, clamped into range; read once on mount. */
+  initialIndex?: number
 }
 
 /**
@@ -32,12 +34,21 @@ type WordDeckProps = {
  *  - getItemLayout gives FlatList O(1) offset math, so paging stays aligned
  *    even with hundreds of cards.
  */
-export function WordDeck({ words, onSpeak, canSpeak = true, tapToReveal }: WordDeckProps) {
+export function WordDeck({
+  words,
+  onSpeak,
+  canSpeak = true,
+  tapToReveal,
+  initialIndex = 0,
+}: WordDeckProps) {
   // Measured height of the scroll viewport; the list mounts once it is known.
   const [viewport, setViewport] = useState(0)
+  // The card to open on, clamped once: FlatList only reads its
+  // initialScrollIndex at mount, and the deck mounts once per session.
+  const initial = Math.max(0, Math.min(initialIndex, words.length - 1))
   const listRef = useRef<FlatList<Word> | null>(null)
   // The card currently on screen, for the re-snap and the open speak below.
-  const indexRef = useRef(0)
+  const indexRef = useRef(initial)
   // One speak per index: an animated advance settles its target twice
   // (explicitly + via the animation's momentum end) — only the first speaks,
   // otherwise the word audibly restarts.
@@ -99,6 +110,7 @@ export function WordDeck({ words, onSpeak, canSpeak = true, tapToReveal }: WordD
           maxToRenderPerBatch={2}
           windowSize={3}
           getItemLayout={(_, index) => ({ length: viewport, offset: viewport * index, index })}
+          initialScrollIndex={initial}
           onMomentumScrollEnd={(event) => {
             // Programmatic jumps (animated: false) fire no events, so this is
             // a real gesture's landing — the deck has settled on the card.
