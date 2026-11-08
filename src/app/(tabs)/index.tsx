@@ -41,9 +41,9 @@ export default function Index() {
 
         <Pressable
           className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border"
-          onPress={() => router.push('/mode/feed')}
+          onPress={() => router.push('/mode/study')}
         >
-          <Text className="text-black dark:text-white">Feed</Text>
+          <Text className="text-black dark:text-white">Study</Text>
         </Pressable>
 
         <Pressable
