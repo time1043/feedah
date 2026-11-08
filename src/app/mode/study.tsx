@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { activeBucketAtom } from '@/atoms/bucket'
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
@@ -19,7 +20,8 @@ import { findBucketByName } from '@/mock/bucket'
 /** The study screen: swipe through the mock bucket's words, one full-screen
  * card at a time. */
 export default function StudyScreen() {
-  const words = findBucketByName('2050').words
+  const bucketName = useAtomValue(activeBucketAtom)
+  const words = findBucketByName(bucketName).words
   const speechRate = useAtomValue(speechRateAtom)
   const speechRateReady = useAtomValue(speechRateReadyAtom)
   const autoSpeak = useAtomValue(autoSpeakAtom)

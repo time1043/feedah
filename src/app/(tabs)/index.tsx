@@ -1,14 +1,17 @@
 import { router } from 'expo-router'
+import { useAtomValue } from 'jotai'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
+import { activeBucketAtom } from '@/atoms/bucket'
 import { findBucketByName } from '@/mock/bucket'
 
 export default function Index() {
+  const activeName = useAtomValue(activeBucketAtom)
   // The browse box takes the CARD NUMBER (the data position printed on the
   // card); default it to the bucket's first card so the first press works.
   const [position, setPosition] = useState(
-    String(findBucketByName('2050').words[0]?.position ?? ''),
+    String(findBucketByName(activeName).words[0]?.position ?? ''),
   )
 
   return (
