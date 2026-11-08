@@ -13,8 +13,6 @@ export default function Index() {
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
-      <Text className="text-xl font-bold text-blue-500">Welcome to Nativewind!</Text>
-
       <View className="max-w-sm gap-3 w-full">
         <Text className="font-semibold text-black dark:text-white">Navigation</Text>
 
