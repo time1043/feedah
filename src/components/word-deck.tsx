@@ -3,6 +3,7 @@ import { FlatList, View } from 'react-native'
 
 import type { Word } from '@/types/bucket'
 
+import { ProgressBar } from '@/components/progress-bar'
 import { WordCard } from '@/components/word-card'
 
 type WordDeckProps = {
@@ -63,6 +64,20 @@ export function WordDeck({
     onSpeak(word)
   }
 
+  // The card currently on screen: state mirrors it to the progress bar; the
+  // ref feeds the re-snap without re-rendering.
+  const [index, setIndex] = useState(initial)
+
+  const scrubTo = (target: number) => {
+    const clamped = Math.max(0, Math.min(target, words.length - 1))
+    // Programmatic jumps (animated: false) fire no events — the jump and the
+    // mirror happen here, and speakAt marks the card as spoken.
+    listRef.current?.scrollToIndex({ index: clamped, animated: false })
+    indexRef.current = clamped
+    setIndex(clamped)
+    speakAt(clamped)
+  }
+
   // The viewport can re-measure (safe-area insets settling, rotation) while
   // the user is on card N. pagingEnabled never re-snaps on its own, so
   // re-apply the scroll to the same card whenever the height changes.
@@ -86,40 +101,47 @@ export function WordDeck({
   }, [viewport, canSpeak])
 
   return (
-    <View
-      className="flex-1"
-      onLayout={(event) => {
-        const height = event.nativeEvent.layout.height
-        if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height)
-      }}
-    >
-      {viewport > 0 && (
-        <FlatList
-          ref={listRef}
-          data={words}
-          keyExtractor={(word) => `w-${word.position}`}
-          renderItem={({ item }) => (
-            <View style={{ height: viewport }}>
-              <WordCard word={item} tapToReveal={tapToReveal} onReplay={() => onSpeak?.(item)} />
-            </View>
-          )}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
-          // A bucket can hold hundreds of cards: keep the rendered window small.
-          initialNumToRender={2}
-          maxToRenderPerBatch={2}
-          windowSize={3}
-          getItemLayout={(_, index) => ({ length: viewport, offset: viewport * index, index })}
-          initialScrollIndex={initial}
-          onMomentumScrollEnd={(event) => {
-            // Programmatic jumps (animated: false) fire no events, so this is
-            // a real gesture's landing — the deck has settled on the card.
-            const landed = Math.round(event.nativeEvent.contentOffset.y / viewport)
-            indexRef.current = landed
-            speakAt(landed)
-          }}
-        />
-      )}
+    <View className="flex-1">
+      <View className="px-4 pb-1">
+        <ProgressBar value={index} max={words.length} scrubbable onScrub={scrubTo} />
+      </View>
+
+      <View
+        className="flex-1"
+        onLayout={(event) => {
+          const height = event.nativeEvent.layout.height
+          if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height)
+        }}
+      >
+        {viewport > 0 && (
+          <FlatList
+            ref={listRef}
+            data={words}
+            keyExtractor={(word) => `w-${word.position}`}
+            renderItem={({ item }) => (
+              <View style={{ height: viewport }}>
+                <WordCard word={item} tapToReveal={tapToReveal} onReplay={() => onSpeak?.(item)} />
+              </View>
+            )}
+            pagingEnabled
+            showsVerticalScrollIndicator={false}
+            // A bucket can hold hundreds of cards: keep the rendered window small.
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            getItemLayout={(_, index) => ({ length: viewport, offset: viewport * index, index })}
+            initialScrollIndex={initial}
+            onMomentumScrollEnd={(event) => {
+              // Programmatic jumps (animated: false) fire no events, so this is
+              // a real gesture's landing — the deck has settled on the card.
+              const landed = Math.round(event.nativeEvent.contentOffset.y / viewport)
+              indexRef.current = landed
+              setIndex(landed)
+              speakAt(landed)
+            }}
+          />
+        )}
+      </View>
     </View>
   )
 }
