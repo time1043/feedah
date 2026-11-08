@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { speechRateAtom } from '@/atoms/settings'
+import { speechRateAtom, speechRateReadyAtom } from '@/atoms/settings'
 import { WordCard } from '@/components/word-card'
 import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/bucket'
@@ -17,15 +17,18 @@ export default function BrowseScreen() {
   const word =
     Number.isInteger(index) && index >= 0 && index < words.length ? words[index] : undefined
   const speechRate = useAtomValue(speechRateAtom)
+  const speechRateReady = useAtomValue(speechRateReadyAtom)
 
   // Opening the card speaks the word — the screen's speech policy; the card
-  // stays a pure displayer. The deck takes this over when it lands. The rate
-  // is read at speak time: changing the setting must not re-speak this card.
+  // stays a pure displayer. The gate matters: the atom settles on its stored
+  // rate only after the storage read, which races this screen's first frame.
+  // The rate itself reads fresh at call time — a settings change mid-card
+  // must not re-speak.
   useEffect(() => {
-    if (!word) return
+    if (!word || !speechRateReady) return
     speakWord(word.word, speechRate)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rate is read fresh at call time
-  }, [word?.word])
+  }, [word?.word, speechRateReady])
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
