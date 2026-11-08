@@ -61,9 +61,7 @@ export default function StudyScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       {showHeader && (
         <ScreenHeader
-          // R{n} is the probe's round: it advances the moment a walk-through
-          // completes, so the title agrees with the end page's promise.
-          title={showTitle ? `Study ${bucketName} R${session.progress.round}` : undefined}
+          title={showTitle ? `Study ${bucketName}` : undefined}
           onBack={goBack}
           onSearch={() => router.push('/mode/search')}
         />
@@ -92,6 +90,17 @@ export default function StudyScreen() {
               <Text className="font-semibold text-white text-[13px]">Resume studying</Text>
             </Pressable>
           ) : undefined
+        }
+        // The footer line pairs the two: the probe's round on the left, the
+        // pagination ordinal on the right. R{n} advances the moment a
+        // walk-through completes, agreeing with the end page's promise.
+        hudLeft={
+          <Text
+            className="text-gray-400 dark:text-gray-500 text-[13px]"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            R{session.progress.round}
+          </Text>
         }
         hudRight={
           showFooter ? (
