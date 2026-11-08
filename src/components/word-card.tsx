@@ -28,6 +28,8 @@ function CardMeaning({ meaning }: { meaning: string }) {
 
 type WordCardProps = {
   word: Word
+  /** Whether the meaning waits for a tap; off = always visible. */
+  tapToReveal?: boolean
   /** Tapping the word or the ipa replays the pronunciation. */
   onReplay: () => void
 }
@@ -40,14 +42,18 @@ type WordCardProps = {
  *     runs three lines.
  *   - bottom 50%: the supplementary word forms, in the fixed grid, shown
  *     together with the meaning.
- * Tapping anywhere on the card reveals or hides the meaning and the forms —
- * recall first, then check. The word and the ipa are their own taps and
- * replay the pronunciation instead.
+ * With tap-to-reveal on, tapping anywhere on the card reveals or hides the
+ * meaning and the forms — recall first, then check; with it off, both show
+ * from the start and taps do nothing. The word and the ipa are their own
+ * taps and replay the pronunciation instead.
  */
-export function WordCard({ word, onReplay }: WordCardProps) {
+export function WordCard({ word, tapToReveal = true, onReplay }: WordCardProps) {
   const [revealed, setRevealed] = useState(false)
 
-  const toggle = () => setRevealed((value) => !value)
+  const shown = tapToReveal ? revealed : true
+  const toggle = () => {
+    if (tapToReveal) setRevealed((value) => !value)
+  }
 
   return (
     <View className="flex-1">
@@ -81,12 +87,12 @@ export function WordCard({ word, onReplay }: WordCardProps) {
         {/* Reserved slot: keeps number and word anchored while the meaning
             toggles or wraps. */}
         <View className="mt-4 h-[110px] items-center justify-start">
-          {revealed && <CardMeaning meaning={word.meaning} />}
+          {shown && <CardMeaning meaning={word.meaning} />}
         </View>
       </Pressable>
 
       <Pressable className="px-8 flex-1 items-center justify-center" onPress={toggle}>
-        {revealed && word.forms.length > 0 && (
+        {shown && word.forms.length > 0 && (
           <View className="mb-6 w-full flex-row flex-wrap">
             {Array.from({ length: FORMS_GRID_CELLS }).map((_, i) => (
               <View key={i} className="mb-2 h-7 px-2 w-1/2 justify-center">

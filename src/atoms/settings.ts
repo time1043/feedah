@@ -35,3 +35,9 @@ void (async () => {
     store.set(speechRateReadyAtom, true)
   }
 })()
+
+/** Whether opening a card speaks the word. */
+export const autoSpeakAtom = storedAtom<boolean>('feedah.auto-speak', true)
+
+/** Whether the meaning waits for a tap; off = always visible on the card. */
+export const tapToRevealAtom = storedAtom<boolean>('feedah.tap-to-reveal', true)
