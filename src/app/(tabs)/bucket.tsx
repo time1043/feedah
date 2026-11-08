@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useColorScheme, Pressable, Text, View } from 'react-native'
 
-import { MUTED, TabHeader } from '@/components/header'
+import { HeaderIconButton, MUTED, TabHeader } from '@/components/header'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
@@ -16,7 +16,16 @@ export default function BucketScreen() {
 
   return (
     <View className="bg-white dark:bg-black flex-1">
-      <TabHeader title="Bucket" />
+      <TabHeader
+        title="Bucket"
+        right={
+          <HeaderIconButton
+            name="settings-outline"
+            onPress={() => router.push('/bucket/settings')}
+            accessibilityLabel="Bucket list settings"
+          />
+        }
+      />
       {buckets.map((bucket) => (
         <View
           key={bucket.name}
