@@ -24,6 +24,7 @@ export default function BucketScreen() {
               router.push({ pathname: '/words/[name]', params: { name: bucket.name } }),
             )
           }
+          accessibilityRole="button"
           accessibilityLabel={`${bucket.name}, ${bucket.words.length} words`}
         >
           <Text className="font-semibold text-black dark:text-white text-[17px]">

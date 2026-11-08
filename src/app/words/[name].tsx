@@ -57,7 +57,8 @@ export default function WordsScreen() {
           <Pressable
             className="h-9 w-9 items-center justify-center"
             hitSlop={4}
-            accessibilityLabel="Toggle meanings"
+            accessibilityRole="button"
+            accessibilityLabel={showMeaning ? 'Hide meanings' : 'Show meanings'}
             onPress={() => setOverride(!showMeaning)}
           >
             <Ionicons
@@ -79,6 +80,8 @@ export default function WordsScreen() {
           keyExtractor={(word) => String(word.position)}
           renderItem={({ item }) => (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${item.word}, ${item.meaning}`}
               onPress={() => openWord(item)}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
