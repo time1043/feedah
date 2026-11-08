@@ -3,7 +3,7 @@ import { useAtom } from 'jotai'
 import { useState } from 'react'
 import { PanResponder, Pressable, Text, View, useColorScheme } from 'react-native'
 
-import { speechRateAtom } from '@/atoms/settings'
+import { DEFAULT_SPEECH_RATE, speechRateAtom } from '@/atoms/settings'
 import { speakWord } from '@/lib/speech'
 
 const BLUE = '#3B82F6'
@@ -85,12 +85,36 @@ export function SpeechRateControl() {
           <Ionicons name="volume-medium-outline" size={18} color={dark ? '#7A7E86' : '#9A9EA6'} />
           <Text className="text-black dark:text-white">Speech rate</Text>
         </Pressable>
-        <Text
-          className="text-gray-500 dark:text-gray-400"
-          style={{ fontVariant: ['tabular-nums'] }}
-        >
-          {rate.toFixed(2)}×
-        </Text>
+        <View className="gap-1 flex-row items-center">
+          <Text
+            className="text-gray-500 dark:text-gray-400"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {rate.toFixed(2)}×
+          </Text>
+          {/* Always rendered (no layout shift), alive only off the default. */}
+          <Pressable
+            className="p-1"
+            onPress={() => setRate(DEFAULT_SPEECH_RATE)}
+            disabled={rate === DEFAULT_SPEECH_RATE}
+            hitSlop={4}
+            accessibilityLabel="Restore the default speech rate"
+          >
+            <Ionicons
+              name="refresh-outline"
+              size={16}
+              color={
+                rate === DEFAULT_SPEECH_RATE
+                  ? dark
+                    ? '#4B5563'
+                    : '#D1D5DB'
+                  : dark
+                    ? '#7A7E86'
+                    : '#9A9EA6'
+              }
+            />
+          </Pressable>
+        </View>
       </View>
       <RateSlider value={rate} onValueChange={setRate} min={0.5} max={2} step={0.05} />
     </View>
