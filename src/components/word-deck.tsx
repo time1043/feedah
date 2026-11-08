@@ -56,6 +56,10 @@ type WordDeckProps = {
   /** Quiet footer slots on the bottom line (page counter, round/time). */
   hudLeft?: ReactNode
   hudRight?: ReactNode
+  /** A floating banner over the cards' top edge (the browse-mode Resume
+   * pill). Rendered whenever provided — independent of the header and bar
+   * settings, so the affordance survives every visibility combination. */
+  banner?: ReactNode
   /** The end page: rendered after the last word when present. */
   end?: WordDeckEnd
   /** What the end page's 'close' action calls; only needed with it. */
@@ -88,6 +92,7 @@ export function WordDeck({
   onScrub,
   hudLeft,
   hudRight,
+  banner,
   onClose,
   end,
   ref,
@@ -289,6 +294,15 @@ export function WordDeck({
               settle(Math.round(event.nativeEvent.contentOffset.y / viewport))
             }}
           />
+        )}
+
+        {/* The floating banner hugs the bar's underside — inside the card
+            viewport, so it exists no matter which chrome the settings hide.
+            box-none keeps taps outside the banner on the cards underneath. */}
+        {banner && (
+          <View className="top-1 left-0 right-0 absolute items-center" pointerEvents="box-none">
+            {banner}
+          </View>
         )}
       </View>
 
