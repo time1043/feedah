@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native'
 
-import { SpeechRateControl } from '@/components/speech-rate-control'
-import ThemeToggle from '@/components/theme-toggle'
+import { SpeechRateControl } from '@/components/settings/speech-rate-control'
+import ThemeToggle from '@/components/settings/theme-toggle'
 
 /** The settings tab: one row group per setting. */
 export default function SettingsScreen() {
