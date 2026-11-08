@@ -11,7 +11,7 @@ import {
   speechRateReadyAtom,
   tapToRevealAtom,
 } from '@/atoms/settings'
-import { ScreenHeader } from '@/components/header'
+import { HeaderIconButton, ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
 import { speakWord } from '@/lib/speech'
 import { buckets } from '@/mock/bucket'
@@ -50,39 +50,54 @@ export default function BrowseScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      {showHeader && (
-        <ScreenHeader
-          title={showTitle && bucket ? `Browse ${bucket.name}` : undefined}
-          onBack={() => router.back()}
-          onSearch={() => router.push('/mode/search')}
-        />
-      )}
       {word ? (
-        <WordDeck
-          words={words}
-          progressBar={showProgressBar}
-          initialIndex={initialIndex}
-          tapToReveal={tapToReveal}
-          // Same seams as study: the deck decides when to speak, the screen
-          // decides how and whether.
-          canSpeak={speechRateReady && autoSpeak}
-          onSpeak={(spoken) => speakWord(spoken.word, speechRate)}
-          onIndexChange={setCurrent}
-          hudRight={
-            showFooter ? (
-              <Text
-                className="text-gray-400 dark:text-gray-500 text-[13px]"
-                style={{ fontVariant: ['tabular-nums'] }}
-              >
-                {current + 1}/{words.length}
-              </Text>
-            ) : undefined
-          }
-        />
+        <>
+          {showHeader && (
+            <ScreenHeader
+              title={showTitle && bucket ? `Browse ${bucket.name}` : undefined}
+              onBack={() => router.back()}
+              onSearch={() => router.push('/mode/search')}
+            />
+          )}
+          <WordDeck
+            words={words}
+            progressBar={showProgressBar}
+            initialIndex={initialIndex}
+            tapToReveal={tapToReveal}
+            // Same seams as study: the deck decides when to speak, the screen
+            // decides how and whether.
+            canSpeak={speechRateReady && autoSpeak}
+            onSpeak={(spoken) => speakWord(spoken.word, speechRate)}
+            onIndexChange={setCurrent}
+            hudRight={
+              showFooter ? (
+                <Text
+                  className="text-gray-400 dark:text-gray-500 text-[13px]"
+                  style={{ fontVariant: ['tabular-nums'] }}
+                >
+                  {current + 1}/{words.length}
+                </Text>
+              ) : undefined
+            }
+          />
+        </>
       ) : (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400 dark:text-gray-500">Word not found</Text>
-        </View>
+        <>
+          {/* The not-found page keeps its own way back, whatever the header
+              setting; the message names the entity that is actually missing. */}
+          <View className="min-h-11 px-4 py-1 flex-row items-center">
+            <HeaderIconButton
+              name="chevron-back"
+              onPress={() => router.back()}
+              accessibilityLabel="Back"
+            />
+            <Text className="font-semibold text-gray-500 dark:text-gray-400 flex-1 text-center text-[13px]">
+              {!bucket ? 'Bucket not found' : 'Word not found'}
+            </Text>
+            <View className="h-9 w-9" />
+          </View>
+          <View className="flex-1" />
+        </>
       )}
     </SafeAreaView>
   )
