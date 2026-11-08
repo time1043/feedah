@@ -9,6 +9,8 @@ const FORMS_GRID_CELLS = 12
 
 type WordCardProps = {
   word: Word
+  /** Tapping the word or the ipa replays the pronunciation. */
+  onReplay: () => void
 }
 
 /**
@@ -20,9 +22,10 @@ type WordCardProps = {
  *   - bottom 50%: the supplementary word forms, in the fixed grid, shown
  *     together with the meaning.
  * Tapping anywhere on the card reveals or hides the meaning and the forms —
- * recall first, then check.
+ * recall first, then check. The word and the ipa are their own taps and
+ * replay the pronunciation instead.
  */
-export function WordCard({ word }: WordCardProps) {
+export function WordCard({ word, onReplay }: WordCardProps) {
   const [revealed, setRevealed] = useState(false)
 
   const toggle = () => setRevealed((value) => !value)
@@ -37,19 +40,23 @@ export function WordCard({ word }: WordCardProps) {
           {word.position}
         </Text>
 
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-          className="font-extrabold text-black dark:text-white text-center text-[48px]"
-        >
-          {word.word}
-        </Text>
+        <Pressable onPress={onReplay} hitSlop={12}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+            className="font-extrabold text-black dark:text-white text-center text-[48px]"
+          >
+            {word.word}
+          </Text>
+        </Pressable>
 
         {word.ipa.length > 0 && (
-          <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">
-            {word.ipa}
-          </Text>
+          <Pressable onPress={onReplay} hitSlop={12}>
+            <Text className="mt-2 text-lg text-gray-400 dark:text-gray-500 text-center">
+              {word.ipa}
+            </Text>
+          </Pressable>
         )}
 
         {/* Reserved slot: keeps number and word anchored while the meaning
