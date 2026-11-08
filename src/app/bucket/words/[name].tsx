@@ -10,6 +10,7 @@ import type { Word } from '@/types/bucket'
 import { wordsMeaningAtom } from '@/atoms/words'
 import { ListHeader, MUTED } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
+import { goBack } from '@/lib/back'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
@@ -68,7 +69,7 @@ export default function WordsScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <ListHeader
         title={bucket?.name}
-        onBack={() => router.back()}
+        onBack={goBack}
         right={
           <Pressable
             className="h-9 w-9 items-center justify-center"

@@ -14,6 +14,7 @@ import {
 } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
+import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/bucket'
 
@@ -38,7 +39,7 @@ export default function StudyScreen() {
       {showHeader && (
         <ScreenHeader
           title={showTitle ? `Study ${bucketName}` : undefined}
-          onBack={() => router.back()}
+          onBack={goBack}
           onSearch={() => router.push('/mode/search')}
         />
       )}
