@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -9,6 +9,7 @@ import {
   speechRateReadyAtom,
   tapToRevealAtom,
 } from '@/atoms/settings'
+import { ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
 import { speakWord } from '@/lib/speech'
 import { findBucketByName } from '@/mock/bucket'
@@ -27,6 +28,11 @@ export default function BrowseScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
+      <ScreenHeader
+        title="Browse 2050"
+        onBack={() => router.back()}
+        onSearch={() => router.push('/mode/search')}
+      />
       {word ? (
         <WordDeck
           words={words}
