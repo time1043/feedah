@@ -9,3 +9,6 @@ export const deckTitleAtom = storedAtom<boolean>('feedah.deck-title', true)
 
 /** Whether the deck's scrubbable progress bar shows. */
 export const deckProgressBarAtom = storedAtom<boolean>('feedah.deck-progress-bar', true)
+
+/** Whether the deck's page footer shows (bottom right, n/total). */
+export const hudPageAtom = storedAtom<boolean>('feedah.hud-page', true)

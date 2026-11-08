@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai'
 import { Text, View } from 'react-native'
 
-import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, hudPageAtom } from '@/atoms/deck'
 import { autoSpeakAtom, tapToRevealAtom } from '@/atoms/settings'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
@@ -14,6 +14,7 @@ export default function SettingsScreen() {
   const [showHeader, setShowHeader] = useAtom(deckHeaderAtom)
   const [showTitle, setShowTitle] = useAtom(deckTitleAtom)
   const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
+  const [showFooter, setShowFooter] = useAtom(hudPageAtom)
 
   return (
     <View className="bg-white dark:bg-black flex-1 items-center justify-center">
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
             value={showProgressBar}
             onValueChange={setShowProgressBar}
           />
+          <SwitchRow label="Page footer" value={showFooter} onValueChange={setShowFooter} />
         </View>
       </View>
 

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, hudPageAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -27,6 +27,7 @@ export default function StudyScreen() {
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
+  const showFooter = useAtomValue(hudPageAtom)
   // The deck's current card, mirrored out for the footer counter.
   const [index, setIndex] = useState(0)
 
@@ -50,12 +51,14 @@ export default function StudyScreen() {
         onSpeak={(word) => speakWord(word.word, speechRate)}
         onIndexChange={setIndex}
         hudRight={
-          <Text
-            className="text-gray-400 dark:text-gray-500 text-[13px]"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            {index + 1}/{words.length}
-          </Text>
+          showFooter ? (
+            <Text
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {index + 1}/{words.length}
+            </Text>
+          ) : undefined
         }
       />
     </SafeAreaView>
