@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { activeBucketAtom } from '@/atoms/bucket'
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
@@ -24,7 +25,8 @@ export default function BrowseScreen() {
   // The bucket the opener came from (the word list passes it); no param
   // means the home screen's default bucket.
   const bucketParamName = Array.isArray(bucketParam) ? bucketParam[0] : bucketParam
-  const bucketName = bucketParamName && bucketParamName.length > 0 ? bucketParamName : '2050'
+  const activeName = useAtomValue(activeBucketAtom)
+  const bucketName = bucketParamName && bucketParamName.length > 0 ? bucketParamName : activeName
   const bucket = buckets.find((candidate) => candidate.name === bucketName)
   const words = bucket?.words ?? []
   // The param is the CARD NUMBER — the data position printed on the card
