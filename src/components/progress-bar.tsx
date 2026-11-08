@@ -4,7 +4,7 @@ import { PanResponder, Text, View } from 'react-native'
 type ProgressBarProps = {
   /** Current item index (0-based). */
   value: number
-  /** Total item count, including the end page when there is one. */
+  /** Total item count. */
   max: number
   /** Whether the bar can be grabbed and scrubbed. */
   scrubbable?: boolean

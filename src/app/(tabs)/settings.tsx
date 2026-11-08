@@ -5,7 +5,7 @@ import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } fr
 import { autoSpeakAtom, tapToRevealAtom } from '@/atoms/settings'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
-import ThemeToggle from '@/components/settings/theme-toggle'
+import { ThemeToggle } from '@/components/settings/theme-toggle'
 
 /** The settings tab: one row group per setting. */
 export default function SettingsScreen() {

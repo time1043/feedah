@@ -12,10 +12,11 @@ type WordDeckProps = {
    * lands on, and replay taps; the screen decides HOW and WHETHER (its
    * callback carries the rate and the settings). */
   onSpeak?: (word: Word) => void
-  /** Whether onSpeak may proceed at all. The screen holds it closed until
-   * its settings have hydrated and its policy allows speaking; when the
-   * flag flips open, the deck speaks the card it is currently on. While it
-   * is closed, speak calls are dropped WITHOUT being marked as spoken. */
+  /** Whether the deck's own speak calls (open + settle) may proceed; replay
+   * taps bypass this and always reach onSpeak. The screen holds it closed
+   * until its settings have hydrated and its policy allows speaking; when
+   * the flag flips open, the deck speaks the card it is currently on. While
+   * it is closed, speak calls are dropped WITHOUT being marked as spoken. */
   canSpeak?: boolean
   /** Whether the meaning waits for a tap; forwarded to every card. */
   tapToReveal?: boolean
