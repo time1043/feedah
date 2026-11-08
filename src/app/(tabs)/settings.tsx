@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai'
 import { Text, View } from 'react-native'
 
-import { deckHeaderAtom, deckTitleAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
 import { autoSpeakAtom, tapToRevealAtom } from '@/atoms/settings'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
@@ -13,6 +13,7 @@ export default function SettingsScreen() {
   const [tapToReveal, setTapToReveal] = useAtom(tapToRevealAtom)
   const [showHeader, setShowHeader] = useAtom(deckHeaderAtom)
   const [showTitle, setShowTitle] = useAtom(deckTitleAtom)
+  const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
 
   return (
     <View className="bg-white dark:bg-black flex-1 items-center justify-center">
@@ -26,6 +27,11 @@ export default function SettingsScreen() {
           <SwitchRow label="Tap to reveal" value={tapToReveal} onValueChange={setTapToReveal} />
           <SwitchRow label="Header" value={showHeader} onValueChange={setShowHeader} />
           <SwitchRow label="Header title" value={showTitle} onValueChange={setShowTitle} />
+          <SwitchRow
+            label="Progress bar"
+            value={showProgressBar}
+            onValueChange={setShowProgressBar}
+          />
         </View>
       </View>
 

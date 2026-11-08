@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckTitleAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -24,6 +24,7 @@ export default function StudyScreen() {
   const tapToReveal = useAtomValue(tapToRevealAtom)
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
+  const showProgressBar = useAtomValue(deckProgressBarAtom)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -36,6 +37,7 @@ export default function StudyScreen() {
       )}
       <WordDeck
         words={words}
+        progressBar={showProgressBar}
         tapToReveal={tapToReveal}
         // The deck decides when to speak (open, settle, replay taps); the
         // screen decides how and whether — the stored rate, once its

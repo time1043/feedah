@@ -21,6 +21,8 @@ type WordDeckProps = {
   tapToReveal?: boolean
   /** Card to open on, clamped into range; read once on mount. */
   initialIndex?: number
+  /** Whether the scrubbable progress bar renders above the cards. */
+  progressBar?: boolean
 }
 
 /**
@@ -41,6 +43,7 @@ export function WordDeck({
   canSpeak = true,
   tapToReveal,
   initialIndex = 0,
+  progressBar = true,
 }: WordDeckProps) {
   // Measured height of the scroll viewport; the list mounts once it is known.
   const [viewport, setViewport] = useState(0)
@@ -103,7 +106,9 @@ export function WordDeck({
   return (
     <View className="flex-1">
       <View className="px-4 pb-1">
-        <ProgressBar value={index} max={words.length} scrubbable onScrub={scrubTo} />
+        {progressBar && (
+          <ProgressBar value={index} max={words.length} scrubbable onScrub={scrubTo} />
+        )}
       </View>
 
       <View

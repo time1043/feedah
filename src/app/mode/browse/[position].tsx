@@ -3,7 +3,7 @@ import { useAtomValue } from 'jotai'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckTitleAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -28,6 +28,7 @@ export default function BrowseScreen() {
   const tapToReveal = useAtomValue(tapToRevealAtom)
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
+  const showProgressBar = useAtomValue(deckProgressBarAtom)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -41,6 +42,7 @@ export default function BrowseScreen() {
       {word ? (
         <WordDeck
           words={words}
+          progressBar={showProgressBar}
           initialIndex={index}
           tapToReveal={tapToReveal}
           // Same seams as study: the deck decides when to speak, the screen
