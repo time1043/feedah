@@ -10,6 +10,8 @@ import type { Word } from '@/types/bucket'
 import { wordsMeaningAtom } from '@/atoms/words'
 import { ListHeader, MUTED } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
+import { goBack } from '@/lib/back'
+import { ACCENT } from '@/lib/color'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
@@ -68,7 +70,7 @@ export default function WordsScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <ListHeader
         title={bucket?.name}
-        onBack={() => router.back()}
+        onBack={goBack}
         right={
           <Pressable
             className="h-9 w-9 items-center justify-center"
@@ -80,7 +82,7 @@ export default function WordsScreen() {
             <Ionicons
               name={showMeaning ? 'eye' : 'eye-off'}
               size={22}
-              color={showMeaning ? '#208AEF' : MUTED[scheme]}
+              color={showMeaning ? ACCENT : MUTED[scheme]}
             />
           </Pressable>
         }
@@ -96,9 +98,11 @@ export default function WordsScreen() {
             {words.length > 0 && (
               <ProgressBar
                 value={index}
-                max={Math.max(words.length, 1)}
+                max={words.length}
                 scrubbable
                 onScrub={jumpTo}
+                // The thumb agrees with the rows: both show card numbers.
+                labelFor={(i) => String(words[i]?.position ?? i + 1)}
               />
             )}
           </View>

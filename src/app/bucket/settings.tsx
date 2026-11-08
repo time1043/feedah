@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { activeBucketAtom } from '@/atoms/bucket'
 import { ListHeader } from '@/components/header'
 import { SelectRow } from '@/components/settings/select-row'
+import { goBack } from '@/lib/back'
 import { buckets } from '@/mock/bucket'
 
 /** The settings of one bucket. The picker switches the study bucket — the
@@ -19,7 +20,7 @@ export default function BucketSettingsScreen() {
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <ListHeader title="Bucket settings" onBack={() => router.back()} />
+      <ListHeader title="Bucket settings" onBack={goBack} />
 
       {bucketName && (
         <Text className="px-4 pb-2 text-gray-400 dark:text-gray-500 text-[13px]">

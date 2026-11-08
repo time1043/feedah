@@ -14,6 +14,7 @@ import {
 } from '@/atoms/settings'
 import { HeaderIconButton, ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
+import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
 import { buckets } from '@/mock/bucket'
 
@@ -57,7 +58,7 @@ export default function BrowseScreen() {
           {showHeader && (
             <ScreenHeader
               title={showTitle && bucket ? `Browse ${bucket.name}` : undefined}
-              onBack={() => router.back()}
+              onBack={goBack}
               onSearch={() => router.push('/mode/search')}
             />
           )}
@@ -88,11 +89,7 @@ export default function BrowseScreen() {
           {/* The not-found page keeps its own way back, whatever the header
               setting; the message names the entity that is actually missing. */}
           <View className="min-h-11 px-4 py-1 flex-row items-center">
-            <HeaderIconButton
-              name="chevron-back"
-              onPress={() => router.back()}
-              accessibilityLabel="Back"
-            />
+            <HeaderIconButton name="chevron-back" onPress={goBack} accessibilityLabel="Back" />
             <Text className="font-semibold text-gray-500 dark:text-gray-400 flex-1 text-center text-[13px]">
               {!bucket ? 'Bucket not found' : 'Word not found'}
             </Text>

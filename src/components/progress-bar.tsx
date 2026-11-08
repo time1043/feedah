@@ -12,13 +12,23 @@ type ProgressBarProps = {
    * their own policy (the feed, for example, treats a scrub as leaving
    * study mode). */
   onScrub: (index: number) => void
+  /** The thumb's text for a drag index; defaults to the 1-based ordinal.
+   * Surfaces whose rows carry their own numbers (the word list's card
+   * numbers) pass a mapper so the thumb agrees with the rows. */
+  labelFor?: (index: number) => string
 }
 
 /**
  * Thin horizontal position bar that doubles as a scrubber: the thumb follows
  * the finger across the whole track and the raw index is reported on release.
  */
-export function ProgressBar({ value, max, scrubbable = false, onScrub }: ProgressBarProps) {
+export function ProgressBar({
+  value,
+  max,
+  scrubbable = false,
+  onScrub,
+  labelFor,
+}: ProgressBarProps) {
   const [trackWidth, setTrackWidth] = useState(0)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
 
@@ -66,7 +76,9 @@ export function ProgressBar({ value, max, scrubbable = false, onScrub }: Progres
               marginLeft: -12,
             }}
           >
-            <Text className="font-bold text-white text-[13px]">{dragIndex + 1}</Text>
+            <Text className="font-bold text-white text-[13px]">
+              {labelFor ? labelFor(dragIndex) : dragIndex + 1}
+            </Text>
           </View>
         )}
       </View>

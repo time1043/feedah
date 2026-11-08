@@ -21,7 +21,7 @@ export default function BucketScreen() {
         right={
           <HeaderIconButton
             name="settings-outline"
-            onPress={() => router.push('/bucket/settings')}
+            onPress={() => guardedPush(() => router.push('/bucket/settings'))}
             accessibilityLabel="Bucket list settings"
           />
         }
