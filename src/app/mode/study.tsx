@@ -2,6 +2,7 @@ import { router } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { deckHeaderAtom, deckTitleAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -21,14 +22,18 @@ export default function StudyScreen() {
   const speechRateReady = useAtomValue(speechRateReadyAtom)
   const autoSpeak = useAtomValue(autoSpeakAtom)
   const tapToReveal = useAtomValue(tapToRevealAtom)
+  const showHeader = useAtomValue(deckHeaderAtom)
+  const showTitle = useAtomValue(deckTitleAtom)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
-      <ScreenHeader
-        title="Study 2050"
-        onBack={() => router.back()}
-        onSearch={() => router.push('/mode/search')}
-      />
+      {showHeader && (
+        <ScreenHeader
+          title={showTitle ? 'Study 2050' : undefined}
+          onBack={() => router.back()}
+          onSearch={() => router.push('/mode/search')}
+        />
+      )}
       <WordDeck
         words={words}
         tapToReveal={tapToReveal}
