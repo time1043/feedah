@@ -21,7 +21,7 @@ export default function BucketScreen() {
           className="mx-4 mb-3 rounded-2xl border-gray-300 p-4 dark:border-gray-700 flex-row items-center justify-between border"
           onPress={() =>
             guardedPush(() =>
-              router.push({ pathname: '/words/[name]', params: { name: bucket.name } }),
+              router.push({ pathname: '/bucket/words/[name]', params: { name: bucket.name } }),
             )
           }
           accessibilityRole="button"
