@@ -2,16 +2,12 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
-import ThemeToggle from '@/components/theme-toggle'
-
 export default function Index() {
   const [position, setPosition] = useState('0')
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
       <Text className="text-xl font-bold text-blue-500">Welcome to Nativewind!</Text>
-
-      <ThemeToggle />
 
       <View className="max-w-sm gap-3 w-full">
         <Text className="font-semibold text-black dark:text-white">Navigation</Text>
