@@ -9,10 +9,12 @@ import { findBucketByName } from '@/mock/bucket'
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
   // The browse box takes the CARD NUMBER (the data position printed on the
-  // card); default it to the bucket's first card so the first press works.
-  const [position, setPosition] = useState(
-    String(findBucketByName(activeName).words[0]?.position ?? ''),
-  )
+  // card). It follows the active bucket's first card — derived, not
+  // captured, so a settings switch and the storage hydration both land —
+  // until the user types a number of their own.
+  const [typedPosition, setTypedPosition] = useState<string | null>(null)
+  const defaultPosition = String(findBucketByName(activeName).words[0]?.position ?? '')
+  const position = typedPosition ?? defaultPosition
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
@@ -24,7 +26,7 @@ export default function Index() {
             className="min-w-0 rounded-lg border-gray-300 p-3 text-black dark:border-gray-700 dark:text-white flex-1 border"
             keyboardType="numeric"
             value={position}
-            onChangeText={setPosition}
+            onChangeText={setTypedPosition}
             placeholder="Position"
             placeholderTextColor="#9ca3af"
           />

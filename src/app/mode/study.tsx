@@ -37,7 +37,7 @@ export default function StudyScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       {showHeader && (
         <ScreenHeader
-          title={showTitle ? 'Study 2050' : undefined}
+          title={showTitle ? `Study ${bucketName}` : undefined}
           onBack={() => router.back()}
           onSearch={() => router.push('/mode/search')}
         />
