@@ -9,7 +9,6 @@
     "fmt:check": "oxfmt --check",
     "ios": "expo start --ios",
     "lint": "expo lint",
-    "reset-project": "node ./scripts/reset-project.js",
     "start": "expo start",
     "test": "jest --watchAll",
     "web": "expo start --web"

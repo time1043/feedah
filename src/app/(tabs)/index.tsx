@@ -2,13 +2,17 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
+import { findBucketByName } from '@/mock/bucket'
+
 export default function Index() {
-  const [position, setPosition] = useState('0')
+  // The browse box takes the CARD NUMBER (the data position printed on the
+  // card); default it to the bucket's first card so the first press works.
+  const [position, setPosition] = useState(
+    String(findBucketByName('2050').words[0]?.position ?? ''),
+  )
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
-      <Text className="text-xl font-bold text-blue-500">Welcome to Nativewind!</Text>
-
       <View className="max-w-sm gap-3 w-full">
         <Text className="font-semibold text-black dark:text-white">Navigation</Text>
 

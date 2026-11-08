@@ -4,4 +4,4 @@ export const themes = ['system', 'light', 'dark'] as const
 export type Theme = (typeof themes)[number]
 
 /** The theme preference; 'system' follows the OS. */
-export const currentThemeAtom = storedAtom<Theme>('theme', 'system')
+export const currentThemeAtom = storedAtom<Theme>('feedah.theme', 'system')

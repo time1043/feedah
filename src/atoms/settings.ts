@@ -24,6 +24,10 @@ export const speechRateReadyAtom = atom(false)
 // The same key the atom hydrates from: re-apply the stored value ourselves,
 // then open the gate — so by the time the gate is open, the atom's value IS
 // the stored one. jotai's own hydration lands on the same value either way.
+//
+// Invariant: this writes through getDefaultStore() at module load, which is
+// the SAME store every consumer reads — the app never mounts a jotai
+// <Provider>. Adding one would split-brain this gate and the atoms.
 void (async () => {
   const store = getDefaultStore()
   try {

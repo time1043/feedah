@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 
 import { currentThemeAtom, themes } from '@/atoms/theme'
 
-export default function ThemeToggle() {
+export function ThemeToggle() {
   const [currentTheme, setCurrentTheme] = useAtom(currentThemeAtom)
 
   return (

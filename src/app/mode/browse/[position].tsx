@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, hudPageAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -19,10 +19,16 @@ import { findBucketByName } from '@/mock/bucket'
 export default function BrowseScreen() {
   const { position } = useLocalSearchParams<{ position: string }>()
   const words = findBucketByName('2050').words
-  // The opener may pass anything: guard the index, never trust the param.
-  const index = Number(position) - 1
-  const word =
-    Number.isInteger(index) && index >= 0 && index < words.length ? words[index] : undefined
+  // The param is the CARD NUMBER — the data position printed on the card
+  // (1701+ for the mock bucket), not a list index. It is the identifier
+  // every surface shares: what the card shows is what opens here, and what
+  // search/review will carry. The footer, by contrast, is a 1-based
+  // pagination ordinal.
+  const cardNumber = Number(position)
+  const word = Number.isInteger(cardNumber)
+    ? words.find((w) => w.position === cardNumber)
+    : undefined
+  const initialIndex = word ? words.indexOf(word) : 0
   const speechRate = useAtomValue(speechRateAtom)
   const speechRateReady = useAtomValue(speechRateReadyAtom)
   const autoSpeak = useAtomValue(autoSpeakAtom)
@@ -30,9 +36,9 @@ export default function BrowseScreen() {
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
-  const showFooter = useAtomValue(hudPageAtom)
+  const showFooter = useAtomValue(deckFooterAtom)
   // The deck's current card, mirrored out for the footer counter.
-  const [current, setCurrent] = useState(index)
+  const [current, setCurrent] = useState(initialIndex)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -47,7 +53,7 @@ export default function BrowseScreen() {
         <WordDeck
           words={words}
           progressBar={showProgressBar}
-          initialIndex={index}
+          initialIndex={initialIndex}
           tapToReveal={tapToReveal}
           // Same seams as study: the deck decides when to speak, the screen
           // decides how and whether.

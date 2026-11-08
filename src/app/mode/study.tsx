@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, hudPageAtom } from '@/atoms/deck'
+import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import {
   autoSpeakAtom,
   speechRateAtom,
@@ -27,7 +27,7 @@ export default function StudyScreen() {
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
-  const showFooter = useAtomValue(hudPageAtom)
+  const showFooter = useAtomValue(deckFooterAtom)
   // The deck's current card, mirrored out for the footer counter.
   const [index, setIndex] = useState(0)
 
