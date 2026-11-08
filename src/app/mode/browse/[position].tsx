@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
+import { useState } from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -29,6 +30,8 @@ export default function BrowseScreen() {
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
+  // The deck's current card, mirrored out for the footer counter.
+  const [current, setCurrent] = useState(index)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -49,6 +52,15 @@ export default function BrowseScreen() {
           // decides how and whether.
           canSpeak={speechRateReady && autoSpeak}
           onSpeak={(spoken) => speakWord(spoken.word, speechRate)}
+          onIndexChange={setCurrent}
+          hudRight={
+            <Text
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {current + 1}/{words.length}
+            </Text>
+          }
         />
       ) : (
         <View className="flex-1 items-center justify-center">

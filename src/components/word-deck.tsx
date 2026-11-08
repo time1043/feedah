@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { FlatList, View } from 'react-native'
 
 import type { Word } from '@/types/bucket'
@@ -23,6 +23,11 @@ type WordDeckProps = {
   initialIndex?: number
   /** Whether the scrubbable progress bar renders above the cards. */
   progressBar?: boolean
+  /** The current card changed (opened, swiped, scrubbed): mirror it out. */
+  onIndexChange?: (index: number) => void
+  /** Quiet footer slots on the bottom line (page counter, round/time). */
+  hudLeft?: ReactNode
+  hudRight?: ReactNode
 }
 
 /**
@@ -44,6 +49,9 @@ export function WordDeck({
   tapToReveal,
   initialIndex = 0,
   progressBar = true,
+  onIndexChange,
+  hudLeft,
+  hudRight,
 }: WordDeckProps) {
   // Measured height of the scroll viewport; the list mounts once it is known.
   const [viewport, setViewport] = useState(0)
@@ -91,6 +99,11 @@ export function WordDeck({
     })
     return () => cancelAnimationFrame(frame)
   }, [viewport])
+
+  // Mirror the current card out, whenever it changes.
+  useEffect(() => {
+    onIndexChange?.(index)
+  }, [index, onIndexChange])
 
   // Opening the deck speaks the card it opens on, once the viewport is
   // known. If the screen held speaking back (its gate closed), the flip
@@ -147,6 +160,9 @@ export function WordDeck({
           />
         )}
       </View>
+
+      {hudLeft && <View className="bottom-8 left-6 absolute">{hudLeft}</View>}
+      {hudRight && <View className="bottom-8 right-6 absolute">{hudRight}</View>}
     </View>
   )
 }

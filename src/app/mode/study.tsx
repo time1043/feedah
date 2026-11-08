@@ -1,5 +1,7 @@
 import { router } from 'expo-router'
 import { useAtomValue } from 'jotai'
+import { useState } from 'react'
+import { Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
@@ -25,6 +27,8 @@ export default function StudyScreen() {
   const showHeader = useAtomValue(deckHeaderAtom)
   const showTitle = useAtomValue(deckTitleAtom)
   const showProgressBar = useAtomValue(deckProgressBarAtom)
+  // The deck's current card, mirrored out for the footer counter.
+  const [index, setIndex] = useState(0)
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
@@ -44,6 +48,15 @@ export default function StudyScreen() {
         // hydration has settled and auto-speak is on.
         canSpeak={speechRateReady && autoSpeak}
         onSpeak={(word) => speakWord(word.word, speechRate)}
+        onIndexChange={setIndex}
+        hudRight={
+          <Text
+            className="text-gray-400 dark:text-gray-500 text-[13px]"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {index + 1}/{words.length}
+          </Text>
+        }
       />
     </SafeAreaView>
   )
