@@ -3,9 +3,28 @@ import { Pressable, Text, View } from 'react-native'
 
 import type { Word } from '@/types/bucket'
 
+import { meaningLines } from '@/lib/meaning'
+
 // Word forms render in a fixed 2×6 grid (12 cells); empty cells keep the
 // layout, so the forms block is the same size on every card and never shifts.
 const FORMS_GRID_CELLS = 12
+
+/** The meaning, one line per part-of-speech group when it is long. */
+function CardMeaning({ meaning }: { meaning: string }) {
+  if (meaning.length === 0) return null
+  const lines = meaningLines(meaning)
+  return lines ? (
+    <View className="gap-2 items-center">
+      {lines.map((line, i) => (
+        <Text key={i} className="text-xl text-gray-500 dark:text-gray-400 text-center">
+          {line}
+        </Text>
+      ))}
+    </View>
+  ) : (
+    <Text className="text-xl text-gray-500 dark:text-gray-400 text-center">{meaning}</Text>
+  )
+}
 
 type WordCardProps = {
   word: Word
@@ -62,11 +81,7 @@ export function WordCard({ word, onReplay }: WordCardProps) {
         {/* Reserved slot: keeps number and word anchored while the meaning
             toggles or wraps. */}
         <View className="mt-4 h-[110px] items-center justify-start">
-          {revealed && word.meaning.length > 0 && (
-            <Text className="text-xl text-gray-500 dark:text-gray-400 text-center">
-              {word.meaning}
-            </Text>
-          )}
+          {revealed && <CardMeaning meaning={word.meaning} />}
         </View>
       </Pressable>
 
