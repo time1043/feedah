@@ -98,9 +98,11 @@ export default function WordsScreen() {
             {words.length > 0 && (
               <ProgressBar
                 value={index}
-                max={Math.max(words.length, 1)}
+                max={words.length}
                 scrubbable
                 onScrub={jumpTo}
+                // The thumb agrees with the rows: both show card numbers.
+                labelFor={(i) => String(words[i]?.position ?? i + 1)}
               />
             )}
           </View>
