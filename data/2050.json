@@ -1,0 +1,427 @@
+{
+  "name": "2050",
+  "words": [
+    {
+      "position": 1701,
+      "word": "click",
+      "ipa": "/klɪk/",
+      "meaning": "v. n. 点击",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1702,
+      "word": "collapse",
+      "ipa": "/kəˈlæps/",
+      "meaning": "v. n. 坍塌",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1703,
+      "word": "combine",
+      "ipa": "/kəmˈbaɪn/",
+      "meaning": "v. 合并",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1704,
+      "word": "compose",
+      "ipa": "/kəmˈpəʊz/ /kəmˈpoʊz/",
+      "meaning": "v. 组成、作曲、撰写",
+      "distractors": [
+        {
+          "word": "comprise",
+          "meaning": "v. 包括、包含"
+        },
+        {
+          "word": "combine",
+          "meaning": "v. 合并"
+        },
+        {
+          "word": "compromise",
+          "meaning": "n. v. 妥协"
+        }
+      ],
+      "forms": ["composition n."]
+    },
+    {
+      "position": 1705,
+      "word": "comprise",
+      "ipa": "/kəmˈpraɪz/",
+      "meaning": "v. 包括、包含",
+      "distractors": [
+        {
+          "word": "compose",
+          "meaning": "v. 组成、作曲、撰写"
+        },
+        {
+          "word": "combine",
+          "meaning": "v. 合并"
+        },
+        {
+          "word": "comprise",
+          "meaning": "v. 包括、包含"
+        }
+      ],
+      "forms": []
+    },
+    {
+      "position": 1706,
+      "word": "concrete",
+      "ipa": "/ˈkɒnkriːt/ /ˌkɑnˈkrit/",
+      "meaning": "adj. 具体的、确实的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1707,
+      "word": "contest",
+      "ipa": "/ˈkɒntɛst/ /ˈkɑntɛst/",
+      "meaning": "n. v. 比赛",
+      "distractors": [
+        {
+          "word": "continent",
+          "meaning": "n. 大陆"
+        },
+        {
+          "word": "costume",
+          "meaning": "n. 服装"
+        },
+        {
+          "word": "culture",
+          "meaning": "n. 文化"
+        }
+      ],
+      "forms": []
+    },
+    {
+      "position": 1708,
+      "word": "continent",
+      "ipa": "/ˈkɒntɪnənt/ /ˈkɑntɪnənt/",
+      "meaning": "n. 大陆",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1709,
+      "word": "costume",
+      "ipa": "/ˈkɒstjuːm/ /ˈkɑsˌtum/",
+      "meaning": "n. 服装",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1710,
+      "word": "critical",
+      "ipa": "/ˈkrɪtɪkəl/",
+      "meaning": "adj. 批评的、关键的",
+      "distractors": [],
+      "forms": ["criticise v.", "criticize v."]
+    },
+    {
+      "position": 1711,
+      "word": "culture",
+      "ipa": "/ˈkʌltʃə/ /ˈkʌltʃər/",
+      "meaning": "n. 文化",
+      "distractors": [],
+      "forms": ["cultural adj."]
+    },
+    {
+      "position": 1712,
+      "word": "deafening",
+      "ipa": "/ˈdɛfənɪŋ/",
+      "meaning": "adj. 震耳欲聋的",
+      "distractors": [],
+      "forms": ["deaf adj."]
+    },
+    {
+      "position": 1713,
+      "word": "dinner",
+      "ipa": "/ˈdɪnə/ /ˈdɪnər/",
+      "meaning": "n. 正餐",
+      "distractors": [],
+      "forms": ["dining v."]
+    },
+    {
+      "position": 1714,
+      "word": "disease",
+      "ipa": "/dɪˈziːz/ /dɪˈziz/",
+      "meaning": "n. 疾病",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1715,
+      "word": "distinguish",
+      "ipa": "/dɪˈstɪŋɡwɪʃ/",
+      "meaning": "v. 区分、辨别",
+      "distractors": [],
+      "forms": ["distinguished v."]
+    },
+    {
+      "position": 1716,
+      "word": "dominate",
+      "ipa": "/ˈdɒmɪneɪt/ /ˈdɑməˌneɪt/",
+      "meaning": "v. 支配、掌控",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1717,
+      "word": "emphasize",
+      "ipa": "/ˈɛmfəsaɪz/",
+      "meaning": "v. 强调",
+      "distractors": [],
+      "forms": ["emphasis n."]
+    },
+    {
+      "position": 1718,
+      "word": "essential",
+      "ipa": "/ɪˈsɛnʃəl/",
+      "meaning": "adj. 重要的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1719,
+      "word": "excellent",
+      "ipa": "/ˈɛksələnt/",
+      "meaning": "adj. 优秀的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1720,
+      "word": "fantasy",
+      "ipa": "/ˈfæntəsi/",
+      "meaning": "n. v. 幻想",
+      "distractors": [],
+      "forms": ["fantastic adj."]
+    },
+    {
+      "position": 1721,
+      "word": "fascinating",
+      "ipa": "/ˈfæsɪˌneɪtɪŋ/",
+      "meaning": "adj. 令人着迷的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1722,
+      "word": "fist",
+      "ipa": "/fɪst/",
+      "meaning": "n. 拳头",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1723,
+      "word": "flat",
+      "ipa": "/ˈflæt/",
+      "meaning": "adj. 水平的、n. 公寓",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1724,
+      "word": "forecast",
+      "ipa": "/ˈfɔːkɑːst/ /ˈfɔrkæst/",
+      "meaning": "v. n. 预报",
+      "distractors": [
+        {
+          "word": "forest",
+          "meaning": "n. 森林"
+        },
+        {
+          "word": "harvest",
+          "meaning": "v. n. 收获"
+        },
+        {
+          "word": "habitat",
+          "meaning": "n. 栖息地"
+        }
+      ],
+      "forms": []
+    },
+    {
+      "position": 1725,
+      "word": "forest",
+      "ipa": "/ˈfɒrɪst/ /ˈfɔrəst/",
+      "meaning": "n. 森林",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1726,
+      "word": "frame",
+      "ipa": "/ˈfreɪm/",
+      "meaning": "n. v. 框架",
+      "distractors": [],
+      "forms": ["framework n."]
+    },
+    {
+      "position": 1727,
+      "word": "grab",
+      "ipa": "/ˈɡræb/",
+      "meaning": "v. 抓取、夺取",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1728,
+      "word": "grand",
+      "ipa": "/ˈɡrænd/",
+      "meaning": "adj. 壮丽的、宏大的",
+      "distractors": [
+        {
+          "word": "grab",
+          "meaning": "v. 抓取、夺取"
+        },
+        {
+          "word": "humble",
+          "meaning": "adj. 谦逊的、卑微的"
+        },
+        {
+          "word": "essential",
+          "meaning": "adj. 重要的"
+        }
+      ],
+      "forms": []
+    },
+    {
+      "position": 1729,
+      "word": "habitat",
+      "ipa": "/ˈhæbɪtæt/",
+      "meaning": "n. 栖息地",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1730,
+      "word": "hall",
+      "ipa": "/hɔːl/ /hɔl/",
+      "meaning": "n. 大厅",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1731,
+      "word": "harvest",
+      "ipa": "/ˈhɑːvɪst/ /ˈhɑrvəst/",
+      "meaning": "v. n. 收获",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1732,
+      "word": "humble",
+      "ipa": "/ˈhʌmbəl/",
+      "meaning": "adj. 谦逊的、卑微的",
+      "distractors": [],
+      "forms": ["humbly adv."]
+    },
+    {
+      "position": 1733,
+      "word": "impact",
+      "ipa": "/ˈɪmpækt/",
+      "meaning": "n. v. 冲击、影响",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1734,
+      "word": "income",
+      "ipa": "/ˈɪnˌkʌm/",
+      "meaning": "n. 收入",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1735,
+      "word": "inquire",
+      "ipa": "/ɪnˈkwaɪə/ /ɪnˈkwaɪr/",
+      "meaning": "v. 询问、查问",
+      "distractors": [],
+      "forms": ["inquires v."]
+    },
+    {
+      "position": 1736,
+      "word": "interrupt",
+      "ipa": "/ˌɪntəˈrʌpt/",
+      "meaning": "v. 打断说话、中断",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1737,
+      "word": "issue",
+      "ipa": "/ˈɪʃʉw/ /ˈɪʃu/",
+      "meaning": "n. 问题、期刊、v. 发布",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1738,
+      "word": "journal",
+      "ipa": "/ˈdʒɜːnəl/ /ˈdʒɜːrnəl/",
+      "meaning": "n. 日记",
+      "distractors": [],
+      "forms": ["journalist n."]
+    },
+    {
+      "position": 1739,
+      "word": "justify",
+      "ipa": "/ˈdʒʌstɪfaɪ/",
+      "meaning": "v. 证明……正确、辩护",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1740,
+      "word": "keen",
+      "ipa": "/kiːn/ /kin/",
+      "meaning": "adj. 热切的、热情的",
+      "distractors": [],
+      "forms": []
+    },
+    {
+      "position": 1741,
+      "word": "kingdom",
+      "ipa": "/ˈkɪŋdəm/",
+      "meaning": "n. 王国",
+      "distractors": [],
+      "forms": ["king n."]
+    },
+    {
+      "position": 1742,
+      "word": "kitchen",
+      "ipa": "/ˈkɪtʃn/",
+      "meaning": "n. 厨房",
+      "distractors": [
+        {
+          "word": "kingdom",
+          "meaning": "n. 王国"
+        },
+        {
+          "word": "hall",
+          "meaning": "n. 大厅"
+        },
+        {
+          "word": "dinner",
+          "meaning": "n. 正餐"
+        }
+      ],
+      "forms": []
+    },
+    {
+      "position": 1743,
+      "word": "labor",
+      "ipa": "/ˈleɪbər/",
+      "meaning": "n. 劳动、劳动力",
+      "distractors": [],
+      "forms": ["labour n."]
+    }
+  ]
+}
