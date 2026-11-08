@@ -31,7 +31,12 @@ export default function WordsScreen() {
   const bucket = buckets.find((candidate) => candidate.name === bucketName)
   const words = bucket?.words ?? []
   const meaningDefault = useAtomValue(wordsMeaningAtom)
-  const [showMeaning, setShowMeaning] = useState(meaningDefault)
+  // The eye follows the stored setting once it has hydrated — a mount-time
+  // seed would capture the factory value on a cold-start deep link — and a
+  // tap overrides it for this visit only (null = no override yet). It never
+  // writes back to the setting.
+  const [override, setOverride] = useState<boolean | null>(null)
+  const showMeaning = override ?? meaningDefault
   const guardedPush = useNavGuard()
 
   const openWord = (word: Word) => {
@@ -54,7 +59,7 @@ export default function WordsScreen() {
             className="h-9 w-9 items-center justify-center"
             hitSlop={4}
             accessibilityLabel="Toggle meanings"
-            onPress={() => setShowMeaning(!showMeaning)}
+            onPress={() => setOverride(!showMeaning)}
           >
             <Ionicons
               name={showMeaning ? 'eye' : 'eye-off'}
