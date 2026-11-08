@@ -34,13 +34,15 @@ export default function WordsScreen() {
   const [showMeaning, setShowMeaning] = useState(meaningDefault)
   const guardedPush = useNavGuard()
 
-  const openWord = (word: Word) =>
+  const openWord = (word: Word) => {
+    if (!bucket) return
     guardedPush(() =>
       router.push({
         pathname: '/mode/browse/[position]',
-        params: { position: String(word.position) },
+        params: { position: String(word.position), bucket: bucket.name },
       }),
     )
+  }
 
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
