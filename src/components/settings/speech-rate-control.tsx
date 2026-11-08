@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { PanResponder, Pressable, Text, View, useColorScheme } from 'react-native'
 
 import { DEFAULT_SPEECH_RATE, speechRateAtom } from '@/atoms/settings'
+import { ACCENT } from '@/lib/color'
 import { speakWord } from '@/lib/speech'
-
-const BLUE = '#3B82F6'
 
 /** A multi-syllable word, so rate changes are easy to hear. */
 const SAMPLE_WORD = 'example'
@@ -54,11 +53,11 @@ function RateSlider({ value, min, max, step, onValueChange }: RateSliderProps) {
       >
         <View
           className="h-1 rounded-full"
-          style={{ width: `${fraction * 100}%`, backgroundColor: BLUE }}
+          style={{ width: `${fraction * 100}%`, backgroundColor: ACCENT }}
         />
         <View
           className="h-5 w-5 -top-2 absolute rounded-full"
-          style={{ left: `${fraction * 100}%`, marginLeft: -10, backgroundColor: BLUE }}
+          style={{ left: `${fraction * 100}%`, marginLeft: -10, backgroundColor: ACCENT }}
         />
       </View>
     </View>

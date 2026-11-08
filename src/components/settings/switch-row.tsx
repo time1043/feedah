@@ -1,6 +1,6 @@
 import { Switch, Text, View, useColorScheme } from 'react-native'
 
-const BLUE = '#3B82F6'
+import { ACCENT } from '@/lib/color'
 
 type SwitchRowProps = {
   label: string
@@ -18,7 +18,7 @@ export function SwitchRow({ label, value, onValueChange }: SwitchRowProps) {
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: dark ? '#374151' : '#D1D5DB', true: BLUE }}
+        trackColor={{ false: dark ? '#374151' : '#D1D5DB', true: ACCENT }}
         accessibilityLabel={label}
       />
     </View>

@@ -11,6 +11,7 @@ import { wordsMeaningAtom } from '@/atoms/words'
 import { ListHeader, MUTED } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
 import { goBack } from '@/lib/back'
+import { ACCENT } from '@/lib/color'
 import { useNavGuard } from '@/lib/use-nav-guard'
 import { buckets } from '@/mock/bucket'
 
@@ -81,7 +82,7 @@ export default function WordsScreen() {
             <Ionicons
               name={showMeaning ? 'eye' : 'eye-off'}
               size={22}
-              color={showMeaning ? '#208AEF' : MUTED[scheme]}
+              color={showMeaning ? ACCENT : MUTED[scheme]}
             />
           </Pressable>
         }

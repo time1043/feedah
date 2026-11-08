@@ -3,8 +3,7 @@ import { useState } from 'react'
 import { Modal, Pressable, Text, View, useColorScheme } from 'react-native'
 
 import { MUTED } from '@/components/header'
-
-const BLUE = '#208AEF'
+import { ACCENT } from '@/lib/color'
 
 export type SelectOption = {
   value: string
@@ -79,7 +78,7 @@ export function SelectRow({ label, value, options, onValueChange }: SelectRowPro
                   >
                     {option.label}
                   </Text>
-                  {selected && <Ionicons name="checkmark" size={18} color={BLUE} />}
+                  {selected && <Ionicons name="checkmark" size={18} color={ACCENT} />}
                 </Pressable>
               )
             })}
