@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import { autoSpeakAtom, tapToRevealAtom } from '@/atoms/settings'
+import { wordsMeaningAtom } from '@/atoms/words'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
@@ -15,6 +16,7 @@ export default function SettingsScreen() {
   const [showTitle, setShowTitle] = useAtom(deckTitleAtom)
   const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
   const [showFooter, setShowFooter] = useAtom(deckFooterAtom)
+  const [wordsMeaning, setWordsMeaning] = useAtom(wordsMeaningAtom)
 
   return (
     <View className="bg-white dark:bg-black flex-1 items-center justify-center">
@@ -34,6 +36,14 @@ export default function SettingsScreen() {
             onValueChange={setShowProgressBar}
           />
           <SwitchRow label="Page footer" value={showFooter} onValueChange={setShowFooter} />
+        </View>
+
+        <View className="gap-1">
+          <SwitchRow
+            label="Word list meanings"
+            value={wordsMeaning}
+            onValueChange={setWordsMeaning}
+          />
         </View>
       </View>
 

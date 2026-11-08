@@ -14,11 +14,19 @@ import {
 import { ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
 import { speakWord } from '@/lib/speech'
-import { findBucketByName } from '@/mock/bucket'
+import { buckets } from '@/mock/bucket'
 
 export default function BrowseScreen() {
-  const { position } = useLocalSearchParams<{ position: string }>()
-  const words = findBucketByName('2050').words
+  const { position, bucket: bucketParam } = useLocalSearchParams<{
+    position: string
+    bucket?: string
+  }>()
+  // The bucket the opener came from (the word list passes it); no param
+  // means the home screen's default bucket.
+  const bucketParamName = Array.isArray(bucketParam) ? bucketParam[0] : bucketParam
+  const bucketName = bucketParamName && bucketParamName.length > 0 ? bucketParamName : '2050'
+  const bucket = buckets.find((candidate) => candidate.name === bucketName)
+  const words = bucket?.words ?? []
   // The param is the CARD NUMBER — the data position printed on the card
   // (1701+ for the mock bucket), not a list index. It is the identifier
   // every surface shares: what the card shows is what opens here, and what
@@ -44,7 +52,7 @@ export default function BrowseScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       {showHeader && (
         <ScreenHeader
-          title={showTitle ? 'Browse 2050' : undefined}
+          title={showTitle && bucket ? `Browse ${bucket.name}` : undefined}
           onBack={() => router.back()}
           onSearch={() => router.push('/mode/search')}
         />
