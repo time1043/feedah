@@ -61,7 +61,9 @@ export default function StudyScreen() {
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       {showHeader && (
         <ScreenHeader
-          title={showTitle ? `Study ${bucketName}` : undefined}
+          // R{n} is the probe's round: it advances the moment a walk-through
+          // completes, so the title agrees with the end page's promise.
+          title={showTitle ? `Study ${bucketName} R${session.progress.round}` : undefined}
           onBack={goBack}
           onSearch={() => router.push('/mode/search')}
         />
