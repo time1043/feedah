@@ -1,7 +1,8 @@
+import * as SQLite from 'expo-sqlite'
+
 import raw370 from '../../data/370.json'
 import raw700 from '../../data/700.json'
 import raw2050 from '../../data/2050.json'
-import { getDb } from './index'
 
 type SeedWord = {
   position: number
@@ -31,10 +32,10 @@ function contentHashOf(words: SeedWord[]): string {
  * stored bucket.word_count + content hash, so an unchanged bucket is one
  * SELECT and a changed one is fully replaced inside a transaction. This
  * logic survives the drizzle stage verbatim — only the statements swap.
+ * Takes the OPEN handle: prepareDb runs inside getDb, and re-entering
+ * getDb here would recurse forever (the singleton isn't set yet).
  */
-export async function seedBuckets(): Promise<void> {
-  const db = await getDb()
-
+export async function seedBuckets(db: SQLite.SQLiteDatabase): Promise<void> {
   for (const file of SEED_FILES) {
     const hash = contentHashOf(file.words)
     const existing = await db.getFirstAsync<{ word_count: number; content_hash: string }>(

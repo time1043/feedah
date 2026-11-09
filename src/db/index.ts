@@ -49,7 +49,7 @@ async function prepareDb(): Promise<SQLite.SQLiteDatabase> {
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)
   }
 
-  await seedBuckets()
+  await seedBuckets(db)
 
   return db
 }
