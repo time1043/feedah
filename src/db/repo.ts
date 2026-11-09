@@ -1,15 +1,21 @@
+import { eq } from 'drizzle-orm'
+
 import { getDb } from './index'
+import { bucket, word } from './schema'
 
 export type BucketRow = {
   name: string
   wordCount: number
 }
 
-/** Every seeded bucket, ordered by name. The reference's readout (round,
+/** Every seeded bucket, ordered by id. The reference's readout (round,
  * pointer, flags) joins in once the probe lives here too. */
 export async function getBuckets(): Promise<BucketRow[]> {
   const db = await getDb()
-  return db.getAllAsync<BucketRow>('SELECT name, word_count AS wordCount FROM bucket ORDER BY name')
+  return db
+    .select({ name: bucket.name, wordCount: bucket.wordCount })
+    .from(bucket)
+    .orderBy(bucket.name)
 }
 
 export type WordRow = {
@@ -25,22 +31,24 @@ export type WordRow = {
  * separates a missing bucket from an existing-but-empty one — the caller's
  * not-found state must not lie about which one happened.
  */
-export async function getWordsByBucket(bucketName: string): Promise<[boolean, WordRow[]]> {
+export async function getWordsByBucket(bucketId: string): Promise<[boolean, WordRow[]]> {
   const db = await getDb()
-  const exists = await db.getFirstAsync<{ name: string }>(
-    'SELECT name FROM bucket WHERE name = ?',
-    bucketName,
-  )
-  if (!exists) return [false, []]
-  const rows = await db.getAllAsync<{
-    position: number
-    word: string
-    ipa: string
-    meaning: string
-    forms: string
-  }>(
-    'SELECT position, word, ipa, meaning, forms FROM word WHERE bucket_name = ? ORDER BY position',
-    bucketName,
-  )
+  const exists = await db
+    .select({ id: bucket.name })
+    .from(bucket)
+    .where(eq(bucket.name, bucketId))
+    .limit(1)
+  if (exists.length === 0) return [false, []]
+  const rows = await db
+    .select({
+      position: word.position,
+      word: word.word,
+      ipa: word.ipa,
+      meaning: word.meaning,
+      forms: word.forms,
+    })
+    .from(word)
+    .where(eq(word.bucketName, bucketId))
+    .orderBy(word.position)
   return [true, rows.map((row) => ({ ...row, forms: JSON.parse(row.forms) as string[] }))]
 }

@@ -1,65 +1,97 @@
+import { sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/expo-sqlite'
+import { migrate } from 'drizzle-orm/expo-sqlite/migrator'
 import * as SQLite from 'expo-sqlite'
 
+import migrations from '../../drizzle/migrations'
 import { seedBuckets } from './seed'
 
 const DB_NAME = 'feedah.db'
 
-/** The schema version, bumped by hand as the DDL evolves. This is the
- * raw-stage stand-in for drizzle's __drizzle_migrations table. */
-const SCHEMA_VERSION = 1
+function buildDb(raw: SQLite.SQLiteDatabase) {
+  return drizzle(raw)
+}
 
-const DDL = `
-CREATE TABLE IF NOT EXISTS bucket (
-  name TEXT PRIMARY KEY,
-  word_count INTEGER NOT NULL,
-  content_hash TEXT NOT NULL DEFAULT ''
-);
+export type Db = ReturnType<typeof buildDb>
 
-CREATE TABLE IF NOT EXISTS word (
-  bucket_name TEXT NOT NULL REFERENCES bucket (name) ON DELETE CASCADE,
-  position INTEGER NOT NULL,
-  word TEXT NOT NULL,
-  ipa TEXT NOT NULL DEFAULT '',
-  meaning TEXT NOT NULL DEFAULT '',
-  forms TEXT NOT NULL DEFAULT '[]',
-  PRIMARY KEY (bucket_name, position)
-);
-`
+let rawDb: SQLite.SQLiteDatabase | null = null
+let currentDb: Db | null = null
+
+/** The raw expo-sqlite handle behind drizzle; used by the dev studio plugin. */
+export function getRawDb(): SQLite.SQLiteDatabase | null {
+  return rawDb
+}
 
 /**
- * Opens the database once: applies the PRAGMAs, creates the tables when the
- * schema version moves, and seeds nothing here (the seed owns its data).
- * The file is disposable local state shared across Expo Go projects — the
- * user_version guard makes a stale or foreign file self-heal by re-running
- * the idempotent DDL.
+ * Runs async drizzle statements inside one native transaction. Drizzle's own
+ * `db.transaction` commits before an async callback resolves, so the raw
+ * handle's withTransactionAsync is the only safe umbrella here.
  */
-async function prepareDb(): Promise<SQLite.SQLiteDatabase> {
-  const db = SQLite.openDatabaseSync(DB_NAME)
-  // WAL for concurrent read/write, FK enforcement (off by default in
-  // SQLite), and a grace period for brief lock contention.
-  await db.execAsync('PRAGMA journal_mode = WAL')
-  await db.execAsync('PRAGMA foreign_keys = ON')
-  await db.execAsync('PRAGMA busy_timeout = 3000')
+export async function withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
+  if (!rawDb || !currentDb) throw new Error('database not opened')
+  const db = currentDb
+  let result: T | undefined
+  await rawDb.withTransactionAsync(async () => {
+    result = await fn(db)
+  })
+  return result as T
+}
 
-  const { user_version: current } = (await db.getFirstAsync<{ user_version: number }>(
-    'PRAGMA user_version',
-  )) as { user_version: number }
-  if (current < SCHEMA_VERSION) {
-    await db.execAsync(DDL)
-    await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)
+/**
+ * Opens the database, applies drizzle migrations and seeds the bundled
+ * buckets. The file is disposable local state, and it is SHARED across Expo
+ * Go projects — an MVP-era feedah.db (old schema, old migration records)
+ * may be sitting there. Against such a file, migrate either fails or, worse,
+ * considers itself up to date while our tables are missing; both cases are
+ * detected and the database is deleted and recreated once.
+ */
+async function prepareDb(): Promise<Db> {
+  const open = async (): Promise<{ raw: SQLite.SQLiteDatabase; db: Db }> => {
+    const raw = SQLite.openDatabaseSync(DB_NAME)
+    const db = buildDb(raw)
+    rawDb = raw
+    currentDb = db
+    // Enforce the declared foreign keys (off by default in SQLite) and
+    // tolerate brief lock contention between concurrent writes.
+    await raw.execAsync('PRAGMA journal_mode = WAL')
+    await raw.execAsync('PRAGMA foreign_keys = ON')
+    await raw.execAsync('PRAGMA busy_timeout = 3000')
+    return { raw, db }
+  }
+
+  let { raw, db } = await open()
+  let verified = false
+  try {
+    await migrate(db, migrations)
+    const probe = (await db.get(
+      sql`SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'bucket'`,
+    )) as { ok: number } | undefined
+    if (probe?.ok) {
+      verified = true
+    }
+  } catch {
+    // Migration failed outright — fall through to the recreate path.
+  }
+
+  if (!verified) {
+    await raw.closeAsync().catch(() => {})
+    await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
+    ;({ raw, db } = await open())
+    await migrate(db, migrations)
   }
 
   await seedBuckets(db)
-
   return db
 }
 
-let instance: Promise<SQLite.SQLiteDatabase> | null = null
+let instance: Promise<Db> | null = null
 
-/** Opens the database once; a failed open must not poison the singleton. */
-export function getDb(): Promise<SQLite.SQLiteDatabase> {
+/** Opens the database once; migrations and seeding run on first open. */
+export function getDb(): Promise<Db> {
   if (!instance) {
     instance = prepareDb().catch((error) => {
+      // A failed open must not poison the singleton: clear it so the next
+      // call retries instead of failing for the whole session.
       instance = null
       throw error
     })

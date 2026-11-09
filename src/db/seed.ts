@@ -1,8 +1,10 @@
-import * as SQLite from 'expo-sqlite'
+import { eq } from 'drizzle-orm'
 
 import raw370 from '../../data/370.json'
 import raw700 from '../../data/700.json'
 import raw2050 from '../../data/2050.json'
+import { withTransaction, type Db } from './index'
+import { bucket, word } from './schema'
 
 type SeedWord = {
   position: number
@@ -30,42 +32,49 @@ function contentHashOf(words: SeedWord[]): string {
 /**
  * Seeds the bundled buckets on every cold start; idempotent against the
  * stored bucket.word_count + content hash, so an unchanged bucket is one
- * SELECT and a changed one is fully replaced inside a transaction. This
- * logic survives the drizzle stage verbatim — only the statements swap.
- * Takes the OPEN handle: prepareDb runs inside getDb, and re-entering
- * getDb here would recurse forever (the singleton isn't set yet).
+ * SELECT and a changed one is fully replaced inside a transaction. The
+ * statements are drizzle now — the idempotency logic is what survived the
+ * raw-sqlite stage.
  */
-export async function seedBuckets(db: SQLite.SQLiteDatabase): Promise<void> {
+export async function seedBuckets(db: Db): Promise<void> {
   for (const file of SEED_FILES) {
     const hash = contentHashOf(file.words)
-    const existing = await db.getFirstAsync<{ word_count: number; content_hash: string }>(
-      'SELECT word_count, content_hash FROM bucket WHERE name = ?',
-      file.name,
-    )
-    if (existing && existing.word_count === file.words.length && existing.content_hash === hash) {
+    const existing = await db
+      .select({ wordCount: bucket.wordCount, contentHash: bucket.contentHash })
+      .from(bucket)
+      .where(eq(bucket.name, file.name))
+      .limit(1)
+    if (
+      existing[0] &&
+      existing[0].wordCount === file.words.length &&
+      existing[0].contentHash === hash
+    ) {
       continue
     }
 
-    await db.withTransactionAsync(async () => {
-      await db.runAsync(
-        'INSERT OR REPLACE INTO bucket (name, word_count, content_hash) VALUES (?, ?, ?)',
-        file.name,
-        file.words.length,
-        hash,
-      )
+    await withTransaction(async () => {
+      // An UPSERT, not INSERT OR REPLACE: with foreign_keys ON, REPLACE
+      // would cascade-delete the words we are about to reseed anyway —
+      // keeping the intent explicit.
+      await db
+        .insert(bucket)
+        .values({ name: file.name, wordCount: file.words.length, contentHash: hash })
+        .onConflictDoUpdate({
+          target: bucket.name,
+          set: { wordCount: file.words.length, contentHash: hash },
+        })
       // A re-seed replaces the words wholesale.
-      await db.runAsync('DELETE FROM word WHERE bucket_name = ?', file.name)
-      for (const w of file.words) {
-        await db.runAsync(
-          'INSERT INTO word (bucket_name, position, word, ipa, meaning, forms) VALUES (?, ?, ?, ?, ?, ?)',
-          file.name,
-          w.position,
-          w.word,
-          w.ipa,
-          w.meaning,
-          JSON.stringify(w.forms),
-        )
-      }
+      await db.delete(word).where(eq(word.bucketName, file.name))
+      await db.insert(word).values(
+        file.words.map((w) => ({
+          bucketName: file.name,
+          position: w.position,
+          word: w.word,
+          ipa: w.ipa,
+          meaning: w.meaning,
+          forms: JSON.stringify(w.forms),
+        })),
+      )
     })
   }
 }
