@@ -35,7 +35,9 @@ export async function withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>
 /** Opens the raw handle, wraps it in drizzle and applies the PRAGMAs. The
  * singleton state lives here so withTransaction can always find it. */
 export async function openDb(): Promise<{ raw: SQLite.SQLiteDatabase; db: Db }> {
-  const raw = SQLite.openDatabaseSync(DB_NAME)
+  // Change listeners let drizzle's useLiveQuery subscribe to writes; they
+  // must be enabled at open time, retrofitting means reopening the file.
+  const raw = SQLite.openDatabaseSync(DB_NAME, { enableChangeListener: true })
   const db = buildDb(raw)
   rawDb = raw
   currentDb = db
