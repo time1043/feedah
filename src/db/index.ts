@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite'
 
+import { seedBuckets } from './seed'
+
 const DB_NAME = 'feedah.db'
 
 /** The schema version, bumped by hand as the DDL evolves. This is the
@@ -46,6 +48,8 @@ async function prepareDb(): Promise<SQLite.SQLiteDatabase> {
     await db.execAsync(DDL)
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)
   }
+
+  await seedBuckets()
 
   return db
 }
