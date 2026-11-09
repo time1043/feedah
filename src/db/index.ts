@@ -1,41 +1,12 @@
 import { sql } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/expo-sqlite'
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator'
 import * as SQLite from 'expo-sqlite'
 
 import migrations from '../../drizzle/migrations'
+import { DB_NAME, openDb, type Db } from './client'
 import { seedBuckets } from './seed'
 
-const DB_NAME = 'feedah.db'
-
-function buildDb(raw: SQLite.SQLiteDatabase) {
-  return drizzle(raw)
-}
-
-export type Db = ReturnType<typeof buildDb>
-
-let rawDb: SQLite.SQLiteDatabase | null = null
-let currentDb: Db | null = null
-
-/** The raw expo-sqlite handle behind drizzle; used by the dev studio plugin. */
-export function getRawDb(): SQLite.SQLiteDatabase | null {
-  return rawDb
-}
-
-/**
- * Runs async drizzle statements inside one native transaction. Drizzle's own
- * `db.transaction` commits before an async callback resolves, so the raw
- * handle's withTransactionAsync is the only safe umbrella here.
- */
-export async function withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
-  if (!rawDb || !currentDb) throw new Error('database not opened')
-  const db = currentDb
-  let result: T | undefined
-  await rawDb.withTransactionAsync(async () => {
-    result = await fn(db)
-  })
-  return result as T
-}
+export { getRawDb, withTransaction, type Db } from './client'
 
 /**
  * Opens the database, applies drizzle migrations and seeds the bundled
@@ -46,20 +17,7 @@ export async function withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>
  * detected and the database is deleted and recreated once.
  */
 async function prepareDb(): Promise<Db> {
-  const open = async (): Promise<{ raw: SQLite.SQLiteDatabase; db: Db }> => {
-    const raw = SQLite.openDatabaseSync(DB_NAME)
-    const db = buildDb(raw)
-    rawDb = raw
-    currentDb = db
-    // Enforce the declared foreign keys (off by default in SQLite) and
-    // tolerate brief lock contention between concurrent writes.
-    await raw.execAsync('PRAGMA journal_mode = WAL')
-    await raw.execAsync('PRAGMA foreign_keys = ON')
-    await raw.execAsync('PRAGMA busy_timeout = 3000')
-    return { raw, db }
-  }
-
-  let { raw, db } = await open()
+  let { raw, db } = await openDb()
   let verified = false
   try {
     await migrate(db, migrations)
@@ -76,7 +34,7 @@ async function prepareDb(): Promise<Db> {
   if (!verified) {
     await raw.closeAsync().catch(() => {})
     await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
-    ;({ raw, db } = await open())
+    ;({ raw, db } = await openDb())
     await migrate(db, migrations)
   }
 
