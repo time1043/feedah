@@ -10,19 +10,19 @@ const SCHEMA_VERSION = 1
 
 const DDL = `
 CREATE TABLE IF NOT EXISTS bucket (
-  id TEXT PRIMARY KEY,
+  name TEXT PRIMARY KEY,
   word_count INTEGER NOT NULL,
   content_hash TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS word (
-  bucket_id TEXT NOT NULL REFERENCES bucket (id) ON DELETE CASCADE,
+  bucket_name TEXT NOT NULL REFERENCES bucket (name) ON DELETE CASCADE,
   position INTEGER NOT NULL,
   word TEXT NOT NULL,
   ipa TEXT NOT NULL DEFAULT '',
   meaning TEXT NOT NULL DEFAULT '',
   forms TEXT NOT NULL DEFAULT '[]',
-  PRIMARY KEY (bucket_id, position)
+  PRIMARY KEY (bucket_name, position)
 );
 `
 

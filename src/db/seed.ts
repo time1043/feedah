@@ -39,7 +39,7 @@ export async function seedBuckets(db: SQLite.SQLiteDatabase): Promise<void> {
   for (const file of SEED_FILES) {
     const hash = contentHashOf(file.words)
     const existing = await db.getFirstAsync<{ word_count: number; content_hash: string }>(
-      'SELECT word_count, content_hash FROM bucket WHERE id = ?',
+      'SELECT word_count, content_hash FROM bucket WHERE name = ?',
       file.name,
     )
     if (existing && existing.word_count === file.words.length && existing.content_hash === hash) {
@@ -48,16 +48,16 @@ export async function seedBuckets(db: SQLite.SQLiteDatabase): Promise<void> {
 
     await db.withTransactionAsync(async () => {
       await db.runAsync(
-        'INSERT OR REPLACE INTO bucket (id, word_count, content_hash) VALUES (?, ?, ?)',
+        'INSERT OR REPLACE INTO bucket (name, word_count, content_hash) VALUES (?, ?, ?)',
         file.name,
         file.words.length,
         hash,
       )
       // A re-seed replaces the words wholesale.
-      await db.runAsync('DELETE FROM word WHERE bucket_id = ?', file.name)
+      await db.runAsync('DELETE FROM word WHERE bucket_name = ?', file.name)
       for (const w of file.words) {
         await db.runAsync(
-          'INSERT INTO word (bucket_id, position, word, ipa, meaning, forms) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO word (bucket_name, position, word, ipa, meaning, forms) VALUES (?, ?, ?, ?, ?, ?)',
           file.name,
           w.position,
           w.word,
