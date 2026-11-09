@@ -4,7 +4,7 @@ import '@/global.css'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
-import { Platform, StatusBar as RNStatusBar } from 'react-native'
+import { Platform, Pressable, StatusBar as RNStatusBar, Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { getDb, getRawDb } from '@/db'
@@ -22,17 +22,38 @@ function DrizzleStudioBridge() {
   return null
 }
 
+/** A failed init must not brick the session as a blank screen: the error
+ * state renders a retry button, and getDb() clears its singleton on
+ * failure so a retry genuinely runs the whole open-migrate-seed again. */
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false)
+  const [dbError, setDbError] = useState(false)
 
-  useEffect(() => {
+  const initDb = () => {
+    setDbReady(false)
+    setDbError(false)
     getDb()
       .then(() => setDbReady(true))
-      .catch((err) => console.error('Failed to init DB:', err))
-  }, [])
+      .catch((err) => {
+        console.error('Failed to init DB:', err)
+        setDbError(true)
+      })
+  }
+
+  useEffect(initDb, [initDb])
 
   if (!dbReady) {
-    return null
+    if (!dbError) {
+      return null
+    }
+    return (
+      <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['top']}>
+        <Text className="text-black dark:text-white text-center">The database failed to open.</Text>
+        <Pressable onPress={initDb}>
+          <Text className="text-black dark:text-white font-bold text-center">Retry</Text>
+        </Pressable>
+      </SafeAreaView>
+    )
   }
 
   return (

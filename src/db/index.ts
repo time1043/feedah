@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator'
 import * as SQLite from 'expo-sqlite'
 
@@ -12,34 +11,34 @@ export { getRawDb, withTransaction, type Db } from './client'
  * Opens the database, applies drizzle migrations and seeds the bundled
  * buckets. The file is disposable local state, and it is SHARED across Expo
  * Go projects — an MVP-era feedah.db (old schema, old migration records)
- * may be sitting there. Against such a file, migrate either fails or, worse,
- * considers itself up to date while our tables are missing; both cases are
- * detected and the database is deleted and recreated once.
+ * may be sitting there. Against such a file, migrate either fails outright
+ * or, worse, considers itself up to date while the tables' shape is wrong;
+ * both surface as a failed migrate-or-seed attempt, so the database is
+ * deleted and recreated once before the error propagates.
  */
 async function prepareDb(): Promise<Db> {
-  let { raw, db } = await openDb()
-  let verified = false
+  try {
+    return await openMigrateAndSeed()
+  } catch {
+    await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
+    return openMigrateAndSeed()
+  }
+}
+
+/** One full open-migrate-seed attempt against whatever file is there. Seed
+ * is the shape verifier: a missing or mis-shaped table makes a seed
+ * statement throw, so a successful seed doubles as the probe. The handle
+ * is closed on failure so the wipe in prepareDb starts clean. */
+async function openMigrateAndSeed(): Promise<Db> {
+  const { raw, db } = await openDb()
   try {
     await migrate(db, migrations)
-    const probe = (await db.get(
-      sql`SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'bucket'`,
-    )) as { ok: number } | undefined
-    if (probe?.ok) {
-      verified = true
-    }
-  } catch {
-    // Migration failed outright — fall through to the recreate path.
-  }
-
-  if (!verified) {
+    await seedBuckets(db)
+    return db
+  } catch (error) {
     await raw.closeAsync().catch(() => {})
-    await SQLite.deleteDatabaseAsync(DB_NAME).catch(() => {})
-    ;({ raw, db } = await openDb())
-    await migrate(db, migrations)
+    throw error
   }
-
-  await seedBuckets(db)
-  return db
 }
 
 let instance: Promise<Db> | null = null
