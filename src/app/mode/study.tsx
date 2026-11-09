@@ -94,13 +94,17 @@ export default function StudyScreen() {
         // The footer line pairs the two: the probe's round on the left, the
         // pagination ordinal on the right. R{n} advances the moment a
         // walk-through completes, agreeing with the end page's promise.
+        // The footer switch gates the whole bottom line: the round on the
+        // left and the pagination ordinal on the right.
         hudLeft={
-          <Text
-            className="text-gray-400 dark:text-gray-500 text-[13px]"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            R{session.progress.round}
-          </Text>
+          showFooter ? (
+            <Text
+              className="text-gray-400 dark:text-gray-500 text-[13px]"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              R{session.progress.round}
+            </Text>
+          ) : undefined
         }
         hudRight={
           showFooter ? (
