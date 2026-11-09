@@ -1,18 +1,33 @@
 import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
-import { useColorScheme, Pressable, Text, View } from 'react-native'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useState } from 'react'
+import { Pressable, Text, useColorScheme, View } from 'react-native'
 
 import { HeaderIconButton, MUTED, TabHeader } from '@/components/header'
+import { getBuckets, type BucketRow } from '@/db/repo'
 import { useNavGuard } from '@/lib/use-nav-guard'
-import { buckets } from '@/mock/bucket'
 
-/** The bucket tab: one clean card per mock bucket — name plus word count.
- * The card's body opens the word list; its side opens the round list. The
- * reference's progress readout, import, delete and settings page all wait
- * for the session and the db. */
+/** The bucket tab: one clean card per bucket read from the database — name
+ * plus word count. The card's body opens the word list; its side opens the
+ * round list; the gear opens the settings. The reference's progress
+ * readout, import and delete all wait for the session and the db. */
 export default function BucketScreen() {
   const dark = useColorScheme() === 'dark'
   const guardedPush = useNavGuard()
+  // Reloads on every focus: the list follows the database, which later
+  // grows (import, delete) without this screen knowing.
+  const [buckets, setBuckets] = useState<BucketRow[]>([])
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+      void getBuckets().then((rows) => {
+        if (!cancelled) setBuckets(rows)
+      })
+      return () => {
+        cancelled = true
+      }
+    }, []),
+  )
 
   return (
     <View className="bg-white dark:bg-black flex-1">
@@ -35,7 +50,7 @@ export default function BucketScreen() {
           <Pressable
             className="p-4 flex-1 flex-row items-center justify-between"
             accessibilityRole="button"
-            accessibilityLabel={`${bucket.name}, ${bucket.words.length} words`}
+            accessibilityLabel={`${bucket.name}, ${bucket.wordCount} words`}
             onPress={() =>
               guardedPush(() =>
                 router.push({ pathname: '/bucket/words/[name]', params: { name: bucket.name } }),
@@ -49,7 +64,7 @@ export default function BucketScreen() {
               className="text-gray-500 dark:text-gray-400 text-[13px]"
               style={{ fontVariant: ['tabular-nums'] }}
             >
-              {bucket.words.length} words
+              {bucket.wordCount} words
             </Text>
           </Pressable>
           {/* Side: the round list. */}
@@ -68,6 +83,11 @@ export default function BucketScreen() {
           </Pressable>
         </View>
       ))}
+      {buckets.length === 0 && (
+        <Text className="p-4 text-gray-400 dark:text-gray-500 text-[15px]">
+          No buckets yet — they seed on the first database open.
+        </Text>
+      )}
     </View>
   )
 }
