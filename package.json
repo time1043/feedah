@@ -22,6 +22,7 @@
     "expo": "~57.0.18",
     "expo-constants": "~57.0.16",
     "expo-device": "~57.0.1",
+    "expo-drizzle-studio-plugin": "^0.2.1",
     "expo-font": "~57.0.2",
     "expo-glass-effect": "~57.0.1",
     "expo-image": "~57.0.3",

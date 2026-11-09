@@ -1,17 +1,25 @@
-import { Stack } from 'expo-router'
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 
 import '@/global.css'
+import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { Platform, StatusBar as RNStatusBar } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { getDb } from '@/db'
+import { getDb, getRawDb } from '@/db'
 import ThemeProvider from '@/providers/theme-provider'
 
 if (Platform.OS === 'android') {
   RNStatusBar.setTranslucent(true)
   RNStatusBar.setBackgroundColor('transparent')
+}
+
+/** Dev-only bridge that exposes the raw database handle to Drizzle Studio.
+ * Rendered only after getDb() has resolved, so the handle is non-null. */
+function DrizzleStudioBridge() {
+  useDrizzleStudio(getRawDb())
+  return null
 }
 
 export default function RootLayout() {
@@ -34,6 +42,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
+        {__DEV__ && <DrizzleStudioBridge />}
       </SafeAreaView>
     </ThemeProvider>
   )
