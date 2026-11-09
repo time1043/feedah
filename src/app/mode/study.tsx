@@ -18,7 +18,6 @@ import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
 import { countsOf, frontierOf } from '@/lib/study-session'
 import { useStudySession } from '@/lib/use-study-session'
-import { findBucketByName } from '@/mock/bucket'
 
 /** The study screen: swipe through the bucket's words, one full-screen card
  * at a time, driven by the study session. */
