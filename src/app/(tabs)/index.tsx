@@ -1,122 +1,92 @@
 import { router, useFocusEffect } from 'expo-router'
-import { useAtomValue } from 'jotai'
-import { useCallback, useEffect, useState } from 'react'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { useAtom, useAtomValue } from 'jotai'
+import { useCallback, useState } from 'react'
+import { Pressable, Text, View } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/bucket'
 import { studyDrillAtom } from '@/atoms/settings'
-import { getFirstPosition } from '@/db/repo/bucket-word'
-import { countRoundFlags, getProgress } from '@/db/repo/study-round'
+import { HeaderIconButton, TabHeader } from '@/components/header'
+import { getBucketCards, type BucketCard } from '@/db/repo/bucket-word'
+import { getDrill } from '@/drills/registry'
 
+/** The quick-resume dashboard for the active bucket: readout + launch. */
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
-  const studyDrill = useAtomValue(studyDrillAtom)
-  // The browse box takes the CARD NUMBER (the data position printed on the
-  // card). It follows the active bucket's first card — derived, not
-  // captured, so a settings switch and the storage hydration both land —
-  // until the user types a number of their own.
-  const [typedPosition, setTypedPosition] = useState<string | null>(null)
-  // null = the database has not answered yet (or the bucket is empty): the
-  // box stays blank instead of naming a card that may not exist.
-  const [firstPosition, setFirstPosition] = useState<string | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const first = await getFirstPosition(activeName)
-        if (!cancelled) setFirstPosition(first === null ? '' : String(first))
-      } catch (error) {
-        console.error('[home] first position failed', error)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [activeName])
-  const defaultPosition = firstPosition ?? ''
-  const position = typedPosition ?? defaultPosition
+  const [studyDrill] = useAtom(studyDrillAtom)
+  const [cards, setCards] = useState<BucketCard[]>([])
 
-  // The review entry reads the live round's flags on every focus: the button
-  // is the review walk's front door, and a round with no marks has nothing
-  // to walk. The counts cache per bucket: a switch derives null until the
-  // new number lands (no stale neighbour's count), a refocus keeps the
-  // number it already has.
-  const [flagCounts, setFlagCounts] = useState<Record<string, number>>({})
+  // Reloads on every focus: studying, reviewing or flagging in a deck moves
+  // the numbers this dashboard reads.
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false
-      void (async () => {
-        try {
-          const progress = await getProgress(activeName)
-          const count = await countRoundFlags(activeName, progress.round)
-          if (!cancelled) setFlagCounts((prev) => ({ ...prev, [activeName]: count }))
-        } catch (error) {
-          console.error('[home] flag count failed', error)
-        }
-      })()
-      return () => {
-        cancelled = true
-      }
-    }, [activeName]),
+      void getBucketCards()
+        .then(setCards)
+        .catch((error) => console.error('[home] cards failed', error))
+    }, []),
   )
-  const shownFlagCount = flagCounts[activeName] ?? null
+
+  // The active card drives the readout; it may not be loaded yet on first frame.
+  const active = cards.find((card) => card.name === activeName)
+  const started = active ? active.pointer > 0 || active.round > 1 : false
+  const drillLabel = getDrill(studyDrill).label
 
   return (
-    <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
-      <View className="max-w-sm gap-3 w-full">
-        <Text className="font-semibold text-black dark:text-white">Navigation</Text>
-
-        <View className="gap-2 flex-row items-center">
-          <TextInput
-            className="min-w-0 rounded-lg border-gray-300 p-3 text-black dark:border-gray-700 dark:text-white flex-1 border"
-            keyboardType="numeric"
-            value={position}
-            onChangeText={setTypedPosition}
-            placeholder="Position"
-            placeholderTextColor="#9ca3af"
+    <View className="bg-white dark:bg-black flex-1">
+      <TabHeader
+        right={
+          <HeaderIconButton
+            name="search"
+            onPress={() => router.push('/mode/search')}
+            accessibilityLabel="Search words"
           />
+        }
+      />
 
-          <Pressable
-            className="rounded-lg bg-blue-500 px-5 py-3"
-            onPress={() =>
-              router.push({
-                pathname: '/mode/browse/[position]',
-                params: { position },
-              })
-            }
-          >
-            <Text className="font-medium text-white">Browse</Text>
-          </Pressable>
+      <View className="gap-6 p-6 flex-1 items-center justify-center">
+        <View className="max-w-sm gap-3 w-full">
+          {cards.length === 0 ? (
+            // Every bucket deleted (or none imported): nothing to resume.
+            <View className="gap-1 items-center">
+              <Text className="font-semibold text-black dark:text-white text-[17px]">
+                No buckets yet
+              </Text>
+              <Text className="text-gray-400 dark:text-gray-500 text-[15px]">
+                Import one on the Bucket tab
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text className="text-gray-500 dark:text-gray-400 text-center text-[17px]">
+                {activeName} · round {active?.round ?? 1} · {drillLabel}
+              </Text>
+              <Text
+                className="font-extrabold text-black dark:text-white text-center text-[40px]"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {active ? `${active.pointer} / ${active.wordCount}` : '0 / 0'}
+              </Text>
+
+              <Pressable
+                className="rounded-lg bg-blue-500 p-4 items-center"
+                onPress={() =>
+                  router.push({ pathname: '/mode/study/[drill]', params: { drill: studyDrill } })
+                }
+              >
+                <Text className="font-bold text-white">{started ? 'Continue' : 'Start'}</Text>
+              </Pressable>
+
+              <Pressable
+                disabled={!active || active.flagCount === 0}
+                className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
+                onPress={() => router.push('/mode/review')}
+              >
+                <Text className="font-semibold text-blue-500">
+                  Review · {active?.flagCount ?? 0}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
-
-        <Pressable
-          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border"
-          onPress={() =>
-            router.push({ pathname: '/mode/study/[drill]', params: { drill: studyDrill } })
-          }
-        >
-          <Text className="text-black dark:text-white">Study</Text>
-        </Pressable>
-
-        <Pressable
-          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border disabled:opacity-40"
-          disabled={shownFlagCount === null || shownFlagCount === 0}
-          onPress={() => router.push('/mode/review')}
-          accessibilityLabel={
-            shownFlagCount === null ? 'Review' : `Review ${shownFlagCount} flagged words`
-          }
-        >
-          <Text className="text-black dark:text-white">
-            Review{shownFlagCount === null ? '' : ` · ${shownFlagCount}`}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border"
-          onPress={() => router.push('/mode/search')}
-        >
-          <Text className="text-black dark:text-white">Search</Text>
-        </Pressable>
       </View>
     </View>
   )

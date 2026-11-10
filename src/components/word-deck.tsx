@@ -313,9 +313,8 @@ export function WordDeck({
   // opening card — a new session.
   useEffect(() => {
     if (viewport > 0) speakAt(indexRef.current)
-    // speakAt reads fresh state on every call; only the measure and the
-    // gate matter here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // speakAt is an effect event: it reads fresh state on every call and
+    // stays out of the dependency list by design.
   }, [viewport, canSpeak])
 
   useEffect(() => {
