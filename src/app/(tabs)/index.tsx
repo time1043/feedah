@@ -1,10 +1,10 @@
 import { router } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/bucket'
-import { findBucketByName } from '@/mock/bucket'
+import { getFirstPosition } from '@/db/repo/bucket-word'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
@@ -13,7 +13,24 @@ export default function Index() {
   // captured, so a settings switch and the storage hydration both land —
   // until the user types a number of their own.
   const [typedPosition, setTypedPosition] = useState<string | null>(null)
-  const defaultPosition = String(findBucketByName(activeName).words[0]?.position ?? '')
+  // null = the database has not answered yet (or the bucket is empty): the
+  // box stays blank instead of naming a card that may not exist.
+  const [firstPosition, setFirstPosition] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const first = await getFirstPosition(activeName)
+        if (!cancelled) setFirstPosition(first === null ? '' : String(first))
+      } catch (error) {
+        console.error('[home] first position failed', error)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [activeName])
+  const defaultPosition = firstPosition ?? ''
   const position = typedPosition ?? defaultPosition
 
   return (

@@ -63,7 +63,7 @@ export default function BrowseScreen() {
   )
 
   // The param is the CARD NUMBER — the data position printed on the card
-  // (1701+ for the mock bucket), not a list index. It is the identifier
+  // (1701+ for the 2050 bucket), not a list index. It is the identifier
   // every surface shares: what the card shows is what opens here, and what
   // search/review will carry. The footer, by contrast, is a 1-based
   // pagination ordinal.
