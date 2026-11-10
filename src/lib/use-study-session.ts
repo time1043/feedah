@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useReducer } from 'react'
 
+import type { Drill } from '@/drills/contract'
 import type { DeckWord } from '@/types/bucket'
 
 import {
@@ -21,7 +22,7 @@ import { clampProgress, countsOf, LOADING_SESSION, studyReducer } from '@/lib/st
  * the database and survive — killing the app mid-round resumes at the
  * frontier, with the same cards marked.
  */
-export function useStudySession(bucketName: string) {
+export function useStudySession(bucketName: string, drill: Drill) {
   const [session, dispatch] = useReducer(studyReducer, LOADING_SESSION)
 
   useFocusEffect(
@@ -42,6 +43,9 @@ export function useStudySession(bucketName: string) {
               words: rows,
               progress: clampProgress(progress, rows.length),
             })
+            // The drill rebuilds its per-card private data (options, …) for
+            // the fresh load; recycled cards must not reshuffle underneath.
+            drill.prepare?.(rows)
           }
         } catch (error) {
           console.error('[study] session load failed', error)
@@ -50,6 +54,8 @@ export function useStudySession(bucketName: string) {
       return () => {
         cancelled = true
       }
+      // The drill object is registry-stable: it never changes for a given id.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bucketName]),
   )
 

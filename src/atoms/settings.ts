@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { atom, getDefaultStore } from 'jotai'
 
+import type { DrillId } from '@/drills/contract'
+
 import { storedAtom } from '@/atoms/storage'
 
 /** The factory speech rate; what "restore default" resets to. 1.0 is the
@@ -45,3 +47,7 @@ export const autoSpeakAtom = storedAtom<boolean>('feedah.auto-speak', true)
 
 /** Whether the meaning waits for a tap; off = always visible on the card. */
 export const tapToRevealAtom = storedAtom<boolean>('feedah.tap-to-reveal', true)
+
+/** Which drill the home screen's Study entry opens. The id is persisted, so
+ * a drill must keep its id stable across releases. */
+export const studyDrillAtom = storedAtom<DrillId>('feedah.study-mode', 'swipe')

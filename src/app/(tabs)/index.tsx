@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/bucket'
+import { studyDrillAtom } from '@/atoms/settings'
 import { getFirstPosition } from '@/db/repo/bucket-word'
 import { countRoundFlags, getProgress } from '@/db/repo/study-round'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
+  const studyDrill = useAtomValue(studyDrillAtom)
   // The browse box takes the CARD NUMBER (the data position printed on the
   // card). It follows the active bucket's first card — derived, not
   // captured, so a settings switch and the storage hydration both land —
@@ -89,7 +91,9 @@ export default function Index() {
 
         <Pressable
           className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border"
-          onPress={() => router.push('/mode/study')}
+          onPress={() =>
+            router.push({ pathname: '/mode/study/[drill]', params: { drill: studyDrill } })
+          }
         >
           <Text className="text-black dark:text-white">Study</Text>
         </Pressable>

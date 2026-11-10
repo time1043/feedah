@@ -54,7 +54,12 @@ export function WordCard({
   return (
     <View className="flex-1">
       <Pressable className="px-8 flex-1 items-center justify-center" onPress={toggle}>
-        <CardHeadword position={word.position} text={word.word} ipa={word.ipa} onReplay={onReplay} />
+        <CardHeadword
+          position={word.position}
+          text={word.word}
+          ipa={word.ipa}
+          onReplay={onReplay}
+        />
 
         {/* Reserved slot: keeps number and word anchored while the meaning
             toggles or wraps. */}
