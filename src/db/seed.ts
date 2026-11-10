@@ -3,6 +3,8 @@ import raw700 from '@data/700.json'
 import raw2050 from '@data/2050.json'
 import { eq } from 'drizzle-orm'
 
+import type { Distractor } from '@/types/bucket'
+
 import { withTransaction, type Db } from './client'
 import { bucket, word } from './schema/bucket-word'
 
@@ -12,6 +14,8 @@ type SeedWord = {
   ipa: string
   meaning: string
   forms: string[]
+  /** The curated confusables the quiz drill prefers; most seeds carry none. */
+  distractors?: Distractor[]
 }
 
 type SeedFile = { name: string; words: SeedWord[] }
@@ -73,6 +77,7 @@ export async function seedBuckets(db: Db): Promise<void> {
           ipa: w.ipa,
           meaning: w.meaning,
           forms: JSON.stringify(w.forms),
+          distractors: w.distractors ?? [],
         })),
       )
     })

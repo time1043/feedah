@@ -1,4 +1,7 @@
+import { sql } from 'drizzle-orm'
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+
+import type { Distractor } from '@/types/bucket'
 
 export const bucket = sqliteTable('bucket', {
   name: text('name').primaryKey(),
@@ -21,6 +24,12 @@ export const word = sqliteTable(
     /** JSON-encoded string[] in the raw stage; a proper json column when
      * the drill stage brings typed columns. */
     forms: text('forms').notNull().default('[]'),
+    /** JSON-encoded Distractor[]: the curated confusables the quiz drill
+     * prefers, topped up from the bucket pool at prepare time. */
+    distractors: text('distractors', { mode: 'json' })
+      .$type<Distractor[]>()
+      .notNull()
+      .default(sql`'[]'`),
   },
   (table) => [primaryKey({ columns: [table.bucketName, table.position] })],
 )

@@ -344,6 +344,7 @@ export async function getWordsWithRoundFlag(
       ipa: word.ipa,
       meaning: word.meaning,
       forms: word.forms,
+      distractors: word.distractors,
       flagPosition: roundFlag.position,
     })
     .from(word)
@@ -365,6 +366,7 @@ export async function getWordsWithRoundFlag(
       ipa: row.ipa,
       meaning: row.meaning,
       forms: JSON.parse(row.forms) as string[],
+      distractors: row.distractors ?? [],
       flagged: row.flagPosition !== null,
     })),
   ]
