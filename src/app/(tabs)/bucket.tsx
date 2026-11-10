@@ -9,8 +9,8 @@ import { useNavGuard } from '@/lib/use-nav-guard'
 
 /** The bucket tab: one clean card per bucket read from the database — name
  * plus word count. The card's body opens the word list; its side opens the
- * round list; the gear opens the settings. The reference's progress
- * readout, import and delete all wait for the session and the db. */
+ * round list; the gear opens the settings. The per-bucket progress readout,
+ * import and delete are still to come. */
 export default function BucketScreen() {
   const dark = useColorScheme() === 'dark'
   const guardedPush = useNavGuard()
