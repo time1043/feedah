@@ -161,6 +161,9 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
         },
         answers: {},
         drafts: {},
+        // `words` is left alone on purpose: the flags it carries are the marks
+        // the next round inherits — the same copy the database makes when it
+        // completes the round — and the user clears them there.
         browsing: false,
         pendingAutoAdvance: null,
         endFacts: {

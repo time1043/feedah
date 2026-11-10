@@ -16,12 +16,3 @@ export interface Word {
 
 /** A word as the deck consumes it: the static entry plus live flag state. */
 export type DeckWord = Word & { flagged: boolean }
-
-/**
- * A named word list. The mock-data container until the drizzle schema
- * replaces it; then buckets become rows and this type dissolves.
- */
-export interface Bucket {
-  name: string
-  words: Word[]
-}

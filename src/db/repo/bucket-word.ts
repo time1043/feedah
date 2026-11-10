@@ -8,8 +8,7 @@ export type BucketRow = {
   wordCount: number
 }
 
-/** Every seeded bucket, ordered by id. The reference's readout (round,
- * pointer, flags) joins in once the probe lives here too. */
+/** Every seeded bucket, ordered by name. */
 export async function getBuckets(): Promise<BucketRow[]> {
   const db = await getDb()
   return db
@@ -51,4 +50,18 @@ export async function getWordsByBucket(bucketName: string): Promise<[boolean, Wo
     .where(eq(word.bucketName, bucketName))
     .orderBy(word.position)
   return [true, rows.map((row) => ({ ...row, forms: JSON.parse(row.forms) as string[] }))]
+}
+
+/** The first card number of one bucket — null when the bucket is missing or
+ * has no words. A dedicated read: the home box needs one number, not the whole
+ * list. */
+export async function getFirstPosition(bucketName: string): Promise<number | null> {
+  const db = await getDb()
+  const rows = await db
+    .select({ position: word.position })
+    .from(word)
+    .where(eq(word.bucketName, bucketName))
+    .orderBy(word.position)
+    .limit(1)
+  return rows[0]?.position ?? null
 }

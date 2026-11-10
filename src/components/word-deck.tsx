@@ -1,7 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { FlatList, View } from 'react-native'
 
-import type { Word } from '@/types/bucket'
+import type { DeckWord } from '@/types/bucket'
 
 import { ProgressBar } from '@/components/progress-bar'
 import { WordCard } from '@/components/word-card'
@@ -29,11 +29,13 @@ export interface WordDeckEnd {
 }
 
 type WordDeckProps = {
-  words: Word[]
+  /** The deck's words carry their live flag state: the card's bookmark is
+   * the deck's only write. */
+  words: DeckWord[]
   /** The deck decides WHEN to speak — the card it opens on, every card it
    * lands on, and replay taps; the screen decides HOW and WHETHER (its
    * callback carries the rate and the settings). */
-  onSpeak?: (word: Word) => void
+  onSpeak?: (word: DeckWord) => void
   /** Whether the deck's own speak calls (open + settle) may proceed; replay
    * taps bypass this and always reach onSpeak. The screen holds it closed
    * until its settings have hydrated and its policy allows speaking; when
@@ -42,6 +44,9 @@ type WordDeckProps = {
   canSpeak?: boolean
   /** Whether the meaning waits for a tap; forwarded to every card. */
   tapToReveal?: boolean
+  /** The words' flag state forwarded to every card: the bookmark shows when
+   * the screen passes a toggle, and the deck hides it otherwise. */
+  onToggleFlag?: (word: DeckWord) => void
   /** Card to open on, clamped into range; read once on mount. */
   initialIndex?: number
   /** Whether the scrubbable progress bar renders above the cards. */
@@ -66,7 +71,7 @@ type WordDeckProps = {
   onClose?: () => void
 }
 
-type DeckItem = { kind: 'word'; word: Word } | { kind: 'end' }
+type DeckItem = { kind: 'word'; word: DeckWord } | { kind: 'end' }
 
 /**
  * The vertical card pager: one full-screen card at a time, swiped through
@@ -85,6 +90,7 @@ export function WordDeck({
   onSpeak,
   canSpeak = true,
   tapToReveal,
+  onToggleFlag,
   initialIndex = 0,
   progressBar = true,
   onIndexChange,
@@ -273,6 +279,8 @@ export function WordDeck({
                   <WordCard
                     word={item.word}
                     tapToReveal={tapToReveal}
+                    flagged={item.word.flagged}
+                    onToggleFlag={onToggleFlag ? () => onToggleFlag(item.word) : undefined}
                     onReplay={() => onSpeak?.(item.word)}
                   />
                 ) : (

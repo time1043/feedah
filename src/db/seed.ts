@@ -1,8 +1,8 @@
+import raw370 from '@data/370.json'
+import raw700 from '@data/700.json'
+import raw2050 from '@data/2050.json'
 import { eq } from 'drizzle-orm'
 
-import raw370 from '../../data/370.json'
-import raw700 from '../../data/700.json'
-import raw2050 from '../../data/2050.json'
 import { withTransaction, type Db } from './client'
 import { bucket, word } from './schema/bucket-word'
 

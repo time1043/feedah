@@ -5,14 +5,12 @@ import { useCallback, useRef, useState } from 'react'
 import { FlatList, Pressable, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import type { Word } from '@/types/bucket'
-
 import { wordsMeaningAtom } from '@/atoms/words'
 import { ListHeader, MUTED } from '@/components/header'
 import { ProgressBar } from '@/components/progress-bar'
-import { getWordsByBucket, type WordRow } from '@/db/repo/bucket-word'
+import { getProgress, getWordsWithRoundFlag, type RoundWordRow } from '@/db/repo/study-round'
 import { goBack } from '@/lib/back'
-import { ACCENT } from '@/lib/color'
+import { ACCENT, FLAG_RED } from '@/lib/color'
 import { useNavGuard } from '@/lib/use-nav-guard'
 
 const ROW_HEIGHT = 52
@@ -22,8 +20,9 @@ const ROW_HEIGHT = 52
  * behind the eye toggle, and a progress bar that mirrors the top visible
  * row and scrubs the list. The eye is per-visit — it starts from the global
  * word-meanings setting on every entry and never writes back to it. Tapping
- * a row opens the word in the browse deck, by its card number. Pure lookup
- * — nothing is recorded. The rows load from the database.
+ * a row opens the word in the browse deck, by its card number. Pure lookup —
+ * nothing is written here. The rows load from the database, flagged with the
+ * CURRENT round's marks — the same rows the study deck and browse write.
  */
 export default function WordsScreen() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
@@ -33,7 +32,9 @@ export default function WordsScreen() {
   // (no silent first-bucket fallback) — the load distinguishes a missing
   // bucket from an existing-but-empty one.
   const [bucketExists, setBucketExists] = useState(false)
-  const [words, setWords] = useState<WordRow[]>([])
+  const [words, setWords] = useState<RoundWordRow[]>([])
+  // The probe's round: the title names it and the flags below are its own.
+  const [round, setRound] = useState(1)
   const meaningDefault = useAtomValue(wordsMeaningAtom)
   // The eye follows the stored setting once it has hydrated — a mount-time
   // seed would capture the factory value on a cold-start deep link — and a
@@ -42,15 +43,23 @@ export default function WordsScreen() {
   const [override, setOverride] = useState<boolean | null>(null)
   const showMeaning = override ?? meaningDefault
   const guardedPush = useNavGuard()
-  // Loads on every focus: the rows follow the database.
+  // Loads on every focus: the rows and their flags follow the database, so a
+  // mark made in the study deck is here on the way back out.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false
       void (async () => {
-        const [exists, rows] = await getWordsByBucket(bucketName)
-        if (!cancelled) {
-          setBucketExists(exists)
-          setWords(rows)
+        try {
+          // The round is what the flags are keyed by, so it is read first.
+          const progress = await getProgress(bucketName)
+          const [exists, rows] = await getWordsWithRoundFlag(bucketName, progress.round)
+          if (!cancelled) {
+            setBucketExists(exists)
+            setRound(progress.round)
+            setWords(rows)
+          }
+        } catch (error) {
+          console.error('[words] load failed', error)
         }
       })()
       return () => {
@@ -60,7 +69,7 @@ export default function WordsScreen() {
   )
   // The top visible row, mirrored by the progress bar.
   const [index, setIndex] = useState(0)
-  const listRef = useRef<FlatList<Word> | null>(null)
+  const listRef = useRef<FlatList<RoundWordRow> | null>(null)
 
   const jumpTo = (target: number) => {
     if (words.length === 0) return
@@ -73,7 +82,7 @@ export default function WordsScreen() {
     setIndex(Math.max(0, Math.min(words.length - 1, Math.round(offsetY / ROW_HEIGHT))))
   }
 
-  const openWord = (word: Word) => {
+  const openWord = (word: RoundWordRow) => {
     if (!bucketExists) return
     guardedPush(() =>
       router.push({
@@ -86,7 +95,7 @@ export default function WordsScreen() {
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <ListHeader
-        title={bucketExists ? bucketName : undefined}
+        title={bucketExists ? `${bucketName} R${round}` : undefined}
         onBack={goBack}
         right={
           <Pressable
@@ -150,7 +159,8 @@ export default function WordsScreen() {
   )
 }
 
-function Row({ word, showMeaning }: { word: Word; showMeaning: boolean }) {
+function Row({ word, showMeaning }: { word: RoundWordRow; showMeaning: boolean }) {
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
   return (
     <View
       className="border-gray-200 px-4 dark:border-gray-800 flex-row items-center border-b"
@@ -162,6 +172,12 @@ function Row({ word, showMeaning }: { word: Word; showMeaning: boolean }) {
       >
         {word.position}
       </Text>
+      {/* The current round's mark. The slot is always reserved, so flagging a
+          word never shifts the column: only the square fills in. */}
+      <View
+        className="mr-1.5 h-1.5 w-1.5 rounded-sm"
+        style={{ backgroundColor: word.flagged ? FLAG_RED[scheme] : 'transparent' }}
+      />
       <Text
         numberOfLines={1}
         className={`mr-2 font-semibold text-black dark:text-white text-[15px] ${

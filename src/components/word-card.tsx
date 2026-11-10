@@ -1,8 +1,11 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View, useColorScheme } from 'react-native'
 
 import type { Word } from '@/types/bucket'
 
+import { MUTED } from '@/components/header'
+import { FLAG_RED } from '@/lib/color'
 import { meaningLines } from '@/lib/meaning'
 
 // Word forms render in a fixed 2×6 grid (12 cells); empty cells keep the
@@ -30,8 +33,36 @@ type WordCardProps = {
   word: Word
   /** Whether the meaning waits for a tap; off = always visible. */
   tapToReveal?: boolean
+  /** The word's current flag state; the bookmark reflects it. */
+  flagged?: boolean
+  /** Tapping the bookmark toggles the flag; omit it to hide the bookmark. */
+  onToggleFlag?: () => void
   /** Tapping the word or the ipa replays the pronunciation. */
   onReplay: () => void
+}
+
+/** The bookmark, centered on the bottom edge. Only the icon itself toggles:
+ * the wrapper passes taps beside it through (box-none) to whatever is
+ * underneath the card. */
+function BookmarkButton({ flagged, onToggleFlag }: { flagged: boolean; onToggleFlag: () => void }) {
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
+  return (
+    <View className="bottom-8 left-0 right-0 absolute items-center" pointerEvents="box-none">
+      <Pressable
+        className="p-2"
+        onPress={onToggleFlag}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={flagged ? 'Unflag word' : 'Flag word'}
+      >
+        <Ionicons
+          name={flagged ? 'bookmark' : 'bookmark-outline'}
+          size={30}
+          color={flagged ? FLAG_RED[scheme] : MUTED[scheme]}
+        />
+      </Pressable>
+    </View>
+  )
 }
 
 /**
@@ -46,8 +77,17 @@ type WordCardProps = {
  * meaning and the forms — recall first, then check; with it off, both show
  * from the start and taps do nothing. The word and the ipa are their own
  * taps and replay the pronunciation instead.
+ *
+ * With a toggle callback the bookmark rides the card's bottom edge; the deck
+ * hides it whenever the screen passes none.
  */
-export function WordCard({ word, tapToReveal = true, onReplay }: WordCardProps) {
+export function WordCard({
+  word,
+  tapToReveal = true,
+  flagged = false,
+  onToggleFlag,
+  onReplay,
+}: WordCardProps) {
   const [revealed, setRevealed] = useState(false)
 
   const shown = tapToReveal ? revealed : true
@@ -110,6 +150,8 @@ export function WordCard({ word, tapToReveal = true, onReplay }: WordCardProps) 
           </View>
         )}
       </Pressable>
+
+      {onToggleFlag && <BookmarkButton flagged={flagged} onToggleFlag={onToggleFlag} />}
     </View>
   )
 }

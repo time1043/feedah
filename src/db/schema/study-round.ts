@@ -4,8 +4,7 @@ import { bucket } from './bucket-word'
 
 /** The study probe: one row per bucket, always describing the round being
  * studied right now. This is the table the session's "killing the app does
- * not send you back to round 1" promise lives in. Flags are a separate
- * concern and get their own table when they land. */
+ * not send you back to round 1" promise lives in. */
 export const bucketProgress = sqliteTable('bucket_progress', {
   bucketName: text('bucket_name')
     .primaryKey()
@@ -33,4 +32,26 @@ export const roundRecord = sqliteTable(
     endedAt: integer('ended_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.bucketName, table.round] })],
+)
+
+/** A word flagged within one round of one bucket. A flag belongs to its round —
+ * completing a round copies its rows onto the next one, so a mark follows you
+ * until you clear it there, and clearing it never rewrites the finished
+ * round's history. The row's absence IS the unflagged state, so marking is an
+ * INSERT and clearing a DELETE — never a boolean column. */
+export const roundFlag = sqliteTable(
+  'round_flag',
+  {
+    bucketName: text('bucket_name')
+      .notNull()
+      .references(() => bucket.name, { onDelete: 'cascade' }),
+    round: integer('round').notNull(),
+    /** The word's card number (its position), the identifier every surface
+     * shares with the deck. */
+    position: integer('position').notNull(),
+    /** When this round's mark was made — the completion stamp for a row that
+     * was carried over. */
+    flaggedAt: integer('flagged_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.bucketName, table.round, table.position] })],
 )

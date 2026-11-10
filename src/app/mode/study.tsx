@@ -75,6 +75,7 @@ export default function StudyScreen() {
         onSpeak={(word) => speakWord(word.word, speechRate)}
         onSettle={actions.settle}
         onScrub={actions.startBrowsing}
+        onToggleFlag={actions.toggleFlag}
         // Scrubbing opens browse mode: the pill floats over the cards — not
         // the header, which the settings can hide — and is the way back to
         // the probe.
