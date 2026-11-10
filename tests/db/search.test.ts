@@ -45,10 +45,10 @@ describe('the plain search (contains-match)', () => {
     expect(results.every((row) => row.word.toLowerCase().includes(needle.toLowerCase()))).toBe(true)
   })
 
-  it('treats % and _ as literals, not wildcards', async () => {
-    // No word in the bucket contains a literal percent sign.
-    expect(await searchWords(BUCKET, '%')).toHaveLength(0)
-    expect(await searchWords(BUCKET, '___')).toHaveLength(0)
+  it('keeps a backslash a literal once the wildcard search lands', async () => {
+    // A query holding a wildcard keeps SQL semantics (the wildcard suite
+    // pins that); the escape path is what keeps a stray backslash literal.
+    expect(await searchWords(BUCKET, '\\')).toHaveLength(0)
   })
 
   it('returns nothing for an empty query or a miss', async () => {
@@ -62,5 +62,31 @@ describe('the plain search (contains-match)', () => {
     expect(results.some((row) => row.position === sample.position)).toBe(true)
     // Whatever matched, the row is always the headword of its own entry.
     expect(results.every((row) => row.word.length > 0)).toBe(true)
+  })
+})
+
+describe('the wildcard search', () => {
+  /** One real row of the seeded bucket, so the queries ride actual data. */
+  async function sampleWord() {
+    const db = await getDb()
+    const rows = await db.select().from(word).where(eq(word.bucketName, BUCKET)).limit(1)
+    return rows[0]
+  }
+
+  it('honors % as any run and _ as exactly one character', async () => {
+    const sample = await sampleWord()
+    const w = sample.word.toLowerCase()
+    const prefix = await searchWords(BUCKET, `${w.slice(0, 1)}%`)
+    expect(prefix.some((row) => row.position === sample.position)).toBe(true)
+    const suffix = await searchWords(BUCKET, `%${w.slice(-1)}`)
+    expect(suffix.some((row) => row.position === sample.position)).toBe(true)
+    const singles = await searchWords(BUCKET, `${w.slice(0, 1)}${'_'.repeat(w.length - 1)}`)
+    expect(singles.some((row) => row.position === sample.position)).toBe(true)
+  })
+
+  it('unions | alternatives', async () => {
+    const sample = await sampleWord()
+    const results = await searchWords(BUCKET, `${sample.word}|zzzzqqqq`)
+    expect(results.some((row) => row.position === sample.position)).toBe(true)
   })
 })
