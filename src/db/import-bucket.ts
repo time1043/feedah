@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm'
 
 import { getDb, withTransaction } from './index'
 import { bucket } from './schema/bucket-word'
-import { contentHashOf, seedBucketsFrom, type SeedFile, type SeedWord } from './seed'
+import { seedBucketsFrom, type SeedFile, type SeedWord } from './seed'
 
-export { contentHashOf, type SeedFile, type SeedWord } from './seed'
+export { type SeedFile, type SeedWord } from './seed'
 
 /**
  * Parses and validates an imported bucket JSON file. The shape matches the

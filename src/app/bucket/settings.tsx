@@ -8,7 +8,12 @@ import { activeBucketAtom } from '@/atoms/bucket'
 import { searchScopeAtom, studyDrillAtom } from '@/atoms/settings'
 import { ListHeader } from '@/components/header'
 import { SelectRow } from '@/components/settings/select-row'
-import { getBuckets, type BucketRow } from '@/db/repo/bucket-word'
+import {
+  getBuckets,
+  restoreBuckets,
+  tombstonedBuckets,
+  type BucketRow,
+} from '@/db/repo/bucket-word'
 import { getDrills } from '@/drills/registry'
 import { goBack } from '@/lib/back'
 
@@ -23,6 +28,9 @@ export default function BucketSettingsScreen() {
   const [studyDrill, setStudyDrill] = useAtom(studyDrillAtom)
   const [searchScope, setSearchScope] = useAtom(searchScopeAtom)
   const [buckets, setBuckets] = useState<BucketRow[]>([])
+  // The deleted bundled buckets: the restore section renders only while
+  // there is something to restore.
+  const [deleted, setDeleted] = useState<string[]>([])
 
   // Reloads on every focus: the options follow the database.
   useFocusEffect(
@@ -30,8 +38,11 @@ export default function BucketSettingsScreen() {
       let cancelled = false
       void (async () => {
         try {
-          const rows = await getBuckets()
-          if (!cancelled) setBuckets(rows)
+          const [rows, tombstoned] = await Promise.all([getBuckets(), tombstonedBuckets()])
+          if (!cancelled) {
+            setBuckets(rows)
+            setDeleted(tombstoned)
+          }
         } catch (error) {
           console.error('[bucket settings] load failed', error)
         }
@@ -128,6 +139,41 @@ export default function BucketSettingsScreen() {
           })}
         </View>
       </View>
+
+      {/* Restore the deleted built-ins: pure recovery, no confirmation — the
+          rows were never gone, only hidden. */}
+      {deleted.length > 0 && (
+        <View className="px-4 pt-8">
+          <Text className="font-semibold text-black dark:text-white text-[15px]">
+            Restore built-in buckets
+          </Text>
+          <Text className="mt-1 text-gray-500 dark:text-gray-400 text-[13px]">
+            They come back with their full history.
+          </Text>
+          <View className="mt-3 gap-2 flex-row flex-wrap">
+            {deleted.map((name) => (
+              <Pressable
+                key={name}
+                onPress={() => {
+                  void restoreBuckets([name]).then(async () => {
+                    const [rows, tombstoned] = await Promise.all([
+                      getBuckets(),
+                      tombstonedBuckets(),
+                    ])
+                    setBuckets(rows)
+                    setDeleted(tombstoned)
+                  })
+                }}
+                className="rounded-lg p-2.5 border-gray-300 dark:border-gray-700 items-center border"
+              >
+                <Text className="font-semibold text-gray-500 dark:text-gray-400 text-[13px]">
+                  {name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   )
 }

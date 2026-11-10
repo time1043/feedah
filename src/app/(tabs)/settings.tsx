@@ -1,5 +1,7 @@
+import { File, Paths } from 'expo-file-system'
+import * as Sharing from 'expo-sharing'
 import { useAtom } from 'jotai'
-import { Text, View } from 'react-native'
+import { Alert, Pressable, Text, View } from 'react-native'
 
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import { autoSpeakAtom, searchLocalAtom, tapToRevealAtom } from '@/atoms/settings'
@@ -7,6 +9,23 @@ import { wordsMeaningAtom } from '@/atoms/words'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
+import { buildStudyExport } from '@/db/export'
+import { todayLocalDate } from '@/lib/date'
+
+/** Writes the study-state archive into the cache and opens the share
+ * sheet. Word content is excluded: bundled buckets re-seed, imported ones
+ * re-import — the archive carries the progress, flags, sessions and
+ * statistics. */
+const exportStudyData = async () => {
+  try {
+    const json = JSON.stringify(await buildStudyExport())
+    const file = new File(Paths.cache, `feedah-study-export-${todayLocalDate()}.json`)
+    file.write(json)
+    await Sharing.shareAsync(file.uri, { mimeType: 'application/json' })
+  } catch (error) {
+    Alert.alert('Export failed', error instanceof Error ? error.message : String(error))
+  }
+}
 
 /** The settings tab: one row group per setting. */
 export default function SettingsScreen() {
@@ -51,6 +70,15 @@ export default function SettingsScreen() {
             onValueChange={setLocalSearch}
           />
         </View>
+
+        <Pressable
+          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 items-center border"
+          onPress={() => void exportStudyData()}
+          accessibilityRole="button"
+          accessibilityLabel="Export study data"
+        >
+          <Text className="text-black dark:text-white">Export study data</Text>
+        </Pressable>
       </View>
 
       <ThemeToggle />
