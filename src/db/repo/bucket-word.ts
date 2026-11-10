@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
-import { getDb } from './index'
-import { bucket, word } from './schema'
+import { getDb } from '../index'
+import { bucket, word } from '../schema/bucket-word'
 
 export type BucketRow = {
   name: string

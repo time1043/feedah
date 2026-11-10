@@ -1,6 +1,7 @@
 import type { DeckWord } from '@/types/bucket'
 
 import {
+  clampProgress,
   countsOf,
   frontierOf,
   studyReducer,
@@ -177,6 +178,27 @@ describe('studyReducer', () => {
   it('guards against actions on a loading session', () => {
     const s = studyReducer({ status: 'loading' }, { type: 'browsingStarted' })
     expect(s).toEqual({ status: 'loading' })
+  })
+})
+
+describe('clampProgress', () => {
+  it('leaves a probe inside the word list untouched', () => {
+    const probe = { round: 2, pointer: 3, roundStartedAt: 9 }
+    expect(clampProgress(probe, 10)).toBe(probe)
+  })
+
+  it('pulls an over-long pointer back to the last card', () => {
+    // A re-seed can shrink the list under a stored pointer; the stale probe
+    // must not read as an already-finished round.
+    expect(clampProgress({ round: 4, pointer: 99, roundStartedAt: 1 }, 5)).toEqual({
+      round: 4,
+      pointer: 4,
+      roundStartedAt: 1,
+    })
+  })
+
+  it('keeps an empty bucket at card 0', () => {
+    expect(clampProgress({ round: 1, pointer: 3, roundStartedAt: 0 }, 0).pointer).toBe(0)
   })
 })
 

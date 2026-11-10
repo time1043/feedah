@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import { Pressable, Text, useColorScheme, View } from 'react-native'
 
 import { HeaderIconButton, MUTED, TabHeader } from '@/components/header'
-import { getBuckets, type BucketRow } from '@/db/repo'
+import { getBuckets, type BucketRow } from '@/db/repo/bucket-word'
 import { useNavGuard } from '@/lib/use-nav-guard'
 
 /** The bucket tab: one clean card per bucket read from the database — name
