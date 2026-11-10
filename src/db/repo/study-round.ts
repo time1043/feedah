@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { getDb, withTransaction } from '../index'
-import { bucketProgress } from '../schema/study-round'
+import { bucketProgress, roundRecord } from '../schema/study-round'
 
 /**
  * The study probe, as the session carries it: the round being studied and
@@ -62,21 +62,36 @@ export async function settleCard(bucketName: string, pointer: number): Promise<v
 }
 
 /**
- * Completes the round: the probe steps to the next round and restarts at the
- * first card. Flags deliberately do not ride along here — the probe is this
- * table's only concern.
+ * Completes the round: the finished round is recorded (its start and this
+ * end stamp) and the probe steps to the next round at the first card. Both
+ * writes share one transaction — a round never advances without its record.
+ * Flags deliberately do not ride along here; they are another table.
  */
 export async function completeRound(bucketName: string, now: number): Promise<void> {
   const db = await getDb()
   await withTransaction(async () => {
     const rows = await db
-      .select({ round: bucketProgress.round })
+      .select({ round: bucketProgress.round, roundStartedAt: bucketProgress.roundStartedAt })
       .from(bucketProgress)
       .where(eq(bucketProgress.bucketName, bucketName))
       .limit(1)
     // A completed round implies the probe exists (reaching the end needed
-    // settles), but a missing row still reads as round 1.
-    const next = (rows[0]?.round ?? 1) + 1
+    // settles), but a missing row still reads as round 1 with no start.
+    const finished = rows[0] ?? { round: 1, roundStartedAt: 0 }
+    const next = finished.round + 1
+
+    // One row per round, first write wins: a duplicate completion must not
+    // move the recorded span.
+    await db
+      .insert(roundRecord)
+      .values({
+        bucketName,
+        round: finished.round,
+        startedAt: finished.roundStartedAt,
+        endedAt: now,
+      })
+      .onConflictDoNothing()
+
     if (rows.length === 0) {
       await db
         .insert(bucketProgress)
