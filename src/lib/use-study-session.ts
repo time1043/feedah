@@ -3,8 +3,13 @@ import { useCallback, useReducer } from 'react'
 
 import type { DeckWord } from '@/types/bucket'
 
-import { getWordsByBucket } from '@/db/repo/bucket-word'
-import { completeRound, getProgress, settleCard } from '@/db/repo/study-round'
+import {
+  completeRound,
+  getProgress,
+  getWordsWithRoundFlag,
+  setRoundFlag,
+  settleCard,
+} from '@/db/repo/study-round'
 import { clampProgress, countsOf, LOADING_SESSION, studyReducer } from '@/lib/study-session'
 
 /**
@@ -12,12 +17,9 @@ import { clampProgress, countsOf, LOADING_SESSION, studyReducer } from '@/lib/st
  * policy triggers. Timers, the deck handle and chrome stay in the screen.
  *
  * The reload on focus restarts the session's local state (answers/drafts are
- * session-local) while the probe (round/pointer) lives in the database and
- * survives — killing the app mid-round resumes at the frontier.
- *
- * Flags are a later feature and are deliberately NOT part of this: they
- * start clear on every load and stay session-local, so the probe's
- * persistence is not entangled with their table.
+ * session-local) while the probe (round/pointer) and the round's flags live in
+ * the database and survive — killing the app mid-round resumes at the
+ * frontier, with the same cards marked.
  */
 export function useStudySession(bucketName: string) {
   const [session, dispatch] = useReducer(studyReducer, LOADING_SESSION)
@@ -27,18 +29,19 @@ export function useStudySession(bucketName: string) {
       let cancelled = false
       void (async () => {
         try {
-          // The tuple's first element (the bucket exists) is ignored on
-          // purpose: an unknown bucket simply has no words to study.
-          const [[, rows], progress] = await Promise.all([
-            getWordsByBucket(bucketName),
-            getProgress(bucketName),
-          ])
-          // An unknown bucket has no words and nothing to settle; the empty
-          // deck is inert (reachEnd refuses it) instead of writing a probe
-          // row that would violate the foreign key.
-          const words: DeckWord[] = rows.map((row) => ({ ...row, flagged: false }))
+          // The round is what the flags are keyed by, so it is read first.
+          const progress = await getProgress(bucketName)
+          // The first element (the bucket exists) is ignored on purpose: an
+          // unknown bucket simply has no words to study, and the empty deck is
+          // inert (reachEnd refuses it) instead of writing a probe row that
+          // would violate the foreign key.
+          const [, rows] = await getWordsWithRoundFlag(bucketName, progress.round)
           if (!cancelled) {
-            dispatch({ type: 'loaded', words, progress: clampProgress(progress, words.length) })
+            dispatch({
+              type: 'loaded',
+              words: rows,
+              progress: clampProgress(progress, rows.length),
+            })
           }
         } catch (error) {
           console.error('[study] session load failed', error)
@@ -69,7 +72,9 @@ export function useStudySession(bucketName: string) {
 
     /** Records an answer; auto-flags wrong picks when the mode says so. The
      * policy comes from the drill once the registry lands — until then,
-     * neutral: no auto-flag, no auto-advance. */
+     * neutral: no auto-flag, no auto-advance. A drill that does turn
+     * autoFlag on must also write the round_flag row, or the mark lives only
+     * on screen. */
     answer: (word: DeckWord, correct: boolean, picked?: string) => {
       dispatch({
         type: 'answered',
@@ -90,17 +95,16 @@ export function useStudySession(bucketName: string) {
       dispatch({ type: 'drafted', position: word.position, value }),
 
     /**
-     * Toggles the round's flag. Frontend-only for now: the mark lives on the
-     * session's words, so it survives browsing and round advances but not a
-     * reload.
-     *
-     * The gap for the next commit is right here — the round_flag write
-     * (`setRoundFlag(bucketName, session.progress.round, position, !flagged)`)
-     * and, above, a load path that reads the round's flags instead of
-     * hard-coding `flagged: false`.
+     * Toggles the round's flag: the session flips it for the deck and the
+     * round_flag row follows (insert or delete) — one write per tap, two
+     * stores that say the same thing.
      */
     toggleFlag: (word: DeckWord) => {
+      const round = session.status === 'ready' ? session.progress.round : 1
       dispatch({ type: 'flagToggled', position: word.position })
+      void setRoundFlag(bucketName, round, word.position, !word.flagged).catch((error) =>
+        console.error('[study] flag write failed', error),
+      )
     },
 
     /**

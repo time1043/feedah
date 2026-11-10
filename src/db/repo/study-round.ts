@@ -1,8 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+
+import type { WordRow } from './bucket-word'
 
 import { getDb, withTransaction } from '../index'
-import { bucket } from '../schema/bucket-word'
-import { bucketProgress, roundRecord } from '../schema/study-round'
+import { bucket, word } from '../schema/bucket-word'
+import { bucketProgress, roundFlag, roundRecord } from '../schema/study-round'
 
 /**
  * The study probe, as the session carries it: the round being studied and
@@ -15,6 +17,9 @@ export type ProgressRow = {
   pointer: number
   roundStartedAt: number
 }
+
+/** A word of one round: the static entry plus that round's flag state. */
+export type RoundWordRow = WordRow & { flagged: boolean }
 
 /** The study probe of one bucket; a missing row means the bucket was never
  * studied and reads the factory probe (round 1, card 0). */
@@ -178,4 +183,82 @@ export async function getRoundsByBucket(bucketName: string): Promise<[boolean, R
 function sweptOf(probe: ProgressRow, wordCount: number): number {
   if (probe.roundStartedAt === 0) return 0
   return Math.min(probe.pointer + 1, wordCount)
+}
+
+/**
+ * Flags a word within one round: an INSERT when marking, a DELETE when
+ * clearing (the row's absence IS the unflagged state). Touches round_flag
+ * only — the probe belongs to settling and completing, nothing else.
+ */
+export async function setRoundFlag(
+  bucketName: string,
+  round: number,
+  position: number,
+  flagged: boolean,
+): Promise<void> {
+  const db = await getDb()
+  if (flagged) {
+    await db
+      .insert(roundFlag)
+      .values({ bucketName, round, position, flaggedAt: Date.now() })
+      // Re-marking an already flagged word keeps its first stamp.
+      .onConflictDoNothing()
+    return
+  }
+  await db
+    .delete(roundFlag)
+    .where(
+      and(
+        eq(roundFlag.bucketName, bucketName),
+        eq(roundFlag.round, round),
+        eq(roundFlag.position, position),
+      ),
+    )
+}
+
+/** The bucket's words with their flag state IN one round — the deck's words
+ * for study and browse. The join is a left one: the flag row's absence is the
+ * unflagged state. */
+export async function getWordsWithRoundFlag(
+  bucketName: string,
+  round: number,
+): Promise<[boolean, RoundWordRow[]]> {
+  const db = await getDb()
+  const exists = await db
+    .select({ name: bucket.name })
+    .from(bucket)
+    .where(eq(bucket.name, bucketName))
+    .limit(1)
+  if (exists.length === 0) return [false, []]
+  const rows = await db
+    .select({
+      position: word.position,
+      word: word.word,
+      ipa: word.ipa,
+      meaning: word.meaning,
+      forms: word.forms,
+      flagPosition: roundFlag.position,
+    })
+    .from(word)
+    .leftJoin(
+      roundFlag,
+      and(
+        eq(roundFlag.bucketName, word.bucketName),
+        eq(roundFlag.round, round),
+        eq(roundFlag.position, word.position),
+      ),
+    )
+    .where(eq(word.bucketName, bucketName))
+    .orderBy(word.position)
+  return [
+    true,
+    rows.map((row) => ({
+      position: row.position,
+      word: row.word,
+      ipa: row.ipa,
+      meaning: row.meaning,
+      forms: JSON.parse(row.forms) as string[],
+      flagged: row.flagPosition !== null,
+    })),
+  ]
 }
