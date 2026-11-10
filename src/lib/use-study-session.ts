@@ -89,8 +89,16 @@ export function useStudySession(bucketName: string) {
     draft: (word: DeckWord, value: string) =>
       dispatch({ type: 'drafted', position: word.position, value }),
 
-    /** Session-local for now: the round-flag table is a later phase, so the
-     * mark never reaches the database. */
+    /**
+     * Toggles the round's flag. Frontend-only for now: the mark lives on the
+     * session's words, so it survives browsing and round advances but not a
+     * reload.
+     *
+     * The gap for the next commit is right here — the round_flag write
+     * (`setRoundFlag(bucketName, session.progress.round, position, !flagged)`)
+     * and, above, a load path that reads the round's flags instead of
+     * hard-coding `flagged: false`.
+     */
     toggleFlag: (word: DeckWord) => {
       dispatch({ type: 'flagToggled', position: word.position })
     },

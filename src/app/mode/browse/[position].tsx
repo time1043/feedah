@@ -29,7 +29,10 @@ export default function BrowseScreen() {
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = bucketParamName && bucketParamName.length > 0 ? bucketParamName : activeName
   const bucket = buckets.find((candidate) => candidate.name === bucketName)
-  const words = bucket?.words ?? []
+  // Browse is pure lookup: no flags, no bookmark — the deck hides it when no
+  // toggle callback is passed. The map only satisfies the deck's per-word
+  // flag state; nothing here reads or writes it.
+  const words = bucket?.words.map((word) => ({ ...word, flagged: false })) ?? []
   // The param is the CARD NUMBER — the data position printed on the card
   // (1701+ for the mock bucket), not a list index. It is the identifier
   // every surface shares: what the card shows is what opens here, and what
