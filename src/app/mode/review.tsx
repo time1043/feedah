@@ -26,6 +26,7 @@ import {
 import { getProgress, getWordsWithRoundFlag, setRoundFlag } from '@/db/repo/study-round'
 import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
+import { useStudyUsage } from '@/lib/use-study-usage'
 
 /** One review walk in flight: the session row it resumes, the snapshot's
  * positions joined onto the live words, and where the HUD's time label
@@ -77,6 +78,8 @@ export default function ReviewScreen() {
   const [walk, setWalk] = useState<Walk | null>(null)
   const [empty, setEmpty] = useState(false)
   const [seen, setSeen] = useState(1)
+  // Review decks count toward the daily "studying" metric too.
+  useStudyUsage()
 
   const deckRef = useRef<WordDeckHandle>(null)
   // Free-swiping state entered by scrubbing; exited by Resume reviewing.

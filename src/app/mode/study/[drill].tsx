@@ -21,6 +21,7 @@ import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
 import { countsOf, frontierOf } from '@/lib/study-session'
 import { useStudySession } from '@/lib/use-study-session'
+import { useStudyUsage } from '@/lib/use-study-usage'
 
 /**
  * The generalized study screen: chrome, deck wiring and the auto-advance
@@ -51,6 +52,8 @@ export default function StudyScreen() {
   const canSpeak = speechRateReady && autoSpeak
   const { session, actions } = useStudySession(bucketName, drill)
   const deckRef = useRef<WordDeckHandle>(null)
+  // Time on the deck accrues to the daily "studying" metric.
+  useStudyUsage()
 
   // Executes the reducer's auto-advance decision: slides to the pending
   // card when it is still on screen, then reports back. The countdown is
