@@ -29,10 +29,21 @@ export default function BrowseScreen() {
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = bucketParamName && bucketParamName.length > 0 ? bucketParamName : activeName
   const bucket = buckets.find((candidate) => candidate.name === bucketName)
-  // Browse is pure lookup: no flags, no bookmark — the deck hides it when no
-  // toggle callback is passed. The map only satisfies the deck's per-word
-  // flag state; nothing here reads or writes it.
-  const words = bucket?.words.map((word) => ({ ...word, flagged: false })) ?? []
+  // The bookmark marks a word IN the bucket's current round — the same object
+  // study writes, not a per-visit toggle. Until round_flag lands the store is
+  // this screen's memory (so a mark is lost when browse closes); the shape is
+  // already the table's, keyed by the word's position, and the round will come
+  // from the probe.
+  const [flags, setFlags] = useState<ReadonlySet<number>>(() => new Set())
+  const words = bucket?.words.map((word) => ({ ...word, flagged: flags.has(word.position) })) ?? []
+  const toggleFlag = (position: number) => {
+    setFlags((current) => {
+      const next = new Set(current)
+      if (next.has(position)) next.delete(position)
+      else next.add(position)
+      return next
+    })
+  }
   // The param is the CARD NUMBER — the data position printed on the card
   // (1701+ for the mock bucket), not a list index. It is the identifier
   // every surface shares: what the card shows is what opens here, and what
@@ -75,6 +86,7 @@ export default function BrowseScreen() {
             canSpeak={speechRateReady && autoSpeak}
             onSpeak={(spoken) => speakWord(spoken.word, speechRate)}
             onIndexChange={setCurrent}
+            onToggleFlag={(spoken) => toggleFlag(spoken.position)}
             hudRight={
               showFooter ? (
                 <Text

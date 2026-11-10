@@ -35,8 +35,7 @@ type WordCardProps = {
   tapToReveal?: boolean
   /** The word's current flag state; the bookmark reflects it. */
   flagged?: boolean
-  /** Tapping the bookmark toggles the flag; omit it to hide the bookmark
-   * (browse is pure lookup and passes no callback). */
+  /** Tapping the bookmark toggles the flag; omit it to hide the bookmark. */
   onToggleFlag?: () => void
   /** Tapping the word or the ipa replays the pronunciation. */
   onReplay: () => void

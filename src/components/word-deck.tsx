@@ -45,7 +45,7 @@ type WordDeckProps = {
   /** Whether the meaning waits for a tap; forwarded to every card. */
   tapToReveal?: boolean
   /** The words' flag state forwarded to every card: the bookmark shows when
-   * the screen passes a toggle, and the deck hides it otherwise (browse). */
+   * the screen passes a toggle, and the deck hides it otherwise. */
   onToggleFlag?: (word: DeckWord) => void
   /** Card to open on, clamped into range; read once on mount. */
   initialIndex?: number
