@@ -20,13 +20,16 @@ export function getRawDb(): SQLite.SQLiteDatabase | null {
 /**
  * Runs async drizzle statements inside one native transaction. Drizzle's own
  * `db.transaction` commits before an async callback resolves, so the raw
- * handle's withTransactionAsync is the only safe umbrella here.
+ * handle's exclusive transaction is the only safe umbrella here — and the
+ * exclusive variant is the documented one: withTransactionAsync can be
+ * interrupted by overlapping async queries on the same connection, whose
+ * "within a transaction" error rolls back OUR work too.
  */
 export async function withTransaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
   if (!rawDb || !currentDb) throw new Error('database not opened')
   const db = currentDb
   let result: T | undefined
-  await rawDb.withTransactionAsync(async () => {
+  await rawDb.withExclusiveTransactionAsync(async () => {
     result = await fn(db)
   })
   return result as T
