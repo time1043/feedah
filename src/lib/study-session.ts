@@ -1,8 +1,9 @@
 import type { DeckWord } from '@/types/bucket'
 
 /**
- * The study probe. The db keeps a row of this shape once drizzle lands;
- * until then it lives in memory and a session always restarts at round 1.
+ * The study probe: mirrored by the bucket_progress row, which is where the
+ * round and the pointer survive the app being killed. `pointer` is the card
+ * index (0-based) the walk is parked on.
  */
 export type Progress = { round: number; pointer: number; roundStartedAt: number }
 
@@ -176,6 +177,17 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
       return { ...session, pendingAutoAdvance: null }
     }
   }
+}
+
+/**
+ * The stored probe clamped into the bucket's actual word list: a re-seed can
+ * shrink the list under a stored pointer, and an over-long pointer would
+ * read as a already-finished round. A probe inside the list is returned
+ * untouched.
+ */
+export function clampProgress(progress: Progress, wordCount: number): Progress {
+  const last = Math.max(0, wordCount - 1)
+  return progress.pointer <= last ? progress : { ...progress, pointer: last }
 }
 
 /** The card studying resumes from: the probe's pointer, clamped. */
