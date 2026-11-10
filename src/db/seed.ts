@@ -1,8 +1,8 @@
+import raw370 from '@data/370.json'
+import raw700 from '@data/700.json'
+import raw2050 from '@data/2050.json'
 import { eq } from 'drizzle-orm'
 
-import mockRaw370 from '../../data/mock/370.json'
-import mockRaw700 from '../../data/mock/700.json'
-import mockRaw2050 from '../../data/mock/2050.json'
 import { withTransaction, type Db } from './client'
 import { bucket, word } from './schema/bucket-word'
 
@@ -16,7 +16,7 @@ type SeedWord = {
 
 type SeedFile = { name: string; words: SeedWord[] }
 
-const SEED_FILES: SeedFile[] = [mockRaw2050, mockRaw370, mockRaw700]
+const SEED_FILES: SeedFile[] = [raw2050, raw370, raw700]
 
 /** A deterministic content hash of the seed words: data-only changes (new
  * words, edited meanings) re-seed the bucket even when the count is equal. */
