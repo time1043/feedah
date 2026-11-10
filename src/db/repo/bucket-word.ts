@@ -1,22 +1,24 @@
-import { eq } from 'drizzle-orm'
+import { eq, isNotNull, isNull } from 'drizzle-orm'
 
 import type { Distractor } from '@/types/bucket'
 
 import { getDb } from '../index'
 import { bucket, word } from '../schema/bucket-word'
 import { bucketProgress, roundFlag } from '../schema/study-round'
+import { BUNDLED_BUCKET_NAMES } from '../seed'
 
 export type BucketRow = {
   name: string
   wordCount: number
 }
 
-/** Every seeded bucket, ordered by name. */
+/** Every live (untombstoned) bucket, ordered by name. */
 export async function getBuckets(): Promise<BucketRow[]> {
   const db = await getDb()
   return db
     .select({ name: bucket.name, wordCount: bucket.wordCount })
     .from(bucket)
+    .where(isNull(bucket.deletedAt))
     .orderBy(bucket.name)
 }
 
@@ -65,6 +67,7 @@ export async function getBucketCards(): Promise<BucketCard[]> {
     })
     .from(bucket)
     .leftJoin(bucketProgress, eq(bucketProgress.bucketName, bucket.name))
+    .where(isNull(bucket.deletedAt))
     .orderBy(bucket.name)
   // The flag rows are counted against each bucket's LIVE round in TS: a
   // bucket without a probe row is already studying round 1, and its round-1
@@ -84,4 +87,36 @@ export async function getBucketCards(): Promise<BucketCard[]> {
     wordCount: row.wordCount,
     flagCount: flagsOf.get(`${row.name}:${row.round ?? 1}`) ?? 0,
   }))
+}
+
+/**
+ * Soft-deletes a bucket: the tombstone hides it from every list, while its
+ * words, probe, flags, sessions and statistics stay — deleting is a book-
+ * keeping gesture, not a data one. Re-importing the same file (or the
+ * restore path for the bundled buckets) lifts the tombstone.
+ */
+export async function deleteBucket(bucketName: string): Promise<void> {
+  const db = await getDb()
+  await db.update(bucket).set({ deletedAt: Date.now() }).where(eq(bucket.name, bucketName))
+}
+
+/** The tombstoned bundled buckets, for the restore section of the settings. */
+export async function tombstonedBuckets(): Promise<string[]> {
+  const db = await getDb()
+  const rows = await db
+    .select({ name: bucket.name })
+    .from(bucket)
+    .where(isNotNull(bucket.deletedAt))
+    .orderBy(bucket.name)
+  const bundled = new Set(BUNDLED_BUCKET_NAMES)
+  return rows.filter((row) => bundled.has(row.name)).map((row) => row.name)
+}
+
+/** Lifts the tombstones of the given buckets: they reappear with their full
+ * history. Pure recovery — the caller needs no confirmation. */
+export async function restoreBuckets(bucketNames: string[]): Promise<void> {
+  const db = await getDb()
+  for (const name of bucketNames) {
+    await db.update(bucket).set({ deletedAt: null }).where(eq(bucket.name, name))
+  }
 }

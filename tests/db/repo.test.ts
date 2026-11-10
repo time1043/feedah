@@ -8,6 +8,13 @@
 import { eq, sql } from 'drizzle-orm'
 
 import { getDb } from '@/db/index'
+import {
+  deleteBucket,
+  getBucketCards,
+  getBuckets,
+  restoreBuckets,
+  tombstonedBuckets,
+} from '@/db/repo/bucket-word'
 import { listDailyPointers } from '@/db/repo/daily'
 import { getWordsCompletedOn, getWordsFlaggedOn } from '@/db/repo/day-walk'
 import {
@@ -42,6 +49,11 @@ jest.mock('@/db/index', () => {
 })
 
 const BUCKET = '2050'
+
+/** The seeded list carries the other bundled buckets too — these read the
+ * one under test. */
+const getBucketsSync = (rows: { name: string }[]) => rows.map((row) => row.name)
+const getBucketCardsSync = (cards: { name: string }[]) => cards.map((card) => card.name)
 
 async function seed(): Promise<void> {
   const db = await getDb()
@@ -363,5 +375,47 @@ describe('flag review reconstruction', () => {
 
     const entries = await getWordsFlaggedOn(todayLocalDate())
     expect(entries.map((entry) => entry.round)).toEqual([1, 1, 2])
+  })
+})
+
+describe('bucket deletion (the tombstone)', () => {
+  it('hides the bucket from every list but keeps its rows', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+
+    await deleteBucket(BUCKET)
+
+    expect(getBucketsSync(await getBuckets())).not.toContain(BUCKET)
+    expect(getBucketCardsSync(await getBucketCards())).not.toContain(BUCKET)
+    // The rows stay: history, flags, probe.
+    const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
+    expect(words.length).toBeGreaterThan(0)
+    expect(await countRoundFlags(BUCKET, 1)).toBe(1)
+    expect((await getProgress(BUCKET)).pointer).toBe(1)
+    // The tombstoned bundled bucket is exactly what the restore path offers.
+    expect(await tombstonedBuckets()).toEqual([BUCKET])
+  })
+
+  it('a cold start does not resurrect a deleted bucket', async () => {
+    await deleteBucket(BUCKET)
+    const db = await getDb()
+    await seedBuckets(db)
+    expect(getBucketsSync(await getBuckets())).not.toContain(BUCKET)
+  })
+
+  it('restoring lifts the tombstone with the history intact', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await deleteBucket(BUCKET)
+
+    await restoreBuckets(await tombstonedBuckets())
+
+    const buckets = await getBuckets()
+    expect(buckets.find((row) => row.name === BUCKET)).toMatchObject({ name: BUCKET })
+    expect(await countRoundFlags(BUCKET, 1)).toBe(1)
+    expect((await getProgress(BUCKET)).pointer).toBe(1)
+    expect(await tombstonedBuckets()).toHaveLength(0)
   })
 })

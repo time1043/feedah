@@ -7,6 +7,7 @@ import m0003 from './20261110073005_absurd_fenris/migration.sql';
 import m0004 from './20261110163506_careful_star_brand/migration.sql';
 import m0005 from './20261111164934_gray_madame_web/migration.sql';
 import m0006 from './20261110174433_lively_mariko_yashida/migration.sql';
+import m0007 from './20261110180718_overconfident_leader/migration.sql';
 
   export default {
     migrations: {
@@ -16,6 +17,7 @@ import m0006 from './20261110174433_lively_mariko_yashida/migration.sql';
 "20261110073005_absurd_fenris": m0003,
 "20261110163506_careful_star_brand": m0004,
 "20261111164934_gray_madame_web": m0005,
-"20261110174433_lively_mariko_yashida": m0006
+"20261110174433_lively_mariko_yashida": m0006,
+"20261110180718_overconfident_leader": m0007
 }
   }
