@@ -31,12 +31,12 @@ export type WordRow = {
  * separates a missing bucket from an existing-but-empty one — the caller's
  * not-found state must not lie about which one happened.
  */
-export async function getWordsByBucket(bucketId: string): Promise<[boolean, WordRow[]]> {
+export async function getWordsByBucket(bucketName: string): Promise<[boolean, WordRow[]]> {
   const db = await getDb()
   const exists = await db
     .select({ id: bucket.name })
     .from(bucket)
-    .where(eq(bucket.name, bucketId))
+    .where(eq(bucket.name, bucketName))
     .limit(1)
   if (exists.length === 0) return [false, []]
   const rows = await db
@@ -48,7 +48,7 @@ export async function getWordsByBucket(bucketId: string): Promise<[boolean, Word
       forms: word.forms,
     })
     .from(word)
-    .where(eq(word.bucketName, bucketId))
+    .where(eq(word.bucketName, bucketName))
     .orderBy(word.position)
   return [true, rows.map((row) => ({ ...row, forms: JSON.parse(row.forms) as string[] }))]
 }
