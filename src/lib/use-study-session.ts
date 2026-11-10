@@ -76,20 +76,25 @@ export function useStudySession(bucketName: string, drill: Drill) {
     /** Leaves browsing and returns to the frontier (the screen also scrolls). */
     resume: () => dispatch({ type: 'resumed' }),
 
-    /** Records an answer; auto-flags wrong picks when the mode says so. The
-     * policy comes from the drill once the registry lands — until then,
-     * neutral: no auto-flag, no auto-advance. A drill that does turn
-     * autoFlag on must also write the round_flag row, or the mark lives only
-     * on screen. */
+    /** Records an answer and applies the drill's policy: wrong picks
+     * auto-flag (the round_flag row is part of the policy — a mark that
+     * lives only on screen would be gone on reload), correct ones schedule
+     * the auto-advance the screen executes. */
     answer: (word: DeckWord, correct: boolean, picked?: string) => {
+      const round = session.status === 'ready' ? session.progress.round : 1
       dispatch({
         type: 'answered',
         position: word.position,
         correct,
         picked,
-        autoFlag: false,
-        autoAdvanceDueAt: null,
+        autoFlag: drill.autoFlagOnWrong ?? false,
+        autoAdvanceDueAt: drill.autoAdvanceMs ? Date.now() + drill.autoAdvanceMs : null,
       })
+      if (!correct && (drill.autoFlagOnWrong ?? false)) {
+        void setRoundFlag(bucketName, round, word.position, true).catch((error) =>
+          console.error('[study] flag write failed', error),
+        )
+      }
     },
 
     skip: (word: DeckWord) => dispatch({ type: 'skipped', position: word.position }),
@@ -123,14 +128,25 @@ export function useStudySession(bucketName: string, drill: Drill) {
       if (session.status !== 'ready') return false
       if (session.words.length === 0) return false
       if (session.browsing || session.progress.pointer < session.words.length - 1) return false
+      const nextRound = session.progress.round + 1
       // Freeze the round's tallies before the reset wipes the answers — the
       // end page shows them for its whole linger.
       const { answered, correct } = countsOf(session)
       const now = Date.now()
       dispatch({ type: 'roundAdvanced', now, answered, correct })
-      void completeRound(bucketName, now).catch((error) =>
-        console.error('[study] round completion failed', error),
-      )
+      void (async () => {
+        try {
+          // The reload must wait for the advance transaction: it carries the
+          // finished round's flags into the new one (回显), and the database
+          // is the truth about what the fresh round opens with.
+          await completeRound(bucketName, now)
+          const [, fresh] = await getWordsWithRoundFlag(bucketName, nextRound)
+          dispatch({ type: 'roundWordsLoaded', words: fresh })
+          drill.prepare?.(fresh)
+        } catch (error) {
+          console.error('[study] round completion failed', error)
+        }
+      })()
       return true
     },
   }
