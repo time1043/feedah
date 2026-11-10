@@ -8,6 +8,7 @@
 import { eq } from 'drizzle-orm'
 
 import { getDb } from '@/db/index'
+import { listDailyPointers } from '@/db/repo/daily'
 import {
   countedReviewCount,
   finishReview,
@@ -25,6 +26,7 @@ import {
 } from '@/db/repo/study-round'
 import { reviewSession } from '@/db/schema/review-session'
 import { seedBuckets } from '@/db/seed'
+import { todayLocalDate } from '@/lib/date'
 
 import { resetDb, type dbClient, type dbIndex } from './harness'
 
@@ -92,6 +94,34 @@ describe('probe', () => {
     await finishFeedRound()
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
     expect(await countRoundFlags(BUCKET, 1)).toBe(2)
+  })
+})
+
+describe('the daily pointer', () => {
+  it('snapshots the end-of-day position on settle and on completion', async () => {
+    const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
+    const wordCount = words.length
+    await settleCard(BUCKET, 2)
+    const pointers = await listDailyPointers()
+    expect(pointers).toHaveLength(1)
+    expect(pointers[0]).toMatchObject({
+      day: todayLocalDate(),
+      bucketName: BUCKET,
+      globalPosition: 2,
+    })
+    await finishFeedRound()
+    const [endOfDay] = await listDailyPointers()
+    // The completion itself is exposure: the end card lands on today's
+    // watermark at the round's end.
+    expect(endOfDay.globalPosition).toBe(wordCount)
+  })
+
+  it('keeps one row per bucket, moving forward only', async () => {
+    await settleCard(BUCKET, 3)
+    await settleCard(BUCKET, 1)
+    const pointers = await listDailyPointers()
+    expect(pointers).toHaveLength(1)
+    expect(pointers[0].globalPosition).toBe(3)
   })
 })
 
