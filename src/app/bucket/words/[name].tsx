@@ -33,6 +33,8 @@ export default function WordsScreen() {
   // bucket from an existing-but-empty one.
   const [bucketExists, setBucketExists] = useState(false)
   const [words, setWords] = useState<RoundWordRow[]>([])
+  // The probe's round: the title names it and the flags below are its own.
+  const [round, setRound] = useState(1)
   const meaningDefault = useAtomValue(wordsMeaningAtom)
   // The eye follows the stored setting once it has hydrated — a mount-time
   // seed would capture the factory value on a cold-start deep link — and a
@@ -53,6 +55,7 @@ export default function WordsScreen() {
           const [exists, rows] = await getWordsWithRoundFlag(bucketName, progress.round)
           if (!cancelled) {
             setBucketExists(exists)
+            setRound(progress.round)
             setWords(rows)
           }
         } catch (error) {
@@ -92,7 +95,7 @@ export default function WordsScreen() {
   return (
     <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['bottom']}>
       <ListHeader
-        title={bucketExists ? bucketName : undefined}
+        title={bucketExists ? `${bucketName} R${round}` : undefined}
         onBack={goBack}
         right={
           <Pressable
