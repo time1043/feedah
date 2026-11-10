@@ -3,7 +3,7 @@ import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 import '@/global.css'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Platform, Pressable, StatusBar as RNStatusBar, Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -29,18 +29,26 @@ export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false)
   const [dbError, setDbError] = useState(false)
 
-  const initDb = () => {
-    setDbReady(false)
-    setDbError(false)
+  // Both outcomes land in promise callbacks — nothing sets state synchronously
+  // in the effect body, which would only buy an extra render on mount.
+  const openDb = useCallback(() => {
     getDb()
       .then(() => setDbReady(true))
       .catch((err) => {
         console.error('Failed to init DB:', err)
         setDbError(true)
       })
-  }
+  }, [])
 
-  useEffect(initDb, [initDb])
+  useEffect(openDb, [openDb])
+
+  /** The retry button is the only path that resets the flags: clearing them
+   * here (an event handler) keeps the effect free of a synchronous setState. */
+  const retry = () => {
+    setDbReady(false)
+    setDbError(false)
+    openDb()
+  }
 
   if (!dbReady) {
     if (!dbError) {
@@ -49,7 +57,7 @@ export default function RootLayout() {
     return (
       <SafeAreaView className="bg-white dark:bg-black flex-1" edges={['top']}>
         <Text className="text-black dark:text-white text-center">The database failed to open.</Text>
-        <Pressable onPress={initDb}>
+        <Pressable onPress={retry}>
           <Text className="text-black dark:text-white font-bold text-center">Retry</Text>
         </Pressable>
       </SafeAreaView>
