@@ -92,8 +92,9 @@ async function wordCountOf(db: Awaited<ReturnType<typeof getDb>>, bucketName: st
   return rows[0]?.wordCount ?? 0
 }
 
-/** The end-of-day global position snapshot, encoded the same way the day
- * replay decodes it: (round - 1) * wordCount + pointer. */
+/** The end-of-day global position snapshot: (round - 1) * wordCount plus the
+ * 1-based ordinal of the card (pointer + 1) — the same number the day replay
+ * decodes back into (round, card) with, for arbitrary word positions. */
 async function snapshotDailyPointer(
   db: Awaited<ReturnType<typeof getDb>>,
   bucketName: string,
@@ -101,7 +102,7 @@ async function snapshotDailyPointer(
   pointer: number,
 ): Promise<void> {
   const wordCount = await wordCountOf(db, bucketName)
-  await upsertDailyPointer(db, todayLocalDate(), bucketName, (round - 1) * wordCount + pointer)
+  await upsertDailyPointer(db, todayLocalDate(), bucketName, (round - 1) * wordCount + pointer + 1)
 }
 
 /**

@@ -101,7 +101,9 @@ describe('the daily pointer', () => {
   it('snapshots the end-of-day position on settle and on completion', async () => {
     const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
     const wordCount = words.length
-    await settleCard(BUCKET, 2)
+    // The ordinal is 1-based: settling the card at index 1 (the second card)
+    // freezes global position 2.
+    await settleCard(BUCKET, 1)
     const pointers = await listDailyPointers()
     expect(pointers).toHaveLength(1)
     expect(pointers[0]).toMatchObject({
@@ -121,7 +123,7 @@ describe('the daily pointer', () => {
     await settleCard(BUCKET, 1)
     const pointers = await listDailyPointers()
     expect(pointers).toHaveLength(1)
-    expect(pointers[0].globalPosition).toBe(3)
+    expect(pointers[0].globalPosition).toBe(4)
   })
 })
 
