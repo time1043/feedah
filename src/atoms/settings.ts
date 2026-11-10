@@ -51,3 +51,12 @@ export const tapToRevealAtom = storedAtom<boolean>('feedah.tap-to-reveal', true)
 /** Which drill the home screen's Study entry opens. The id is persisted, so
  * a drill must keep its id stable across releases. */
 export const studyDrillAtom = storedAtom<DrillId>('feedah.study-mode', 'swipe')
+
+/**
+ * Global search scope: the bucket names to search when no bucket is pinned.
+ * An empty list means every bucket.
+ */
+export const searchScopeAtom = storedAtom<string[]>('feedah.search-scope', [])
+
+/** Whether opening search from inside a bucket scopes it to that bucket. */
+export const searchLocalAtom = storedAtom<boolean>('feedah.search-local', true)

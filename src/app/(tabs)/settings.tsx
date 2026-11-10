@@ -2,7 +2,7 @@ import { useAtom } from 'jotai'
 import { Text, View } from 'react-native'
 
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
-import { autoSpeakAtom, tapToRevealAtom } from '@/atoms/settings'
+import { autoSpeakAtom, searchLocalAtom, tapToRevealAtom } from '@/atoms/settings'
 import { wordsMeaningAtom } from '@/atoms/words'
 import { SpeechRateControl } from '@/components/settings/speech-rate-control'
 import { SwitchRow } from '@/components/settings/switch-row'
@@ -17,6 +17,7 @@ export default function SettingsScreen() {
   const [showProgressBar, setShowProgressBar] = useAtom(deckProgressBarAtom)
   const [showFooter, setShowFooter] = useAtom(deckFooterAtom)
   const [wordsMeaning, setWordsMeaning] = useAtom(wordsMeaningAtom)
+  const [localSearch, setLocalSearch] = useAtom(searchLocalAtom)
 
   return (
     <View className="bg-white dark:bg-black flex-1 items-center justify-center">
@@ -43,6 +44,11 @@ export default function SettingsScreen() {
             label="Word list meanings"
             value={wordsMeaning}
             onValueChange={setWordsMeaning}
+          />
+          <SwitchRow
+            label="Search stays in the opened bucket"
+            value={localSearch}
+            onValueChange={setLocalSearch}
           />
         </View>
       </View>
