@@ -5,10 +5,11 @@
 //
 
 // Typed by the real module, resolved to the harness at runtime.
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { getDb } from '@/db/index'
 import { listDailyPointers } from '@/db/repo/daily'
+import { getWordsCompletedOn, getWordsFlaggedOn } from '@/db/repo/day-walk'
 import {
   countedReviewCount,
   finishReview,
@@ -278,5 +279,89 @@ describe('review session counting (the zeroing rule)', () => {
     await finishReview(session!.id)
     const [reread] = await db.select().from(reviewSession).where(eq(reviewSession.id, session!.id))
     expect(reread.finishedAt).toBe(archived.finishedAt)
+  })
+})
+
+describe('day review reconstruction', () => {
+  it('a day spanning two rounds replays every round without dedup', async () => {
+    const wordCount = (await getWordsWithRoundFlag(BUCKET, 1))[1].length
+    const positions = await wordPositions()
+    // Exposure semantics: the first snapshot's gain covers the walk up to
+    // the watermark — settling the second card credits the first card too.
+    await settleCard(BUCKET, 1)
+    await finishFeedRound()
+    await settleCard(BUCKET, 1)
+
+    const entries = await getWordsCompletedOn(todayLocalDate())
+    // Round 1's whole stretch (the completion pins its end) plus round 2's
+    // gain: the same word may appear once per round it was walked in.
+    expect(entries).toHaveLength(wordCount + 2)
+    expect(entries[0]).toMatchObject({ bucketName: BUCKET, round: 1, position: positions[0] })
+    const lastTwo = entries.slice(-2)
+    expect(lastTwo.map((entry) => entry.round)).toEqual([2, 2])
+    expect(lastTwo.map((entry) => entry.position)).toEqual([positions[0], positions[1]])
+  })
+
+  it('shows each round its own flag state', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await finishFeedRound()
+    await setRoundFlag(BUCKET, 2, p1, false)
+    await settleCard(BUCKET, 1)
+
+    const entries = await getWordsCompletedOn(todayLocalDate())
+    const round1First = entries.find((entry) => entry.round === 1 && entry.position === p1)
+    const round2First = entries.find((entry) => entry.round === 2 && entry.position === p1)
+    // A replay of the day looks the way the day looked.
+    expect(round1First?.flagged).toBe(true)
+    expect(round2First?.flagged).toBe(false)
+  })
+})
+
+describe('flag review reconstruction', () => {
+  it('replays the day flags in flag order, one entry per flag', async () => {
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+
+    // Same-millisecond stamps would tie: pin the order explicitly.
+    const db = await getDb()
+    const t = Date.now()
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t} WHERE position = ${p1}`)
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t + 1000} WHERE position = ${p2}`)
+
+    const entries = await getWordsFlaggedOn(todayLocalDate())
+    expect(entries.map((entry) => entry.position)).toEqual([p1, p2])
+    expect(entries.every((entry) => entry.flagged)).toBe(true)
+  })
+
+  it('ignores flags from other days and words unflagged since', async () => {
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+    // p2's mark is cleared: the row's absence leaves nothing to review.
+    await setRoundFlag(BUCKET, 1, p2, false)
+
+    const db = await getDb()
+    const yesterday = Date.now() - 86_400_000
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${yesterday} WHERE position = ${p1}`)
+
+    expect(await getWordsFlaggedOn(todayLocalDate())).toHaveLength(0)
+    const yesterdayKey = todayLocalDate(new Date(yesterday))
+    expect((await getWordsFlaggedOn(yesterdayKey)).map((entry) => entry.position)).toEqual([p1])
+  })
+
+  it('groups flags by round even when an earlier round is revisited', async () => {
+    const [p1, p2, p3] = await wordPositions()
+    await finishFeedRound() // no carries: round 2 opens empty
+    // Flag round 2, then revisit round 1: a replay that bounced 1 → 2 → 1
+    // must still walk round 1 in one pass.
+    await setRoundFlag(BUCKET, 2, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+    await setRoundFlag(BUCKET, 1, p3, true)
+
+    const entries = await getWordsFlaggedOn(todayLocalDate())
+    expect(entries.map((entry) => entry.round)).toEqual([1, 1, 2])
   })
 })

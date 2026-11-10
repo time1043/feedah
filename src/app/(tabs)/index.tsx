@@ -79,6 +79,7 @@ export default function Index() {
                 disabled={!active || active.flagCount === 0}
                 className="rounded-lg border-blue-500 p-3 items-center border-2 disabled:opacity-40"
                 onPress={() => router.push('/mode/review')}
+                accessibilityLabel={`Review ${active?.flagCount ?? 0} flagged words`}
               >
                 <Text className="font-semibold text-blue-500">
                   Review · {active?.flagCount ?? 0}
