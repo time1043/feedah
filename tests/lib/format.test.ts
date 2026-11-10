@@ -1,4 +1,11 @@
-import { formatDayLabel, formatMinutes, formatMonthLabel, formatYearMonthDay } from '@/lib/format'
+import {
+  formatDayLabel,
+  formatMinutes,
+  formatMonthLabel,
+  formatMonthShort,
+  formatThousands,
+  formatYearMonthDay,
+} from '@/lib/format'
 
 describe('formatMinutes', () => {
   it('formats below and above one hour', () => {
@@ -25,5 +32,20 @@ describe('formatMonthLabel', () => {
   it('formats a month key', () => {
     expect(formatMonthLabel('2026-11')).toBe('Nov 2026')
     expect(formatMonthLabel('garbled')).toBe('garbled')
+  })
+})
+
+describe('formatThousands', () => {
+  it('groups digits with commas', () => {
+    expect(formatThousands(2800)).toBe('2,800')
+    expect(formatThousands(160)).toBe('160')
+    expect(formatThousands(0)).toBe('0')
+  })
+})
+
+describe('formatMonthShort', () => {
+  it('formats the bare month name and falls back to the raw key', () => {
+    expect(formatMonthShort('2026-11')).toBe('Nov')
+    expect(formatMonthShort('garbled')).toBe('garbled')
   })
 })

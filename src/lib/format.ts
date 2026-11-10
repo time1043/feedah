@@ -36,6 +36,19 @@ export function formatYearMonthDay(dayOrTimestamp: string | number): string {
   return `${year} ${MONTHS[month - 1]} ${date}`
 }
 
+/** Groups an integer with commas: 2800 -> "2,800". Hand-rolled — the app
+ * avoids Intl, and counts are the only numbers ever grouped. */
+export function formatThousands(value: number): string {
+  return String(Math.trunc(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+/** Formats a YYYY-MM month key as the bare month name, like "Nov". */
+export function formatMonthShort(month: string): string {
+  const monthIndex = Number(month.slice(5, 7))
+  if (!monthIndex) return month
+  return MONTHS[monthIndex - 1]
+}
+
 /** Formats a YYYY-MM month key as a short label like "Nov 2026". */
 export function formatMonthLabel(month: string): string {
   const [year, monthIndex] = month.split('-').map(Number)
