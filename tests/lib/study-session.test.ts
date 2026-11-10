@@ -136,7 +136,8 @@ describe('studyReducer', () => {
     s = reduce(s, { type: 'roundAdvanced', now: 5, answered: 0, correct: 0 })
     expect(s.progress.round).toBe(2)
     expect(s.progress.pointer).toBe(0)
-    // The flags ride into the next round (the db carries them too later).
+    // The flags ride into the next round — the database carries them the
+    // same way (completeRound copies the round's flag rows forward).
     expect(s.words.find((w) => w.position === 1702)?.flagged).toBe(true)
   })
 

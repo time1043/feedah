@@ -6,6 +6,10 @@ import { getDb, withTransaction } from '../index'
 import { bucket, word } from '../schema/bucket-word'
 import { bucketProgress, roundFlag, roundRecord } from '../schema/study-round'
 
+/** How many flag rows one carried-over INSERT may bind: 4 values each, kept
+ * well under SQLite's variable limit. */
+const CARRY_CHUNK = 200
+
 /**
  * The study probe, as the session carries it: the round being studied and
  * the card index (0-based, the same number the reducer holds) the walk is
@@ -68,10 +72,10 @@ export async function settleCard(bucketName: string, pointer: number): Promise<v
 }
 
 /**
- * Completes the round: the finished round is recorded (its start and this
- * end stamp) and the probe steps to the next round at the first card. Both
- * writes share one transaction — a round never advances without its record.
- * Flags deliberately do not ride along here; they are another table.
+ * Completes the round: the finished round is recorded (its start and this end
+ * stamp), its flags are carried into the next round, and the probe steps on at
+ * the first card. All of it shares one transaction — a round never advances
+ * without its record, and never starts without the marks it inherited.
  */
 export async function completeRound(bucketName: string, now: number): Promise<void> {
   const db = await getDb()
@@ -97,6 +101,31 @@ export async function completeRound(bucketName: string, now: number): Promise<vo
         endedAt: now,
       })
       .onConflictDoNothing()
+
+    // Carry the marks forward: the words you flagged are exactly what the next
+    // round should open on, and the deck reloads its flags from this table. The
+    // new round owns its own rows, so clearing or adding a mark there never
+    // rewrites the finished round's history.
+    const flags = await db
+      .select({ position: roundFlag.position })
+      .from(roundFlag)
+      .where(and(eq(roundFlag.bucketName, bucketName), eq(roundFlag.round, finished.round)))
+    // Chunked: a bucket can hold thousands of words, and one INSERT carries
+    // four bound values per row — past a few hundred rows it would exceed
+    // SQLite's variable limit.
+    for (let start = 0; start < flags.length; start += CARRY_CHUNK) {
+      await db
+        .insert(roundFlag)
+        .values(
+          flags.slice(start, start + CARRY_CHUNK).map((flag) => ({
+            bucketName,
+            round: next,
+            position: flag.position,
+            flaggedAt: now,
+          })),
+        )
+        .onConflictDoNothing()
+    }
 
     if (rows.length === 0) {
       await db

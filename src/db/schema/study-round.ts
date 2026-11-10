@@ -34,9 +34,10 @@ export const roundRecord = sqliteTable(
   (table) => [primaryKey({ columns: [table.bucketName, table.round] })],
 )
 
-/** A word flagged within one round of one bucket. A flag belongs to its round,
- * not to the bucket: the next round starts clean unless the completion copies
- * it forward. The row's absence IS the unflagged state, so marking is an
+/** A word flagged within one round of one bucket. A flag belongs to its round —
+ * completing a round copies its rows onto the next one, so a mark follows you
+ * until you clear it there, and clearing it never rewrites the finished
+ * round's history. The row's absence IS the unflagged state, so marking is an
  * INSERT and clearing a DELETE — never a boolean column. */
 export const roundFlag = sqliteTable(
   'round_flag',
@@ -48,6 +49,8 @@ export const roundFlag = sqliteTable(
     /** The word's card number (its position), the identifier every surface
      * shares with the deck. */
     position: integer('position').notNull(),
+    /** When this round's mark was made — the completion stamp for a row that
+     * was carried over. */
     flaggedAt: integer('flagged_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.bucketName, table.round, table.position] })],
