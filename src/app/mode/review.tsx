@@ -221,15 +221,12 @@ export default function ReviewScreen() {
         onIndexChange={(index) => setSeen(index + 1)}
         // Advances the resume watermark on forward settles unless browsing:
         // a walk left half-way picks up at the first card it has not passed.
-        onSettle={(index) => {
+        onSettle={(word, index) => {
           if (!browsing && index > frontier) {
             setFrontier(index)
-            const word = queue[index]
-            if (word) {
-              void settleReview(session.id, word.position).catch((error) =>
-                console.error('[review] watermark write failed', error),
-              )
-            }
+            void settleReview(session.id, word.position).catch((error) =>
+              console.error('[review] watermark write failed', error),
+            )
           }
         }}
         // Scrubbing enters browse mode: the pill floats over the cards — not

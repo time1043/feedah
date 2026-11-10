@@ -73,7 +73,7 @@ export default function StudyScreen() {
         tapToReveal={tapToReveal}
         canSpeak={canSpeak}
         onSpeak={(word) => speakWord(word.word, speechRate)}
-        onSettle={actions.settle}
+        onSettle={(_, index) => actions.settle(index)}
         onScrub={actions.startBrowsing}
         onToggleFlag={actions.toggleFlag}
         // Scrubbing opens browse mode: the pill floats over the cards — not
