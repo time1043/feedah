@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { getDb, withTransaction } from '../index'
+import { bucket } from '../schema/bucket-word'
 import { bucketProgress, roundRecord } from '../schema/study-round'
 
 /**
@@ -104,4 +105,77 @@ export async function completeRound(bucketName: string, now: number): Promise<vo
       .set({ round: next, pointer: 0, roundStartedAt: now })
       .where(eq(bucketProgress.bucketName, bucketName))
   })
+}
+
+/** One row of the round list: a round the probe has entered, with what the
+ * walk did in it. Flags are absent on purpose — they get their own table and
+ * their own page section later. */
+export type RoundRow = {
+  round: number
+  /** The probe has moved past it: the round was walked to the end. */
+  done: boolean
+  /** The bucket's list length — the timeline's denominator. */
+  wordCount: number
+  /** Cards the walk reached, as a COUNT (not a word position). */
+  swept: number
+  /** 0 when unrecorded — a round that has not been entered yet. */
+  startedAt: number
+  /** The finishing stamp; null while the round is still in progress. */
+  endedAt: number | null
+}
+
+/**
+ * Every round of one bucket, newest first — the live round is what the page
+ * is opened for. The probe holds that live round; round_record holds the
+ * finished ones' spans, so no history table is needed for the boundary
+ * between rounds.
+ */
+export async function getRoundsByBucket(bucketName: string): Promise<[boolean, RoundRow[]]> {
+  const db = await getDb()
+  // The bucket row is the existence check AND the list length: a re-seed
+  // keeps it in step with the words.
+  const exists = await db
+    .select({ wordCount: bucket.wordCount })
+    .from(bucket)
+    .where(eq(bucket.name, bucketName))
+    .limit(1)
+  if (exists.length === 0) return [false, []]
+  const wordCount = exists[0].wordCount
+
+  const [probe, records] = await Promise.all([
+    getProgress(bucketName),
+    db
+      .select({
+        round: roundRecord.round,
+        startedAt: roundRecord.startedAt,
+        endedAt: roundRecord.endedAt,
+      })
+      .from(roundRecord)
+      .where(eq(roundRecord.bucketName, bucketName)),
+  ])
+  const spanOf = new Map(records.map((record) => [record.round, record]))
+
+  const rows: RoundRow[] = []
+  for (let round = probe.round; round >= 1; round--) {
+    const done = round < probe.round
+    const span = spanOf.get(round)
+    rows.push({
+      round,
+      done,
+      wordCount,
+      // The probe's pointer is the index of the card it is parked on, so the
+      // reached cards are pointer + 1 — and a probe that never settled
+      // (roundStartedAt 0) has reached none. A finished round reached all.
+      swept: done ? wordCount : sweptOf(probe, wordCount),
+      startedAt: span ? span.startedAt : done ? 0 : probe.roundStartedAt,
+      endedAt: span?.endedAt ?? null,
+    })
+  }
+  return [true, rows]
+}
+
+/** Cards the live round has reached; see the pointer note above. */
+function sweptOf(probe: ProgressRow, wordCount: number): number {
+  if (probe.roundStartedAt === 0) return 0
+  return Math.min(probe.pointer + 1, wordCount)
 }
