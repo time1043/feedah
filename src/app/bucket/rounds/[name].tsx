@@ -14,12 +14,11 @@ import { formatSpan, formatStamp } from '@/lib/round-time'
 
 /**
  * The round list of one bucket: every round the probe has entered, newest
- * first — its state, how far the walk got, and for a finished round when it
- * ran and how long it took.
+ * first — its state, its red/green/gray sweep, and for a finished round when
+ * it ran and how long it took.
  *
- * Flags are not part of this page yet: the red marks and the per-round drill
- * review arrive with the round-flag table, so a round here is green/gray only
- * and no row is tappable.
+ * A round is not tappable yet: the review of its flag list is the drill mode,
+ * which lands on its own.
  */
 export default function RoundsScreen() {
   const { name } = useLocalSearchParams<{ name: string }>()
@@ -77,6 +76,9 @@ export default function RoundsScreen() {
 function RoundItem({ row, studying }: { row: RoundRow; studying: boolean }) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
   const when = timeLineOf(row)
+  const statuses = roundStatuses(row.wordCount, row)
+  const green = statuses.filter((status) => status === 'green').length
+  const red = statuses.filter((status) => status === 'red').length
 
   return (
     <View>
@@ -89,21 +91,14 @@ function RoundItem({ row, studying }: { row: RoundRow; studying: boolean }) {
         </Text>
       </View>
       <View className="mt-2">
-        <RoundBar statuses={roundStatuses(row.wordCount, row.swept)} />
+        <RoundBar statuses={statuses} />
       </View>
       <View className="mt-2 flex-row items-center justify-between">
-        {/* The dot is green-only until flags land; the red one joins it then. */}
-        <View className="gap-1.5 flex-row items-center">
-          <View
-            className="h-1.5 w-1.5 rounded-sm"
-            style={{ backgroundColor: ROUND_COLORS[scheme].green }}
-          />
-          <Text
-            className="text-gray-500 dark:text-gray-400 text-[13px]"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            {row.swept} / {row.wordCount}
-          </Text>
+        {/* The legend counts the same statuses the bar paints: a flagged card
+            is red and no longer green, so the two never double-count it. */}
+        <View className="gap-4 flex-row items-center">
+          <CountDot color={ROUND_COLORS[scheme].green} value={`${green} / ${row.wordCount}`} />
+          <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
         </View>
         {when && (
           <Text
@@ -114,6 +109,20 @@ function RoundItem({ row, studying }: { row: RoundRow; studying: boolean }) {
           </Text>
         )}
       </View>
+    </View>
+  )
+}
+
+function CountDot({ color, value }: { color: string; value: string }) {
+  return (
+    <View className="gap-1.5 flex-row items-center">
+      <View className="h-1.5 w-1.5 rounded-sm" style={{ backgroundColor: color }} />
+      <Text
+        className="text-gray-500 dark:text-gray-400 text-[13px]"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </Text>
     </View>
   )
 }

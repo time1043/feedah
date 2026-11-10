@@ -3,10 +3,13 @@ import { View, useColorScheme } from 'react-native'
 
 import type { RoundWordStatus } from '@/lib/round-status'
 
-/** The sweep's palette, shared with the round list's legend dots. */
+import { FLAG_RED } from '@/lib/color'
+
+/** The sweep's palette, shared with the round list's legend dots. The red is
+ * the flag's own red, so a marked card and its legend agree. */
 export const ROUND_COLORS = {
-  light: { green: '#3D9A50', gray: '#D9D9DE' },
-  dark: { green: '#5BB96F', gray: '#3A3D42' },
+  light: { green: '#3D9A50', red: FLAG_RED.light, gray: '#D9D9DE' },
+  dark: { green: '#5BB96F', red: FLAG_RED.dark, gray: '#3A3D42' },
 } as const
 
 type RoundBarProps = {
@@ -16,9 +19,10 @@ type RoundBarProps = {
 
 /**
  * Horizontal timeline of a round, drawn with plain views. Words are
- * aggregated into one two-pixel column (green wins over gray): a 2000-word
- * bucket cannot be resolved per word on a ~360dp bar, and one column per two
- * pixels keeps the draw cheap.
+ * aggregated into one two-pixel column (red wins over green over gray): a
+ * 2000-word bucket cannot be resolved per word on a ~360dp bar, one column
+ * per two pixels keeps the draw cheap, and a column takes the loudest status
+ * of the words it covers so every flagged word stays visible.
  */
 export function RoundBar({ statuses }: RoundBarProps) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
@@ -36,17 +40,19 @@ export function RoundBar({ statuses }: RoundBarProps) {
           : Math.min(statuses.length, Math.floor((pixel + 1) * groupSize))
       let column: RoundWordStatus = 'gray'
       for (let i = start; i < end; i++) {
-        if (statuses[i] === 'green') {
-          column = 'green'
+        if (statuses[i] === 'red') {
+          column = 'red'
           break
         }
+        if (statuses[i] === 'green') column = 'green'
       }
       columns.push(column)
     }
   }
 
   const colors = ROUND_COLORS[scheme]
-  const colorOf = (status: RoundWordStatus) => (status === 'green' ? colors.green : colors.gray)
+  const colorOf = (status: RoundWordStatus) =>
+    status === 'red' ? colors.red : status === 'green' ? colors.green : colors.gray
 
   return (
     <View
