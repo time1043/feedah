@@ -1,11 +1,14 @@
 import { and, count, eq, isNull, max } from 'drizzle-orm'
 
+import { todayLocalDate } from '@/lib/date'
+
 import type { WordRow } from './bucket-word'
 
 import { getDb, withTransaction } from '../index'
 import { bucket, word } from '../schema/bucket-word'
 import { reviewSession } from '../schema/review-session'
 import { bucketProgress, roundFlag, roundRecord } from '../schema/study-round'
+import { upsertDailyPointer } from './daily'
 
 /** How many flag rows one carried-over INSERT may bind: 4 values each, kept
  * well under SQLite's variable limit. */
@@ -61,6 +64,7 @@ export async function settleCard(bucketName: string, pointer: number): Promise<v
         .insert(bucketProgress)
         .values({ bucketName, round: 1, pointer, roundStartedAt: Date.now() })
         .onConflictDoNothing()
+      await snapshotDailyPointer(db, bucketName, 1, pointer)
       return
     }
     if (pointer > rows[0].pointer) {
@@ -68,8 +72,36 @@ export async function settleCard(bucketName: string, pointer: number): Promise<v
         .update(bucketProgress)
         .set({ pointer })
         .where(eq(bucketProgress.bucketName, bucketName))
+      const rounds = await db
+        .select({ round: bucketProgress.round })
+        .from(bucketProgress)
+        .where(eq(bucketProgress.bucketName, bucketName))
+        .limit(1)
+      await snapshotDailyPointer(db, bucketName, rounds[0]?.round ?? 1, pointer)
     }
   })
+}
+
+/** The bucket's word count, read inside the settle/complete transactions. */
+async function wordCountOf(db: Awaited<ReturnType<typeof getDb>>, bucketName: string) {
+  const rows = await db
+    .select({ wordCount: bucket.wordCount })
+    .from(bucket)
+    .where(eq(bucket.name, bucketName))
+    .limit(1)
+  return rows[0]?.wordCount ?? 0
+}
+
+/** The end-of-day global position snapshot, encoded the same way the day
+ * replay decodes it: (round - 1) * wordCount + pointer. */
+async function snapshotDailyPointer(
+  db: Awaited<ReturnType<typeof getDb>>,
+  bucketName: string,
+  round: number,
+  pointer: number,
+): Promise<void> {
+  const wordCount = await wordCountOf(db, bucketName)
+  await upsertDailyPointer(db, todayLocalDate(), bucketName, (round - 1) * wordCount + pointer)
 }
 
 /**
@@ -90,6 +122,11 @@ export async function completeRound(bucketName: string, now: number): Promise<vo
     // settles), but a missing row still reads as round 1 with no start.
     const finished = rows[0] ?? { round: 1, roundStartedAt: 0 }
     const next = finished.round + 1
+
+    // The end card completes the round's last word on today's watermark:
+    // the completion itself is exposure (the day replay counts it).
+    const endWordCount = await wordCountOf(db, bucketName)
+    await upsertDailyPointer(db, todayLocalDate(), bucketName, finished.round * endWordCount)
 
     // One row per round, first write wins: a duplicate completion must not
     // move the recorded span.
