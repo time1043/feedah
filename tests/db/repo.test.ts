@@ -106,6 +106,10 @@ describe('review session counting (the zeroing rule)', () => {
     const second = await openReviewSession(BUCKET, 1)
     expect(second!.id).toBe(first!.id)
     expect(second!.lastPosition).toBe(p1)
+
+    // The round list reads the draft, not a count.
+    const [, rows] = await getRoundsByBucket(BUCKET)
+    expect(rows.find((row) => row.round === 1)).toMatchObject({ reviewTimes: 0, hasDraft: true })
   })
 
   it('finishing the feed discards the draft and starts the real time 1', async () => {
@@ -130,6 +134,10 @@ describe('review session counting (the zeroing rule)', () => {
     const again = await openReviewSession(BUCKET, 1)
     expect(again).toMatchObject({ counted: true, number: 2, lastPosition: 0 })
     expect(await countedReviewCount(BUCKET, 1)).toBe(2)
+
+    // The round list counts the real walk-throughs, no draft pending.
+    const [, rows] = await getRoundsByBucket(BUCKET)
+    expect(rows.find((row) => row.round === 1)).toMatchObject({ reviewTimes: 2, hasDraft: false })
   })
 
   it('a finished draft leaves no trace', async () => {

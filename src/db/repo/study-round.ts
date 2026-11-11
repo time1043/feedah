@@ -1,9 +1,10 @@
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, isNull, max } from 'drizzle-orm'
 
 import type { WordRow } from './bucket-word'
 
 import { getDb, withTransaction } from '../index'
 import { bucket, word } from '../schema/bucket-word'
+import { reviewSession } from '../schema/review-session'
 import { bucketProgress, roundFlag, roundRecord } from '../schema/study-round'
 
 /** How many flag rows one carried-over INSERT may bind: 4 values each, kept
@@ -159,6 +160,11 @@ export type RoundRow = {
   startedAt: number
   /** The finishing stamp; null while the round is still in progress. */
   endedAt: number | null
+  /** How many real walk-throughs the round's flag list has had. */
+  reviewTimes: number
+  /** An open draft exists — re-entering the review would resume it,
+   * uncounted. */
+  hasDraft: boolean
 }
 
 /**
@@ -178,7 +184,7 @@ export async function getRoundsByBucket(bucketName: string): Promise<[boolean, R
     .limit(1)
   if (exists.length === 0) return [false, []]
 
-  const [positions, probe, records, flagRows] = await Promise.all([
+  const [positions, probe, records, flagRows, reviewCounts, draftRounds] = await Promise.all([
     db
       .select({ position: word.position })
       .from(word)
@@ -197,9 +203,28 @@ export async function getRoundsByBucket(bucketName: string): Promise<[boolean, R
       .select({ round: roundFlag.round, position: roundFlag.position })
       .from(roundFlag)
       .where(eq(roundFlag.bucketName, bucketName)),
+    db
+      .select({ round: reviewSession.round, n: max(reviewSession.number) })
+      .from(reviewSession)
+      .where(and(eq(reviewSession.bucketName, bucketName), eq(reviewSession.counted, true)))
+      .groupBy(reviewSession.round),
+    db
+      .select({ round: reviewSession.round })
+      .from(reviewSession)
+      .where(
+        and(
+          eq(reviewSession.bucketName, bucketName),
+          eq(reviewSession.counted, false),
+          isNull(reviewSession.finishedAt),
+        ),
+      ),
   ])
   const wordCount = positions.length
   const spanOf = new Map(records.map((record) => [record.round, record]))
+  // The highest counted number, not a count: the number is the walk's
+  // identity, and the max survives even if rows were ever pruned.
+  const reviewsOf = new Map(reviewCounts.map((row) => [row.round, row.n ?? 0]))
+  const draftsOf = new Set(draftRounds.map((row) => row.round))
   // The table stores word positions; the timeline speaks in ordinals (the
   // deck's card order). A flag whose word no longer exists is skipped rather
   // than painted into a neighbour's column.
@@ -229,6 +254,8 @@ export async function getRoundsByBucket(bucketName: string): Promise<[boolean, R
       flags: flagsOf.get(round) ?? [],
       startedAt: span ? span.startedAt : done ? 0 : probe.roundStartedAt,
       endedAt: span?.endedAt ?? null,
+      reviewTimes: reviewsOf.get(round) ?? 0,
+      hasDraft: draftsOf.has(round),
     })
   }
   return [true, rows]
