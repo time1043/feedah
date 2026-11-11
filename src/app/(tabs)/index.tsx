@@ -36,8 +36,10 @@ export default function Index() {
 
   // The review entry reads the live round's flags on every focus: the button
   // is the review walk's front door, and a round with no marks has nothing
-  // to walk. null = the database has not answered yet.
-  const [flagCount, setFlagCount] = useState<number | null>(null)
+  // to walk. The counts cache per bucket: a switch derives null until the
+  // new number lands (no stale neighbour's count), a refocus keeps the
+  // number it already has.
+  const [flagCounts, setFlagCounts] = useState<Record<string, number>>({})
   useFocusEffect(
     useCallback(() => {
       let cancelled = false
@@ -45,7 +47,7 @@ export default function Index() {
         try {
           const progress = await getProgress(activeName)
           const count = await countRoundFlags(activeName, progress.round)
-          if (!cancelled) setFlagCount(count)
+          if (!cancelled) setFlagCounts((prev) => ({ ...prev, [activeName]: count }))
         } catch (error) {
           console.error('[home] flag count failed', error)
         }
@@ -55,6 +57,7 @@ export default function Index() {
       }
     }, [activeName]),
   )
+  const shownFlagCount = flagCounts[activeName] ?? null
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
@@ -93,11 +96,14 @@ export default function Index() {
 
         <Pressable
           className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border disabled:opacity-40"
-          disabled={flagCount === null || flagCount === 0}
+          disabled={shownFlagCount === null || shownFlagCount === 0}
           onPress={() => router.push('/mode/review')}
+          accessibilityLabel={
+            shownFlagCount === null ? 'Review' : `Review ${shownFlagCount} flagged words`
+          }
         >
           <Text className="text-black dark:text-white">
-            Review{flagCount === null ? '' : ` · ${flagCount}`}
+            Review{shownFlagCount === null ? '' : ` · ${shownFlagCount}`}
           </Text>
         </Pressable>
 

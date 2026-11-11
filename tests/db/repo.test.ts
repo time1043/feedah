@@ -5,6 +5,8 @@
 //
 
 // Typed by the real module, resolved to the harness at runtime.
+import { eq } from 'drizzle-orm'
+
 import { getDb } from '@/db/index'
 import {
   countedReviewCount,
@@ -21,6 +23,7 @@ import {
   setRoundFlag,
   settleCard,
 } from '@/db/repo/study-round'
+import { reviewSession } from '@/db/schema/review-session'
 import { seedBuckets } from '@/db/seed'
 
 import { resetDb, type dbClient, type dbIndex } from './harness'
@@ -165,5 +168,83 @@ describe('review session counting (the zeroing rule)', () => {
     await settleReview(session!.id, p1)
     const reread = await openReviewSession(BUCKET, 1)
     expect(reread!.lastPosition).toBe(p2)
+  })
+
+  it('flag edits never rewrite an in-flight walk', async () => {
+    const [p1, p2, p3] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+    const session = await openReviewSession(BUCKET, 1)
+
+    // Marks added and cleared after the open leave the snapshot alone.
+    await setRoundFlag(BUCKET, 1, p3, true)
+    await setRoundFlag(BUCKET, 1, p1, false)
+
+    const reread = await openReviewSession(BUCKET, 1)
+    expect(reread!.id).toBe(session!.id)
+    expect(reread!.queue).toEqual([p1, p2])
+  })
+
+  it('a round keeps at most one open draft (the partial unique index)', async () => {
+    const [p1] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await openReviewSession(BUCKET, 1)
+
+    const db = await getDb()
+    await expect(
+      db.insert(reviewSession).values({
+        bucketName: BUCKET,
+        round: 1,
+        counted: false,
+        number: null,
+        queue: [p1],
+        lastPosition: 0,
+        startedAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('a round whose flags all cleared deletes its open draft', async () => {
+    const [p1] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await openReviewSession(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, false)
+
+    expect(await openReviewSession(BUCKET, 1)).toBeNull()
+    const db = await getDb()
+    expect(await db.select().from(reviewSession)).toHaveLength(0)
+  })
+
+  it('a counted session resumes in place while its walk is unfinished', async () => {
+    const [p1] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await finishFeedRound()
+
+    const first = await openReviewSession(BUCKET, 1)
+    expect(first).toMatchObject({ counted: true, number: 1 })
+    await settleReview(first!.id, p1)
+
+    const second = await openReviewSession(BUCKET, 1)
+    expect(second!.id).toBe(first!.id)
+    expect(second!.lastPosition).toBe(p1)
+  })
+
+  it('finishing an archived session changes nothing', async () => {
+    const [p1] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await finishFeedRound()
+    const session = await openReviewSession(BUCKET, 1)
+    await finishReview(session!.id)
+
+    const db = await getDb()
+    const [archived] = await db
+      .select()
+      .from(reviewSession)
+      .where(eq(reviewSession.id, session!.id))
+    expect(archived.finishedAt).not.toBeNull()
+    await finishReview(session!.id)
+    const [reread] = await db.select().from(reviewSession).where(eq(reviewSession.id, session!.id))
+    expect(reread.finishedAt).toBe(archived.finishedAt)
   })
 })
