@@ -108,7 +108,9 @@ function RoundItem({
       </View>
       <View className="mt-2 flex-row items-center justify-between">
         {/* The legend counts the same statuses the bar paints: a flagged card
-            is red and no longer green, so the two never double-count it. */}
+            is red and no longer green, so the two never double-count it. The
+            review count rides along: the round's walks so far, or the open
+            draft that re-entering would resume. */}
         <View className="gap-4 flex-row items-center">
           <CountDot color={ROUND_COLORS[scheme].green} value={`${green} / ${row.wordCount}`} />
           <Pressable
@@ -121,6 +123,11 @@ function RoundItem({
           >
             <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
           </Pressable>
+          {row.reviewTimes > 0 ? (
+            <Text className="font-semibold text-blue-500 text-[13px]">time {row.reviewTimes}</Text>
+          ) : row.hasDraft ? (
+            <Text className="text-gray-400 dark:text-gray-500 text-[13px]">time 1 · uncounted</Text>
+          ) : null}
         </View>
         {when && (
           <Text
