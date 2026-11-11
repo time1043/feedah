@@ -1,4 +1,7 @@
 // This file is required for Expo/React Native SQLite migrations - https://orm.drizzle.team/quick-sqlite/expo
+// The Expo migrator runs these sorted by KEY lexicographically, not in the
+// m0000…m0007 numbering below — the numbering documents intent, the
+// timestamped dir names decide the order.
 
 import m0000 from './20261109152915_misty_the_call/migration.sql';
 import m0001 from './20261110032919_nostalgic_wolfpack/migration.sql';

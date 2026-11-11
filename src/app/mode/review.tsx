@@ -188,11 +188,14 @@ export default function ReviewScreen() {
             : await countedReviewCount(bucketName, resolved)
           // Resume at the first snapshot word the walk has not passed yet;
           // the hud opens on that card, not one frame behind the deck's
-          // first mirror.
+          // first mirror. The frontier opens there too — the deck fires no
+          // settle for its programmatic opening jump, so a scrub before the
+          // first swipe must resume to the watermark, not to card 0.
           const rawStart = queue.findIndex((word) => word.position >= session.lastPosition)
           const start = rawStart < 0 ? 0 : rawStart
           if (cancelled) return
           setSeen(start + 1)
+          setFrontier(start)
           setWalk({
             kind: 'round',
             session,
@@ -235,22 +238,29 @@ export default function ReviewScreen() {
   }
 
   /** Flips one word's flag inside the walk queue. The branch is not noise:
-   * it keeps each walk kind's queue element type exact (the date walk's
-   * entries carry bucketName and round, which a union-wide spread would
-   * infer away). */
-  const withQueueFlag = (state: Walk, position: number, flagged: boolean): Walk => {
+   * it keeps each walk kind's queue element type exact AND its match exact —
+   * the round walk matches on position alone (positions are unique within
+   * one bucket's deck), while the date walk matches on bucket + round +
+   * position: positions collide across buckets and rounds, and flagging one
+   * copy of a word must not flip the other copies the same day replays. */
+  const withQueueFlag = (state: Walk, word: DeckWord, flagged: boolean): Walk => {
     if (state.kind === 'round') {
       return {
         ...state,
         queue: state.queue.map((entry) =>
-          entry.position === position ? { ...entry, flagged } : entry,
+          entry.position === word.position ? { ...entry, flagged } : entry,
         ),
       }
     }
+    const tapped = word as DayWord
     return {
       ...state,
       queue: state.queue.map((entry) =>
-        entry.position === position ? { ...entry, flagged } : entry,
+        entry.position === tapped.position &&
+        entry.bucketName === tapped.bucketName &&
+        entry.round === tapped.round
+          ? { ...entry, flagged }
+          : entry,
       ),
     }
   }
@@ -262,7 +272,7 @@ export default function ReviewScreen() {
    * say the same thing; date walks write the entry's own bucket and round
    * (they span buckets, where positions collide). */
   const toggleFlag = (word: DeckWord) => {
-    setWalk((prev) => (prev ? withQueueFlag(prev, word.position, !word.flagged) : null))
+    setWalk((prev) => (prev ? withQueueFlag(prev, word, !word.flagged) : null))
     const entry = word as DeckWord & { bucketName?: string; round?: number }
     const target =
       walk.kind === 'round'

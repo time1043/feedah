@@ -11,10 +11,11 @@ export type SearchResult = Word & { bucketName: string }
  * Translates user input into a SQL LIKE pattern, matching SQL semantics:
  *   %  any run of zero or more characters
  *   _  exactly one character
- * A query with no wildcard characters is escaped and wrapped as a
- * contains-match, so its % and _ stay literals — "50%" finds "50%".
- * Examples: `ter%` matches words starting with ter, `%ter` ending with
- * ter, `wo%rd` exactly starting with wo and ending with rd.
+ * A query holding either character takes the branch verbatim (`ter%`
+ * matches words starting with ter, `%ter` ending with ter, `wo%rd`
+ * exactly starting with wo and ending with rd); a query without one is
+ * escaped and wrapped as a contains-match — where the escape then guards
+ * the backslashes a user may have typed.
  */
 function toLikePattern(query: string): string {
   if (/[%_]/.test(query)) return query
