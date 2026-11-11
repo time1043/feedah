@@ -7,10 +7,6 @@
   ],
   "ddl": [
     {
-      "name": "answer_log",
-      "entityType": "tables"
-    },
-    {
       "name": "bucket",
       "entityType": "tables"
     },
@@ -41,76 +37,6 @@
     {
       "name": "round_record",
       "entityType": "tables"
-    },
-    {
-      "table": "answer_log",
-      "name": "id",
-      "type": "integer",
-      "notNull": false,
-      "autoincrement": true,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "bucket_name",
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "round",
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "position",
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "mode",
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "correct",
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
-    },
-    {
-      "table": "answer_log",
-      "name": "answered_at",
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "entityType": "columns"
     },
     {
       "table": "bucket",
@@ -559,21 +485,6 @@
       "entityType": "indexes"
     },
     {
-      "table": "answer_log",
-      "name": "fk_answer_log_bucket_name_bucket_name_fk",
-      "columns": [
-        "bucket_name"
-      ],
-      "tableTo": "bucket",
-      "columnsTo": [
-        "name"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "nameExplicit": false,
-      "entityType": "fks"
-    },
-    {
       "table": "word",
       "name": "fk_word_bucket_name_bucket_name_fk",
       "columns": [
@@ -700,15 +611,6 @@
       "columns": [
         "bucket_name",
         "round"
-      ],
-      "nameExplicit": false,
-      "entityType": "pks"
-    },
-    {
-      "table": "answer_log",
-      "name": "answer_log_pk",
-      "columns": [
-        "id"
       ],
       "nameExplicit": false,
       "entityType": "pks"
