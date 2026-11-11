@@ -114,6 +114,10 @@ function RoundItem({
         <View className="gap-4 flex-row items-center">
           <CountDot color={ROUND_COLORS[scheme].green} value={`${green} / ${row.wordCount}`} />
           <Pressable
+            hitSlop={12}
+            disabled={red === 0}
+            accessibilityRole="button"
+            accessibilityLabel={`Review round ${row.round} · ${red} flagged`}
             onPress={() =>
               router.push({
                 pathname: '/mode/review',
@@ -124,10 +128,17 @@ function RoundItem({
             <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
           </Pressable>
           {row.reviewTimes > 0 ? (
-            <Text className="font-semibold text-blue-500 text-[13px]">time {row.reviewTimes}</Text>
-          ) : row.hasDraft ? (
-            <Text className="text-gray-400 dark:text-gray-500 text-[13px]">time 1 · uncounted</Text>
-          ) : null}
+            <Text className="font-semibold text-blue-500 text-[13px]">T{row.reviewTimes}</Text>
+          ) : (
+            // A done round's draft is doomed (抹零 on re-entry): it counts as
+            // nothing rather than promising a walk that will not happen.
+            !row.done &&
+            row.hasDraft && (
+              <Text className="text-gray-400 dark:text-gray-500 text-[13px]">
+                {`T${row.reviewTimes + 1} · uncounted`}
+              </Text>
+            )
+          )}
         </View>
         {when && (
           <Text

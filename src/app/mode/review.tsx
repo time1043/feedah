@@ -125,6 +125,9 @@ export default function ReviewScreen() {
             // the marks cleared elsewhere): the walk cannot load again, so
             // the session finishes here instead of lingering open forever.
             await finishReview(session.id)
+            // The await re-opens the cancelled window: a refocus that raced
+            // this write must not inherit this walk's empty answer.
+            if (cancelled) return
             setEmpty(true)
             return
           }
