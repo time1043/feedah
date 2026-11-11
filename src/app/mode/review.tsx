@@ -1,7 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useCallback, useState } from 'react'
-import { Text, View } from 'react-native'
+import { useCallback, useRef, useState } from 'react'
+import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import type { DeckWord } from '@/types/bucket'
@@ -15,7 +15,7 @@ import {
   tapToRevealAtom,
 } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
-import { WordDeck } from '@/components/word-deck'
+import { WordDeck, type WordDeckHandle } from '@/components/word-deck'
 import { getProgress, getWordsWithRoundFlag, setRoundFlag } from '@/db/repo/study-round'
 import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
@@ -54,6 +54,12 @@ export default function ReviewScreen() {
   const [round, setRound] = useState<number | null>(null)
   const [seen, setSeen] = useState(1)
 
+  const deckRef = useRef<WordDeckHandle>(null)
+  // Free-swiping state entered by scrubbing; exited by Resume reviewing.
+  // The frontier is the farthest card index reached in the current walk.
+  const [frontier, setFrontier] = useState(0)
+  const [browsing, setBrowsing] = useState(false)
+
   // Reloads on every focus: flags made (or cleared) in browse or study while
   // this screen sat under another one must show on return.
   useFocusEffect(
@@ -61,6 +67,9 @@ export default function ReviewScreen() {
       let cancelled = false
       setQueue(null)
       setRound(null)
+      setSeen(1)
+      setFrontier(0)
+      setBrowsing(false)
       void (async () => {
         try {
           // A pinned round arrives as a param; the home entry walks the
@@ -102,6 +111,11 @@ export default function ReviewScreen() {
     if (round !== null) void setRoundFlag(bucketName, round, word.position, !word.flagged)
   }
 
+  const resumeReviewing = () => {
+    setBrowsing(false)
+    deckRef.current?.scrollTo(frontier)
+  }
+
   if (queue === null) {
     return <View className="bg-white dark:bg-black flex-1" />
   }
@@ -127,6 +141,7 @@ export default function ReviewScreen() {
         />
       )}
       <WordDeck
+        ref={deckRef}
         words={queue}
         initialIndex={0}
         progressBar={showProgressBar}
@@ -135,6 +150,28 @@ export default function ReviewScreen() {
         onSpeak={(word) => speakWord(word.word, speechRate)}
         onToggleFlag={toggleFlag}
         onIndexChange={(index) => setSeen(index + 1)}
+        // Advances the frontier on forward swipes unless browsing.
+        onSettle={(index) => {
+          if (!browsing && index > frontier) {
+            setFrontier(index)
+          }
+        }}
+        // Scrubbing enters browse mode: the pill floats over the cards — not
+        // the header, which settings can hide — and is the way back to the
+        // walk's frontier.
+        onScrub={() => setBrowsing(true)}
+        banner={
+          browsing ? (
+            <Pressable
+              className="bg-blue-500 px-4 py-1.5 rounded-full"
+              onPress={resumeReviewing}
+              accessibilityRole="button"
+              accessibilityLabel="Resume reviewing"
+            >
+              <Text className="font-semibold text-white text-[13px]">Resume reviewing</Text>
+            </Pressable>
+          ) : undefined
+        }
         onClose={goBack}
         // The footer switch gates both ends of the bottom line: the round on
         // the left and the page counter on the right.
@@ -166,6 +203,11 @@ export default function ReviewScreen() {
               </Text>
             </View>
           ),
+          // Reaching the end while browsing snaps back to the last word
+          // instead of closing the review walk.
+          onReached: () => {
+            if (browsing) return false
+          },
           action: 'close',
         }}
       />
