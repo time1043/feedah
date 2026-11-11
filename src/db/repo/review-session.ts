@@ -17,6 +17,10 @@ export type { ReviewSessionRow } from '../schema/review-session'
  *     (抹零) and starts the real `time {n+1}` from the current flag list.
  *   - Without it, a single draft is kept (resumable, never counted).
  * Returns null when the round has no flags at all — no session for that.
+ *
+ * The open-check and the create are two steps, not one lock: a single JS
+ * thread does not race itself, and the partial unique index is the real
+ * guard for drafts — the counted path assumes the same single reader.
  */
 export async function openReviewSession(
   bucketName: string,
@@ -31,7 +35,24 @@ export async function openReviewSession(
     .where(and(eq(roundFlag.bucketName, bucketName), eq(roundFlag.round, round)))
     .orderBy(roundFlag.position)
   const queue = flagRows.map((row) => row.position)
-  if (queue.length === 0) return null
+  if (queue.length === 0) {
+    // The round holds no flags now — but a walk opened while they existed
+    // may still sit open. A draft can never become a real review against an
+    // empty list, so it clears (leaving no trace, like any finished draft);
+    // an open counted session is left alone — its walk happened, and the
+    // screen finishes it when its joined queue reads empty.
+    await db
+      .delete(reviewSession)
+      .where(
+        and(
+          eq(reviewSession.bucketName, bucketName),
+          eq(reviewSession.round, round),
+          eq(reviewSession.counted, false),
+          isNull(reviewSession.finishedAt),
+        ),
+      )
+    return null
+  }
 
   const openRows = await db
     .select()
