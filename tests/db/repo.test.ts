@@ -23,8 +23,17 @@ import {
 } from '@/db/repo/study-round'
 import { seedBuckets } from '@/db/seed'
 
-jest.mock('@/db/client', () => require('./harness').dbClient())
-jest.mock('@/db/index', () => require('./harness').dbIndex())
+import { resetDb, type dbClient, type dbIndex } from './harness'
+
+jest.mock('@/db/client', () => {
+  const harness = jest.requireActual<{ dbClient: typeof dbClient }>('./harness')
+  return harness.dbClient()
+})
+
+jest.mock('@/db/index', () => {
+  const harness = jest.requireActual<{ dbIndex: typeof dbIndex }>('./harness')
+  return harness.dbIndex()
+})
 
 const BUCKET = '2050'
 
@@ -48,7 +57,7 @@ async function finishFeedRound(): Promise<void> {
 }
 
 beforeEach(async () => {
-  require('./harness').resetDb()
+  resetDb()
   await seed()
 })
 
