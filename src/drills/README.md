@@ -19,8 +19,8 @@ The three built-ins live here as self-contained modules:
 settings) imports only the contract and the registry — it never imports a
 drill module. The `Drill` interface is:
 
-- **`id`** — any unique string. Persisted into `answer_log.mode` and
-  AsyncStorage (`feedah.study-mode`), so it must be stable across releases.
+- **`id`** — any unique string. Persisted into AsyncStorage
+  (`feedah.study-mode`), so it must be stable across releases.
 - **`label`** — the settings chip and deck title (`Study(Quiz) 2050`).
 - **`prepare?(words)`** — runs once per data load: initial focus, round
   advance, review round-walk, day/flag walks. All randomness lives here;
