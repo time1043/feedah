@@ -16,7 +16,7 @@ import {
 } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
 import { WordDeck } from '@/components/word-deck'
-import { getProgress, getWordsWithRoundFlag } from '@/db/repo/study-round'
+import { getProgress, getWordsWithRoundFlag, setRoundFlag } from '@/db/repo/study-round'
 import { goBack } from '@/lib/back'
 import { speakWord } from '@/lib/speech'
 
@@ -88,7 +88,8 @@ export default function ReviewScreen() {
   /** The bookmark is the walk's undo: a word that sticks gets its flag
    * cleared right here. The queue keeps the word in the walk — the list was
    * frozen when the screen opened, and unflagging must not reshuffle the
-   * cards under the reader's thumb. */
+   * cards under the reader's thumb. The session flip and the round_flag row
+   * say the same thing, like the study deck's bookmark does. */
   const toggleFlag = (word: DeckWord) => {
     setQueue(
       (prev) =>
@@ -96,6 +97,9 @@ export default function ReviewScreen() {
           entry.position === word.position ? { ...entry, flagged: !entry.flagged } : entry,
         ) ?? null,
     )
+    // The queue and its round resolve in the same load, so the deck only
+    // renders with both at hand.
+    if (round !== null) void setRoundFlag(bucketName, round, word.position, !word.flagged)
   }
 
   if (queue === null) {
