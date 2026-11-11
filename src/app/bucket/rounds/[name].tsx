@@ -1,7 +1,7 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
 import { useCallback, useState } from 'react'
-import { ScrollView, Text, View, useColorScheme } from 'react-native'
+import { Pressable, ScrollView, Text, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { activeBucketAtom } from '@/atoms/bucket'
@@ -17,8 +17,8 @@ import { formatSpan, formatStamp } from '@/lib/round-time'
  * first — its state, its red/green/gray sweep, and for a finished round when
  * it ran and how long it took.
  *
- * A round is not tappable yet: the review of its flag list is the drill mode,
- * which lands on its own.
+ * Tapping a round opens its flag list as a review walk — the marks that
+ * round left are exactly what the review screen queues up.
  */
 export default function RoundsScreen() {
   const { name } = useLocalSearchParams<{ name: string }>()
@@ -65,7 +65,12 @@ export default function RoundsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {rows?.map((row) => (
-            <RoundItem key={row.round} row={row} studying={bucketName === activeName} />
+            <RoundItem
+              key={row.round}
+              row={row}
+              studying={bucketName === activeName}
+              bucketName={bucketName}
+            />
           ))}
         </ScrollView>
       )}
@@ -73,7 +78,15 @@ export default function RoundsScreen() {
   )
 }
 
-function RoundItem({ row, studying }: { row: RoundRow; studying: boolean }) {
+function RoundItem({
+  row,
+  studying,
+  bucketName,
+}: {
+  row: RoundRow
+  studying: boolean
+  bucketName: string
+}) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
   const when = timeLineOf(row)
   const statuses = roundStatuses(row.wordCount, row)
@@ -98,7 +111,16 @@ function RoundItem({ row, studying }: { row: RoundRow; studying: boolean }) {
             is red and no longer green, so the two never double-count it. */}
         <View className="gap-4 flex-row items-center">
           <CountDot color={ROUND_COLORS[scheme].green} value={`${green} / ${row.wordCount}`} />
-          <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/mode/review',
+                params: { bucket: bucketName, round: String(row.round) },
+              })
+            }
+          >
+            <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
+          </Pressable>
         </View>
         {when && (
           <Text

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 
 import type { WordRow } from './bucket-word'
 
@@ -269,6 +269,17 @@ export async function setRoundFlag(
         eq(roundFlag.position, position),
       ),
     )
+}
+
+/** How many flag rows one round carries — the home review entry's count and
+ * the empty check behind it. */
+export async function countRoundFlags(bucketName: string, round: number): Promise<number> {
+  const db = await getDb()
+  const rows = await db
+    .select({ n: count() })
+    .from(roundFlag)
+    .where(and(eq(roundFlag.bucketName, bucketName), eq(roundFlag.round, round)))
+  return rows[0]?.n ?? 0
 }
 
 /** The bucket's words with their flag state IN one round — the deck's words

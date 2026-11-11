@@ -1,10 +1,11 @@
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 
 import { activeBucketAtom } from '@/atoms/bucket'
 import { getFirstPosition } from '@/db/repo/bucket-word'
+import { countRoundFlags, getProgress } from '@/db/repo/study-round'
 
 export default function Index() {
   const activeName = useAtomValue(activeBucketAtom)
@@ -32,6 +33,28 @@ export default function Index() {
   }, [activeName])
   const defaultPosition = firstPosition ?? ''
   const position = typedPosition ?? defaultPosition
+
+  // The review entry reads the live round's flags on every focus: the button
+  // is the review walk's front door, and a round with no marks has nothing
+  // to walk. null = the database has not answered yet.
+  const [flagCount, setFlagCount] = useState<number | null>(null)
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+      void (async () => {
+        try {
+          const progress = await getProgress(activeName)
+          const count = await countRoundFlags(activeName, progress.round)
+          if (!cancelled) setFlagCount(count)
+        } catch (error) {
+          console.error('[home] flag count failed', error)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [activeName]),
+  )
 
   return (
     <View className="gap-6 bg-white p-6 dark:bg-black flex-1 items-center justify-center">
@@ -69,10 +92,13 @@ export default function Index() {
         </Pressable>
 
         <Pressable
-          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border"
+          className="rounded-lg border-gray-300 p-3 dark:border-gray-700 border disabled:opacity-40"
+          disabled={flagCount === null || flagCount === 0}
           onPress={() => router.push('/mode/review')}
         >
-          <Text className="text-black dark:text-white">Review</Text>
+          <Text className="text-black dark:text-white">
+            Review{flagCount === null ? '' : ` · ${flagCount}`}
+          </Text>
         </Pressable>
 
         <Pressable
