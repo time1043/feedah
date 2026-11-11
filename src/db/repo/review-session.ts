@@ -1,4 +1,4 @@
-import { and, count, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, max, sql } from 'drizzle-orm'
 
 import type { ReviewSessionRow } from '../schema/review-session'
 
@@ -38,9 +38,11 @@ export async function openReviewSession(
   if (queue.length === 0) {
     // The round holds no flags now — but a walk opened while they existed
     // may still sit open. A draft can never become a real review against an
-    // empty list, so it clears (leaving no trace, like any finished draft);
-    // an open counted session is left alone — its walk happened, and the
-    // screen finishes it when its joined queue reads empty.
+    // empty list, so it clears (leaving no trace, like any finished draft).
+    // An open counted session is left alone on purpose — its walk happened:
+    // this return never hands it to the screen, so it stays open and
+    // resumable (flags reappearing continue it), and the round list keeps
+    // counting it through max(number).
     await db
       .delete(reviewSession)
       .where(
@@ -87,8 +89,11 @@ export async function openReviewSession(
             eq(reviewSession.counted, false),
           ),
         )
+      // The number is the highest existing one plus one — the same rule the
+      // round list reads by (max(number)), so the HUD and the list can never
+      // drift apart even if rows were ever pruned.
       const counted = await db
-        .select({ n: count() })
+        .select({ n: max(reviewSession.number) })
         .from(reviewSession)
         .where(
           and(
@@ -173,11 +178,13 @@ export async function finishReview(sessionId: number): Promise<void> {
   await db.delete(reviewSession).where(eq(reviewSession.id, sessionId))
 }
 
-/** How many real walk-throughs the round has had — a draft displays n + 1. */
+/** The round's highest real walk-through number — a draft displays n + 1.
+ * The max, not a count: the same rule the round list and the numbered
+ * insert read by, so the three can never drift apart. */
 export async function countedReviewCount(bucketName: string, round: number): Promise<number> {
   const db = await getDb()
   const rows = await db
-    .select({ n: count() })
+    .select({ n: max(reviewSession.number) })
     .from(reviewSession)
     .where(
       and(
