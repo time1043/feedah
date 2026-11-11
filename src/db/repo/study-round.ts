@@ -282,6 +282,20 @@ export async function countRoundFlags(bucketName: string, round: number): Promis
   return rows[0]?.n ?? 0
 }
 
+/**
+ * The round's feed is complete once its round_record row exists — the same
+ * row that carries the round's span doubles as the completion flag.
+ */
+export async function isRoundComplete(bucketName: string, round: number): Promise<boolean> {
+  const db = await getDb()
+  const rows = await db
+    .select({ round: roundRecord.round })
+    .from(roundRecord)
+    .where(and(eq(roundRecord.bucketName, bucketName), eq(roundRecord.round, round)))
+    .limit(1)
+  return rows.length > 0
+}
+
 /** The bucket's words with their flag state IN one round — the deck's words
  * for study and browse. The join is a left one: the flag row's absence is the
  * unflagged state. */
