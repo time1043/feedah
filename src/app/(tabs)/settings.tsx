@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 import { useAtom } from 'jotai'
-import { Alert, Pressable, Text, View } from 'react-native'
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 
 import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
 import { autoSpeakAtom, searchLocalAtom, tapToRevealAtom } from '@/atoms/settings'
@@ -39,7 +39,12 @@ export default function SettingsScreen() {
   const [localSearch, setLocalSearch] = useAtom(searchLocalAtom)
 
   return (
-    <View className="bg-white dark:bg-black flex-1 items-center justify-center">
+    <ScrollView
+      className="bg-white dark:bg-black flex-1"
+      // The tab outgrew one screen (the export row pushed ThemeToggle off
+      // the bottom): scroll when tall, keep the centered look when short.
+      contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
+    >
       <Text className="text-xl font-bold text-blue-500">Settings</Text>
 
       <View className="mt-8 w-72 gap-6">
@@ -82,6 +87,6 @@ export default function SettingsScreen() {
       </View>
 
       <ThemeToggle />
-    </View>
+    </ScrollView>
   )
 }
