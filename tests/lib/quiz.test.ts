@@ -60,6 +60,21 @@ describe('pickDistractors', () => {
     expect(picked).toHaveLength(3)
   })
 
+  it('takes a random three when the curated list overflows', () => {
+    const curated = [
+      { word: 'hopeful', meaning: 'adj. 乐天的' },
+      { word: 'sanguine', meaning: 'adj. 红润的' },
+      { word: 'rosy', meaning: 'adj. 美好的' },
+      { word: 'upbeat', meaning: 'adj. 欢快的' },
+    ]
+    const picked = pickDistractors(answer, curated, [], 3, makeRand([0, 0, 0]))
+    // Exactly three, every one of them curated, none from the (empty) pool.
+    expect(picked).toHaveLength(3)
+    expect(
+      picked.every((p) => curated.some((c) => c.word === p.word && c.meaning === p.meaning)),
+    ).toBe(true)
+  })
+
   it('returns fewer than three when the bucket runs out', () => {
     const tiny = [answer, word(2, 'glum', 'adj. 闷闷不乐的')]
     const picked = pickDistractors(answer, [], tiny, 3, makeRand([0]))
