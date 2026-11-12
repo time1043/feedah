@@ -1,0 +1,1 @@
+ALTER TABLE `word` ADD `distractors` text DEFAULT '[]' NOT NULL;

@@ -3,24 +3,32 @@ import raw700 from '@data/700.json'
 import raw2050 from '@data/2050.json'
 import { eq } from 'drizzle-orm'
 
+import type { Distractor } from '@/types/bucket'
+
 import { withTransaction, type Db } from './client'
 import { bucket, word } from './schema/bucket-word'
 
-type SeedWord = {
+export type SeedWord = {
   position: number
   word: string
   ipa: string
   meaning: string
   forms: string[]
+  /** The curated confusables the quiz drill prefers; most seeds carry none. */
+  distractors?: Distractor[]
 }
 
-type SeedFile = { name: string; words: SeedWord[] }
+export type SeedFile = { name: string; words: SeedWord[] }
 
-const SEED_FILES: SeedFile[] = [raw2050, raw370, raw700]
+const BUNDLED_BUCKETS = [raw2050, raw370, raw700] as SeedFile[]
+
+/** The buckets the app bundles — the restore path un-tombstones exactly
+ * these. */
+export const BUNDLED_BUCKET_NAMES = BUNDLED_BUCKETS.map((file) => file.name)
 
 /** A deterministic content hash of the seed words: data-only changes (new
  * words, edited meanings) re-seed the bucket even when the count is equal. */
-function contentHashOf(words: SeedWord[]): string {
+export function contentHashOf(words: SeedWord[]): string {
   const json = JSON.stringify(words)
   let hash = 5381
   for (let i = 0; i < json.length; i++) {
@@ -30,20 +38,27 @@ function contentHashOf(words: SeedWord[]): string {
 }
 
 /**
- * Seeds the bundled buckets on every cold start; idempotent against the
+ * Seeds the given buckets on every cold start; idempotent against the
  * stored bucket.word_count + content hash, so an unchanged bucket is one
- * SELECT and a changed one is fully replaced inside a transaction. The
- * statements are drizzle now — the idempotency logic is what survived the
- * raw-sqlite stage.
+ * SELECT and a changed one is fully replaced inside a transaction. A
+ * tombstoned bucket stays deleted: even a changed file must not resurrect
+ * it (the check sits before the hash comparison). The statements are
+ * drizzle now — the idempotency logic is what survived the raw-sqlite
+ * stage.
  */
-export async function seedBuckets(db: Db): Promise<void> {
-  for (const file of SEED_FILES) {
+export async function seedBucketsFrom(db: Db, files: SeedFile[]): Promise<void> {
+  for (const file of files) {
     const hash = contentHashOf(file.words)
     const existing = await db
-      .select({ wordCount: bucket.wordCount, contentHash: bucket.contentHash })
+      .select({
+        wordCount: bucket.wordCount,
+        contentHash: bucket.contentHash,
+        deletedAt: bucket.deletedAt,
+      })
       .from(bucket)
       .where(eq(bucket.name, file.name))
       .limit(1)
+    if (existing[0] && existing[0].deletedAt !== null) continue
     if (
       existing[0] &&
       existing[0].wordCount === file.words.length &&
@@ -73,8 +88,14 @@ export async function seedBuckets(db: Db): Promise<void> {
           ipa: w.ipa,
           meaning: w.meaning,
           forms: JSON.stringify(w.forms),
+          distractors: w.distractors ?? [],
         })),
       )
     })
   }
+}
+
+/** Seeds the bundled buckets. */
+export async function seedBuckets(db: Db): Promise<void> {
+  await seedBucketsFrom(db, BUNDLED_BUCKETS)
 }

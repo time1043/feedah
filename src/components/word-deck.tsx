@@ -1,4 +1,12 @@
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
+import {
+  useEffect,
+  useEffectEvent,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from 'react'
 import { FlatList, View } from 'react-native'
 
 import type { DeckWord } from '@/types/bucket'
@@ -12,6 +20,11 @@ const END_LINGER_MS = 2000
 export interface WordDeckHandle {
   /** Programmatic jump to a card, as if scrubbed: no settle events fire. */
   scrollTo(index: number): void
+  /** Whether the card on screen is the given word (auto-advance guard). */
+  showsWord(position: number): boolean
+  /** Settles the NEXT card through the full path (probe records, end page
+   * fires) and slides to it. Button-driven modes auto-advance here. */
+  advance(): void
 }
 
 export interface WordDeckEnd {
@@ -42,20 +55,32 @@ type WordDeckProps = {
    * the flag flips open, the deck speaks the card it is currently on. While
    * it is closed, speak calls are dropped WITHOUT being marked as spoken. */
   canSpeak?: boolean
+  /** Whether the deck's own speak calls happen at all — the drill's
+   * speakOnSettle. A drill that must stay silent turns it off; replay taps
+   * still reach onSpeak. */
+  autoSpeak?: boolean
   /** Whether the meaning waits for a tap; forwarded to every card. */
   tapToReveal?: boolean
   /** The words' flag state forwarded to every card: the bookmark shows when
    * the screen passes a toggle, and the deck hides it otherwise. */
   onToggleFlag?: (word: DeckWord) => void
-  /** Card to open on, clamped into range; read once on mount. */
+  /** Card to open on, clamped into range; read on mount. */
   initialIndex?: number
+  /**
+   * Changing it restarts the session: the list remounts and initialIndex is
+   * re-applied. FlatList only honors initialScrollIndex on mount, so a new
+   * dataset needs a new key.
+   */
+  resetKey?: string
   /** Whether the scrubbable progress bar renders above the cards. */
   progressBar?: boolean
+  /** Whether the progress bar can be grabbed and scrubbed. */
+  scrubbable?: boolean
   /** The current card changed (opened, swiped, scrubbed): mirror it out. */
   onIndexChange?: (index: number) => void
   /** The user swiped onto a word card (a real gesture's landing; scrubs and
    * programmatic jumps don't count). */
-  onSettle?: (index: number) => void
+  onSettle?: (word: DeckWord, index: number) => void
   /** The user released the progress bar on a card. */
   onScrub?: (index: number) => void
   /** Quiet footer slots on the bottom line (page counter, round/time). */
@@ -65,6 +90,22 @@ type WordDeckProps = {
    * pill). Rendered whenever provided — independent of the header and bar
    * settings, so the affordance survives every visibility combination. */
   banner?: ReactNode
+  /**
+   * Custom card renderer for study modes. Defaults to the swipe-mode
+   * WordCard; receives the replay/flag helpers wired to the deck's props.
+   */
+  renderCard?: (
+    word: DeckWord,
+    helpers: { onReplay: () => void; onToggleFlag: () => void; tapToReveal?: boolean },
+  ) => ReactNode
+  /**
+   * Landing gate for answer-gated modes: may the deck settle from card
+   * `from` onto card `to`? Returning false snaps the view back to `from`
+   * without firing onSettle. The deck also derives its gesture scrolling
+   * from this per render, so the gate takes effect in the same commit as
+   * the state it is computed from — no mirror delay.
+   */
+  canSettle?: (from: number, to: number) => boolean
   /** The end page: rendered after the last word when present. */
   end?: WordDeckEnd
   /** What the end page's 'close' action calls; only needed with it. */
@@ -76,29 +117,40 @@ type DeckItem = { kind: 'word'; word: DeckWord } | { kind: 'end' }
 /**
  * The vertical card pager: one full-screen card at a time, swiped through
  * like a short-video feed. A dumb pager — it decides nothing about the
- * words; screens hand it words and callbacks for speech, progress and
- * (later) answers.
+ * words; screens hand it words and callbacks for speech, progress, answers
+ * and (later) the end page.
  *
- * Two mechanics matter:
+ * Mechanics worth knowing:
  *  - Every card is exactly the measured viewport height, kept fractional:
  *    rounding lets pagingEnabled drift off the card boundaries over time.
  *  - getItemLayout gives FlatList O(1) offset math, so paging stays aligned
  *    even with hundreds of cards.
+ *  - Programmatic jumps are instant (animated: false) except advance(),
+ *    which slides animated and records through the full settle path right
+ *    away; a `suppressSettle` flag eats the animation's own momentum-end,
+ *    and the next real gesture's momentum-begin clears it.
+ *  - Settles are computed from contentOffset / viewport on momentum end,
+ *    never from gesture velocity.
  */
 export function WordDeck({
   words,
   onSpeak,
   canSpeak = true,
+  autoSpeak = true,
   tapToReveal,
   onToggleFlag,
   initialIndex = 0,
+  resetKey,
   progressBar = true,
+  scrubbable = true,
   onIndexChange,
   onSettle,
   onScrub,
   hudLeft,
   hudRight,
   banner,
+  renderCard,
+  canSettle,
   onClose,
   end,
   ref,
@@ -116,32 +168,108 @@ export function WordDeck({
   // ref feeds the re-snap without re-rendering.
   const [index, setIndex] = useState(initial)
   const indexRef = useRef(initial)
+  // Eats the momentum-end of programmatic jumps so a jump records nothing
+  // (the jump path records through settle() itself, when it must).
+  const suppressSettle = useRef(false)
   // One speak per index: an animated advance settles its target twice
   // (explicitly + via the animation's momentum end) — only the first speaks,
   // otherwise the word audibly restarts.
   const spokenIndexRef = useRef(-1)
   const endReached = useRef(false)
   const endLingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The resetKey effect must skip its first mount: useState already applied
+  // the initial card.
+  const mountedRef = useRef(false)
 
-  const speakAt = (target: number) => {
-    if (!onSpeak || canSpeak === false) return
+  // Gesture scrolling re-derives from the gate on every render: while the
+  // card on screen is unanswered (and the mode gates answers) the list
+  // simply cannot be scrolled — in the same commit the answer state changed.
+  // With a gate, gesture scrolling comes from canSettle alone — the gate
+  // already encodes browsing and the answer state. Without one, the plain
+  // scrollEnabled prop governs (swipe mode: always true).
+  const gesturesEnabled = canSettle ? canSettle(index, Math.min(index + 1, itemCount - 1)) : true
+
+  const speakAt = useEffectEvent((target: number) => {
+    if (!onSpeak || canSpeak === false || autoSpeak === false) return
     if (spokenIndexRef.current === target) return
     const word = words[target]
     if (!word) return
     spokenIndexRef.current = target
     onSpeak(word)
-  }
+  })
 
-  const scrubTo = (target: number) => {
+  // The landing path shared by real gestures and the imperative handle. The
+  // end page is reachable only by gestures (the bar's scrub clamps to the
+  // last word); a vetoed landing snaps back without recording anything.
+  const settle = useEffectEvent((rawIndex: number) => {
+    const target = clamp(rawIndex)
+    // While the end page lingers, gestures record nothing.
+    if (endLingerTimer.current) return
+
+    if (end && target >= words.length) {
+      if (endReached.current) return
+      endReached.current = true
+      if (end.onReached?.() === false) {
+        endReached.current = false
+        // A vetoed landing must not park on the end page — snap back to the
+        // last word; the user can try the swipe again once the veto's reason
+        // is gone.
+        const last = Math.max(0, words.length - 1)
+        suppressSettle.current = true
+        indexRef.current = last
+        setIndex(last)
+        listRef.current?.scrollToIndex({ index: last, animated: false })
+        return
+      }
+      setIndex(target)
+      endLingerTimer.current = setTimeout(() => {
+        endLingerTimer.current = null
+        if (end.action === 'close') {
+          onClose?.()
+          return
+        }
+        // The reset is a programmatic jump: move the index state too, or the
+        // bar stays parked on the end page. Landing back on the first card
+        // re-arms the end page and speaks it — the next round starts.
+        endReached.current = false
+        suppressSettle.current = true
+        indexRef.current = 0
+        setIndex(0)
+        listRef.current?.scrollToIndex({ index: 0, animated: false })
+        speakAt(0)
+      }, END_LINGER_MS)
+      return
+    }
+
+    // Answer-gated modes: leaving an unanswered card is vetoed — snap back
+    // to the card the gesture started from, without recording anything.
+    if (canSettle && !canSettle(indexRef.current, target)) {
+      suppressSettle.current = true
+      listRef.current?.scrollToIndex({ index: indexRef.current, animated: false })
+      return
+    }
+
+    // Landing on a word card re-arms the end page: after a reset, the next
+    // walk-through must fire onReached again.
+    endReached.current = false
+    indexRef.current = target
+    setIndex(target)
+    speakAt(target)
+    const word = words[target]
+    if (word) onSettle?.(word, target)
+  })
+
+  const scrubTo = useEffectEvent((target: number) => {
     const clamped = Math.max(0, Math.min(target, words.length - 1))
     // Programmatic jumps (animated: false) fire no events — the jump and the
     // mirror happen here, and speakAt marks the card as spoken.
+    suppressSettle.current = true
     listRef.current?.scrollToIndex({ index: clamped, animated: false })
     indexRef.current = clamped
     setIndex(clamped)
     speakAt(clamped)
     onScrub?.(clamped)
-  }
+  })
 
   // The viewport can re-measure (safe-area insets settling, rotation) while
   // the user is on card N. pagingEnabled never re-snaps on its own, so
@@ -149,6 +277,7 @@ export function WordDeck({
   useEffect(() => {
     if (viewport <= 0) return
     const frame = requestAnimationFrame(() => {
+      suppressSettle.current = true
       listRef.current?.scrollToIndex({ index: indexRef.current, animated: false })
     })
     return () => cancelAnimationFrame(frame)
@@ -167,80 +296,54 @@ export function WordDeck({
     [],
   )
 
-  // The landing path shared by real gestures and the imperative handle. The
-  // end page is reachable only by gestures (the bar's scrub clamps to the
-  // last word); a vetoed landing snaps back without recording anything.
-  const settle = (rawIndex: number) => {
-    const target = clamp(rawIndex)
-    // While the end page lingers, gestures record nothing.
-    if (endLingerTimer.current) return
-
-    if (end && target >= words.length) {
-      if (endReached.current) return
-      endReached.current = true
-      if (end.onReached?.() === false) {
-        endReached.current = false
-        // A vetoed landing must not park on the end page — snap back to the
-        // last word; the user can try the swipe again once the veto's reason
-        // is gone.
-        const last = Math.max(0, words.length - 1)
-        indexRef.current = last
-        setIndex(last)
-        listRef.current?.scrollToIndex({ index: last, animated: false })
-        return
-      }
-      setIndex(target)
-      endLingerTimer.current = setTimeout(() => {
-        endLingerTimer.current = null
-        if (end.action === 'close') {
-          onClose?.()
-          return
-        }
-        // The reset is a programmatic jump: move the index state too, or the
-        // bar stays parked on the end page. Landing back on the first card
-        // re-arms the end page and speaks it — the next round starts.
-        endReached.current = false
-        indexRef.current = 0
-        setIndex(0)
-        listRef.current?.scrollToIndex({ index: 0, animated: false })
-        speakAt(0)
-      }, END_LINGER_MS)
-      return
-    }
-
-    // Landing on a word card re-arms the end page: after a reset, the next
-    // walk-through must fire onReached again.
-    endReached.current = false
-    indexRef.current = target
-    setIndex(target)
-    speakAt(target)
-    onSettle?.(target)
-  }
+  // A new resetKey is a new session: re-apply the initial card. initialIndex
+  // is only meaningful together with resetKey, hence not a dependency. Skip
+  // the first mount: useState already applied the initial card.
+  useEffect(() => {
+    if (!mountedRef.current) return
+    indexRef.current = clamp(initialIndex)
+    setIndex(clamp(initialIndex))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey])
 
   // Opening the deck speaks the card it opens on, once the viewport is
   // known. If the screen held speaking back (its gate closed), the flip
   // open re-triggers it for whatever card the deck is on by then; the dedupe
-  // keeps every other re-run quiet.
+  // keeps every other re-run quiet. A resetKey change speaks its own
+  // opening card — a new session.
   useEffect(() => {
     if (viewport > 0) speakAt(indexRef.current)
-    // speakAt reads fresh state on every call; only the measure and the
-    // gate matter here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // speakAt is an effect event: it reads fresh state on every call and
+    // stays out of the dependency list by design.
   }, [viewport, canSpeak])
 
-  // Mirror the current card out, whenever it changes.
   useEffect(() => {
-    onIndexChange?.(index)
-  }, [index, onIndexChange])
+    if (mountedRef.current && viewport > 0) speakAt(clamp(initialIndex))
+    mountedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey])
 
   useImperativeHandle(
     ref,
     () => ({
       scrollTo: (target: number) => {
         const clamped = clamp(target)
+        suppressSettle.current = true
         listRef.current?.scrollToIndex({ index: clamped, animated: false })
         indexRef.current = clamped
         setIndex(clamped)
+      },
+      showsWord: (position: number) => words[indexRef.current]?.position === position,
+      advance: () => {
+        const target = clamp(indexRef.current + 1)
+        if (target === indexRef.current) return
+        // Animated on purpose: the smooth slide is the feedback. The explicit
+        // settle below records immediately; the animation's own momentum-end
+        // may settle the same index again, which suppressSettle eats and
+        // speakAt dedupes.
+        suppressSettle.current = true
+        listRef.current?.scrollToIndex({ index: target, animated: true })
+        settle(target)
       },
     }),
     // clamp reads only props; the handle stays stable for the deck's life.
@@ -256,7 +359,9 @@ export function WordDeck({
   return (
     <View className="flex-1">
       <View className="px-4 pb-1">
-        {progressBar && <ProgressBar value={index} max={itemCount} scrubbable onScrub={scrubTo} />}
+        {progressBar && (
+          <ProgressBar value={index} max={itemCount} scrubbable={scrubbable} onScrub={scrubTo} />
+        )}
       </View>
 
       <View
@@ -266,9 +371,10 @@ export function WordDeck({
           if (height > 0 && Math.abs(height - viewport) > 0.01) setViewport(height)
         }}
       >
-        {viewport > 0 && (
+        {viewport > 0 && itemCount > 0 && (
           <FlatList
             ref={listRef}
+            key={resetKey}
             data={items}
             keyExtractor={(item, i) =>
               item.kind === 'word' ? `w-${item.word.position}-${i}` : 'end'
@@ -276,19 +382,28 @@ export function WordDeck({
             renderItem={({ item }) => (
               <View style={{ height: viewport }}>
                 {item.kind === 'word' ? (
-                  <WordCard
-                    word={item.word}
-                    tapToReveal={tapToReveal}
-                    flagged={item.word.flagged}
-                    onToggleFlag={onToggleFlag ? () => onToggleFlag(item.word) : undefined}
-                    onReplay={() => onSpeak?.(item.word)}
-                  />
+                  renderCard ? (
+                    renderCard(item.word, {
+                      onReplay: () => onSpeak?.(item.word),
+                      onToggleFlag: () => onToggleFlag?.(item.word),
+                      tapToReveal,
+                    })
+                  ) : (
+                    <WordCard
+                      word={item.word}
+                      tapToReveal={tapToReveal}
+                      flagged={item.word.flagged}
+                      onToggleFlag={onToggleFlag ? () => onToggleFlag(item.word) : undefined}
+                      onReplay={() => onSpeak?.(item.word)}
+                    />
+                  )
                 ) : (
                   end?.render()
                 )}
               </View>
             )}
             pagingEnabled
+            scrollEnabled={gesturesEnabled}
             showsVerticalScrollIndicator={false}
             // A bucket can hold hundreds of cards: keep the rendered window small.
             initialNumToRender={2}
@@ -296,7 +411,17 @@ export function WordDeck({
             windowSize={3}
             getItemLayout={(_, index) => ({ length: viewport, offset: viewport * index, index })}
             initialScrollIndex={initial}
+            onMomentumScrollBegin={() => {
+              // A real gesture is starting: drop any stale jump suppression
+              // left behind by an instant scrollToIndex (which fires no
+              // events — every programmatic jump here is instant).
+              suppressSettle.current = false
+            }}
             onMomentumScrollEnd={(event) => {
+              if (suppressSettle.current) {
+                suppressSettle.current = false
+                return
+              }
               // Programmatic jumps (animated: false) fire no events, so this is
               // a real gesture's landing — the deck has settled on the card.
               settle(Math.round(event.nativeEvent.contentOffset.y / viewport))

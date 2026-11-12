@@ -5,9 +5,18 @@
 //
 
 // Typed by the real module, resolved to the harness at runtime.
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { getDb } from '@/db/index'
+import {
+  deleteBucket,
+  getBucketCards,
+  getBuckets,
+  restoreBuckets,
+  tombstonedBuckets,
+} from '@/db/repo/bucket-word'
+import { listDailyPointers } from '@/db/repo/daily'
+import { getWordsCompletedOn, getWordsFlaggedOn } from '@/db/repo/day-walk'
 import {
   countedReviewCount,
   finishReview,
@@ -25,6 +34,7 @@ import {
 } from '@/db/repo/study-round'
 import { reviewSession } from '@/db/schema/review-session'
 import { seedBuckets } from '@/db/seed'
+import { todayLocalDate } from '@/lib/date'
 
 import { resetDb, type dbClient, type dbIndex } from './harness'
 
@@ -39,6 +49,11 @@ jest.mock('@/db/index', () => {
 })
 
 const BUCKET = '2050'
+
+/** The seeded list carries the other bundled buckets too — these read the
+ * one under test. */
+const getBucketsSync = (rows: { name: string }[]) => rows.map((row) => row.name)
+const getBucketCardsSync = (cards: { name: string }[]) => cards.map((card) => card.name)
 
 async function seed(): Promise<void> {
   const db = await getDb()
@@ -92,6 +107,36 @@ describe('probe', () => {
     await finishFeedRound()
     expect(await countRoundFlags(BUCKET, 2)).toBe(2)
     expect(await countRoundFlags(BUCKET, 1)).toBe(2)
+  })
+})
+
+describe('the daily pointer', () => {
+  it('snapshots the end-of-day position on settle and on completion', async () => {
+    const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
+    const wordCount = words.length
+    // The ordinal is 1-based: settling the card at index 1 (the second card)
+    // freezes global position 2.
+    await settleCard(BUCKET, 1)
+    const pointers = await listDailyPointers()
+    expect(pointers).toHaveLength(1)
+    expect(pointers[0]).toMatchObject({
+      day: todayLocalDate(),
+      bucketName: BUCKET,
+      globalPosition: 2,
+    })
+    await finishFeedRound()
+    const [endOfDay] = await listDailyPointers()
+    // The completion itself is exposure: the end card lands on today's
+    // watermark at the round's end.
+    expect(endOfDay.globalPosition).toBe(wordCount)
+  })
+
+  it('keeps one row per bucket, moving forward only', async () => {
+    await settleCard(BUCKET, 3)
+    await settleCard(BUCKET, 1)
+    const pointers = await listDailyPointers()
+    expect(pointers).toHaveLength(1)
+    expect(pointers[0].globalPosition).toBe(4)
   })
 })
 
@@ -246,5 +291,131 @@ describe('review session counting (the zeroing rule)', () => {
     await finishReview(session!.id)
     const [reread] = await db.select().from(reviewSession).where(eq(reviewSession.id, session!.id))
     expect(reread.finishedAt).toBe(archived.finishedAt)
+  })
+})
+
+describe('day review reconstruction', () => {
+  it('a day spanning two rounds replays every round without dedup', async () => {
+    const wordCount = (await getWordsWithRoundFlag(BUCKET, 1))[1].length
+    const positions = await wordPositions()
+    // Exposure semantics: the first snapshot's gain covers the walk up to
+    // the watermark — settling the second card credits the first card too.
+    await settleCard(BUCKET, 1)
+    await finishFeedRound()
+    await settleCard(BUCKET, 1)
+
+    const entries = await getWordsCompletedOn(todayLocalDate())
+    // Round 1's whole stretch (the completion pins its end) plus round 2's
+    // gain: the same word may appear once per round it was walked in.
+    expect(entries).toHaveLength(wordCount + 2)
+    expect(entries[0]).toMatchObject({ bucketName: BUCKET, round: 1, position: positions[0] })
+    const lastTwo = entries.slice(-2)
+    expect(lastTwo.map((entry) => entry.round)).toEqual([2, 2])
+    expect(lastTwo.map((entry) => entry.position)).toEqual([positions[0], positions[1]])
+  })
+
+  it('shows each round its own flag state', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await finishFeedRound()
+    await setRoundFlag(BUCKET, 2, p1, false)
+    await settleCard(BUCKET, 1)
+
+    const entries = await getWordsCompletedOn(todayLocalDate())
+    const round1First = entries.find((entry) => entry.round === 1 && entry.position === p1)
+    const round2First = entries.find((entry) => entry.round === 2 && entry.position === p1)
+    // A replay of the day looks the way the day looked.
+    expect(round1First?.flagged).toBe(true)
+    expect(round2First?.flagged).toBe(false)
+  })
+})
+
+describe('flag review reconstruction', () => {
+  it('replays the day flags in flag order, one entry per flag', async () => {
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+
+    // Same-millisecond stamps would tie: pin the order explicitly.
+    const db = await getDb()
+    const t = Date.now()
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t} WHERE position = ${p1}`)
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${t + 1000} WHERE position = ${p2}`)
+
+    const entries = await getWordsFlaggedOn(todayLocalDate())
+    expect(entries.map((entry) => entry.position)).toEqual([p1, p2])
+    expect(entries.every((entry) => entry.flagged)).toBe(true)
+  })
+
+  it('ignores flags from other days and words unflagged since', async () => {
+    const [p1, p2] = await wordPositions()
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+    // p2's mark is cleared: the row's absence leaves nothing to review.
+    await setRoundFlag(BUCKET, 1, p2, false)
+
+    const db = await getDb()
+    const yesterday = Date.now() - 86_400_000
+    await db.run(sql`UPDATE round_flag SET flagged_at = ${yesterday} WHERE position = ${p1}`)
+
+    expect(await getWordsFlaggedOn(todayLocalDate())).toHaveLength(0)
+    const yesterdayKey = todayLocalDate(new Date(yesterday))
+    expect((await getWordsFlaggedOn(yesterdayKey)).map((entry) => entry.position)).toEqual([p1])
+  })
+
+  it('groups flags by round even when an earlier round is revisited', async () => {
+    const [p1, p2, p3] = await wordPositions()
+    await finishFeedRound() // no carries: round 2 opens empty
+    // Flag round 2, then revisit round 1: a replay that bounced 1 → 2 → 1
+    // must still walk round 1 in one pass.
+    await setRoundFlag(BUCKET, 2, p1, true)
+    await setRoundFlag(BUCKET, 1, p2, true)
+    await setRoundFlag(BUCKET, 1, p3, true)
+
+    const entries = await getWordsFlaggedOn(todayLocalDate())
+    expect(entries.map((entry) => entry.round)).toEqual([1, 1, 2])
+  })
+})
+
+describe('bucket deletion (the tombstone)', () => {
+  it('hides the bucket from every list but keeps its rows', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+
+    await deleteBucket(BUCKET)
+
+    expect(getBucketsSync(await getBuckets())).not.toContain(BUCKET)
+    expect(getBucketCardsSync(await getBucketCards())).not.toContain(BUCKET)
+    // The rows stay: history, flags, probe.
+    const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
+    expect(words.length).toBeGreaterThan(0)
+    expect(await countRoundFlags(BUCKET, 1)).toBe(1)
+    expect((await getProgress(BUCKET)).pointer).toBe(1)
+    // The tombstoned bundled bucket is exactly what the restore path offers.
+    expect(await tombstonedBuckets()).toEqual([BUCKET])
+  })
+
+  it('a cold start does not resurrect a deleted bucket', async () => {
+    await deleteBucket(BUCKET)
+    const db = await getDb()
+    await seedBuckets(db)
+    expect(getBucketsSync(await getBuckets())).not.toContain(BUCKET)
+  })
+
+  it('restoring lifts the tombstone with the history intact', async () => {
+    const [p1] = await wordPositions()
+    await settleCard(BUCKET, 1)
+    await setRoundFlag(BUCKET, 1, p1, true)
+    await deleteBucket(BUCKET)
+
+    await restoreBuckets(await tombstonedBuckets())
+
+    const buckets = await getBuckets()
+    expect(buckets.find((row) => row.name === BUCKET)).toMatchObject({ name: BUCKET })
+    expect(await countRoundFlags(BUCKET, 1)).toBe(1)
+    expect((await getProgress(BUCKET)).pointer).toBe(1)
+    expect(await tombstonedBuckets()).toHaveLength(0)
   })
 })

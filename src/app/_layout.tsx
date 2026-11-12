@@ -4,10 +4,11 @@ import '@/global.css'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useEffect, useState } from 'react'
-import { Platform, Pressable, StatusBar as RNStatusBar, Text } from 'react-native'
+import { AppState, Platform, Pressable, StatusBar as RNStatusBar, Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { getDb, getRawDb } from '@/db'
+import { flushUsage, pauseAppUsage, startAppUsage } from '@/db/usage'
 import ThemeProvider from '@/providers/theme-provider'
 
 if (Platform.OS === 'android') {
@@ -41,6 +42,23 @@ export default function RootLayout() {
   }, [])
 
   useEffect(openDb, [openDb])
+
+  // App time accrues only while the app is foregrounded and active; the
+  // backgrounded span pauses, and the next flush lands it in neither day.
+  useEffect(() => {
+    startAppUsage()
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') startAppUsage()
+      else {
+        pauseAppUsage()
+        void flushUsage()
+      }
+    })
+    return () => {
+      subscription.remove()
+      pauseAppUsage()
+    }
+  }, [])
 
   /** The retry button is the only path that resets the flags: clearing them
    * here (an event handler) keeps the effect free of a synchronous setState. */

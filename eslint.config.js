@@ -17,12 +17,13 @@ module.exports = defineConfig([
     },
   },
   {
-    // The progress bar is a verbatim port of the reference implementation
-    // (try/261107-drill-plugin): PanResponder reads fresh state through
-    // useEffectEvent on purpose — calling effect events from stale closures
-    // is exactly what they exist for. The rules-of-hooks model and the
-    // compiler's manual memoization pass don't recognize that pattern yet.
-    files: ['src/components/progress-bar.tsx'],
+    // The progress bar and the deck use the reference implementation's
+    // (try/261107-drill-plugin) pattern: event callbacks, the imperative
+    // handle and PanResponder read fresh state through useEffectEvent —
+    // calling effect events from stale closures is exactly what they exist
+    // for. The rules-of-hooks model and the compiler's manual memoization
+    // pass don't recognize that pattern yet.
+    files: ['src/components/progress-bar.tsx', 'src/components/word-deck.tsx'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
       'react-hooks/preserve-manual-memoization': 'off',

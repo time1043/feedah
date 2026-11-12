@@ -67,6 +67,9 @@ export type StudyAction =
       answered: number
       correct: number
     }
+  /** The post-advance reload: the fresh round's words with the flags the
+   * finished round handed down (回显). The database is the truth. */
+  | { type: 'roundWordsLoaded'; words: DeckWord[] }
   | { type: 'autoAdvanceDone' }
 
 /**
@@ -174,6 +177,12 @@ export function studyReducer(session: StudySession, action: StudyAction): StudyS
           nextRound: session.progress.round + 1,
         },
       }
+    }
+    case 'roundWordsLoaded': {
+      if (session.status !== 'ready') return session
+      // The fresh list carries the marks the finished round handed down;
+      // whatever the local copy believed, the database just decided.
+      return { ...session, words: action.words }
     }
     case 'autoAdvanceDone': {
       if (session.status !== 'ready') return session
