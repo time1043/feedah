@@ -80,5 +80,10 @@ describe('buildOptions', () => {
     expect(options.filter((o) => o.isCorrect)).toHaveLength(1)
     expect(new Set(options.map((o) => o.meaning)).size).toBe(4)
     expect(options.find((o) => o.isCorrect)?.meaning).toBe('adj. 乐观的')
+    // Every option carries its word: the reveal names what each meaning
+    // belonged to.
+    expect(new Set(options.map((o) => o.word)).size).toBe(4)
+    expect(options.find((o) => o.isCorrect)?.word).toBe('optimistic')
+    expect(options.find((o) => o.key === 'd0')?.word).toBe('positive')
   })
 })

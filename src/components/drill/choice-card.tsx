@@ -78,7 +78,14 @@ export function ChoiceCard({
               onPress={() => onAnswer(option.isCorrect, option.key)}
               className={`rounded-xl px-3 py-5 border ${classes}`}
             >
-              <Text className={`text-left text-[14px] ${textClass}`}>{option.meaning}</Text>
+              <Text className={`text-left text-[14px] ${textClass}`}>
+                {option.meaning}
+                {locked && (
+                  // The reveal names every option: picking "乐观的" teaches
+                  // more when the card also says it was "optimist".
+                  <Text className="text-gray-400 dark:text-gray-500">{`  ·  ${option.word}`}</Text>
+                )}
+              </Text>
             </Pressable>
           )
         })}

@@ -1,6 +1,6 @@
 import type { Distractor, Word } from '@/types/bucket'
 
-export type QuizOption = { key: string; meaning: string; isCorrect: boolean }
+export type QuizOption = { key: string; meaning: string; word: string; isCorrect: boolean }
 
 /**
  * Typing answers: trim → NFC → lowercase → curly quotes straightened →
@@ -60,7 +60,9 @@ export function pickDistractors(
   return picked
 }
 
-/** The answer plus its distractors, shuffled into display order. */
+/** The answer plus its distractors, shuffled into display order. Each entry
+ * carries its word: the reveal names what every option actually was, so the
+ * confusable pairs teach themselves. */
 export function buildOptions(
   correct: Word,
   distractors: Distractor[],
@@ -68,8 +70,13 @@ export function buildOptions(
 ): QuizOption[] {
   return shuffle(
     [
-      { key: 'correct', meaning: correct.meaning, isCorrect: true },
-      ...distractors.map((d, i) => ({ key: `d${i}`, meaning: d.meaning, isCorrect: false })),
+      { key: 'correct', meaning: correct.meaning, word: correct.word, isCorrect: true },
+      ...distractors.map((d, i) => ({
+        key: `d${i}`,
+        meaning: d.meaning,
+        word: d.word,
+        isCorrect: false,
+      })),
     ],
     rand,
   )
