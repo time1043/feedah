@@ -72,7 +72,7 @@ export function SelectRow({ label, value, options, onValueChange }: SelectRowPro
                   <Text
                     className={
                       selected
-                        ? 'font-semibold text-blue-500 text-[15px]'
+                        ? 'font-semibold text-accent-deep dark:text-accent text-[15px]'
                         : 'text-black dark:text-white text-[15px]'
                     }
                   >
