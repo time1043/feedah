@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { View, useColorScheme } from 'react-native'
 
 import type { RoundWordStatus } from '@/lib/round-status'
@@ -18,49 +17,46 @@ type RoundBarProps = {
 }
 
 /**
- * Horizontal timeline of a round, drawn with plain views. Words are
- * aggregated into one two-pixel column (red wins over green over gray): a
- * 2000-word bucket cannot be resolved per word on a ~360dp bar, one column
- * per two pixels keeps the draw cheap, and a column takes the loudest status
- * of the words it covers so every flagged word stays visible.
+ * Horizontal timeline of a round, drawn over a plain gray track. Runs of one
+ * status merge into a single absolutely-positioned span — a finished round's
+ * two thousand green words are one block, not one column per two pixels —
+ * and every flagged run pins its own hairline at its words' exact position,
+ * so a flag reads at word precision instead of the ~10-words-per-column the
+ * old sweep averaged away. Percent positioning needs no width measurement,
+ * and with dozens of views instead of hundreds, Android never rounds seams
+ * between neighbors either.
  */
 export function RoundBar({ statuses }: RoundBarProps) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
-  const [width, setWidth] = useState(0)
+  const colors = ROUND_COLORS[scheme]
+  const total = statuses.length
 
-  const columns: RoundWordStatus[] = []
-  if (width > 0 && statuses.length > 0) {
-    const pixelCount = Math.min(statuses.length, Math.round(width / 2))
-    const groupSize = statuses.length / pixelCount
-    for (let pixel = 0; pixel < pixelCount; pixel++) {
-      const start = Math.floor(pixel * groupSize)
-      const end =
-        pixel === pixelCount - 1
-          ? statuses.length
-          : Math.min(statuses.length, Math.floor((pixel + 1) * groupSize))
-      let column: RoundWordStatus = 'gray'
-      for (let i = start; i < end; i++) {
-        if (statuses[i] === 'red') {
-          column = 'red'
-          break
-        }
-        if (statuses[i] === 'green') column = 'green'
-      }
-      columns.push(column)
-    }
+  // Merge same-status runs; gray stays on the track, green and red become
+  // spans. The 1.5 min-width keeps a single word's span visible on a
+  // two-thousand-word bar (where one word is a fraction of a percent).
+  const spans: { start: number; count: number; status: RoundWordStatus }[] = []
+  let index = 0
+  while (index < total) {
+    const status = statuses[index]
+    let end = index + 1
+    while (end < total && statuses[end] === status) end++
+    if (status !== 'gray') spans.push({ start: index, count: end - index, status })
+    index = end
   }
 
-  const colors = ROUND_COLORS[scheme]
-  const colorOf = (status: RoundWordStatus) =>
-    status === 'red' ? colors.red : status === 'green' ? colors.green : colors.gray
-
   return (
-    <View
-      className="h-3.5 rounded-sm flex-row overflow-hidden"
-      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-    >
-      {columns.map((column, index) => (
-        <View key={index} style={{ backgroundColor: colorOf(column), flex: 1 }} />
+    <View className="h-3.5 rounded-sm overflow-hidden" style={{ backgroundColor: colors.gray }}>
+      {spans.map((span) => (
+        <View
+          key={span.start}
+          className="top-0 bottom-0 absolute"
+          style={{
+            left: `${(span.start / total) * 100}%`,
+            width: `${(span.count / total) * 100}%`,
+            minWidth: 1.5,
+            backgroundColor: span.status === 'red' ? colors.red : colors.green,
+          }}
+        />
       ))}
     </View>
   )
