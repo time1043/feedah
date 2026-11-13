@@ -67,16 +67,16 @@ export function ProgressBar({
         className="h-1 bg-gray-300 dark:bg-gray-700 overflow-visible rounded-full"
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
       >
-        <View className="h-1 bg-blue-500 rounded-full" style={{ width: `${fraction * 100}%` }} />
+        <View className="h-1 bg-accent rounded-full" style={{ width: `${fraction * 100}%` }} />
         {dragIndex !== null && (
           <View
-            className="-top-2.5 h-6 min-w-6 bg-blue-500 px-1.5 absolute flex items-center justify-center rounded-full"
+            className="-top-2.5 h-6 min-w-6 bg-accent px-1.5 absolute flex items-center justify-center rounded-full"
             style={{
               left: `${Math.min(100, Math.max(0, fraction * 100))}%`,
               marginLeft: -12,
             }}
           >
-            <Text className="font-bold text-white text-[13px]">
+            <Text className="font-bold text-black text-[13px]">
               {labelFor ? labelFor(dragIndex) : dragIndex + 1}
             </Text>
           </View>

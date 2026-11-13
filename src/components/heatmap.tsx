@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native'
 
-import { withAlpha } from '@/lib/color'
+import { ACCENT, withAlpha } from '@/lib/color'
 import { todayLocalDate } from '@/lib/date'
 
 type HeatmapProps = {
@@ -36,7 +36,7 @@ export function Heatmap({
   const success = scheme === 'dark' ? '#5BB96F' : '#3D9A50'
   const track = scheme === 'dark' ? '#3A3D42' : '#D9D9DE'
   const label = scheme === 'dark' ? '#7A7E86' : '#9A9EA6'
-  const accent = scheme === 'dark' ? '#4CA0F0' : '#208AEF'
+  const accent = ACCENT[scheme]
   const levelColors = [
     track,
     withAlpha(success, 0.35),

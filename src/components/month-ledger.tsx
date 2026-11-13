@@ -67,8 +67,10 @@ export function MonthLedger({ months, yearTotals }: MonthLedgerProps) {
                       {formatMonthShort(month.key)}
                     </Text>
                     {isCurrent && (
-                      <View className="border-blue-500 px-2 py-0.5 rounded-full border">
-                        <Text className="font-medium text-blue-500 text-[11px]">This month</Text>
+                      <View className="border-accent px-2 py-0.5 rounded-full border">
+                        <Text className="font-medium text-accent-deep dark:text-accent text-[11px]">
+                          This month
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -91,7 +93,7 @@ export function MonthLedger({ months, yearTotals }: MonthLedgerProps) {
               </View>
               <View className="bg-gray-200 mt-2.5 h-1.5 dark:bg-gray-800 overflow-hidden rounded-full">
                 <View
-                  className="bg-blue-500 h-full rounded-full"
+                  className="bg-accent h-full rounded-full"
                   style={{ width: `${(month.words / maxWords) * 100}%` }}
                 />
               </View>
