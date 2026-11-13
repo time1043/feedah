@@ -1,6 +1,9 @@
-/** The app's single accent blue — buttons, active icons, selection marks.
- * Matches tailwind's blue-500 so className and constant agree. */
-export const ACCENT = '#3B82F6'
+/** The app's single accent green — the leaf's lime. Fill surfaces (buttons,
+ * chips, bars) are the lime itself with black text in both themes; text and
+ * icons sitting on the page background use the lime on dark and a deepened
+ * olive on light, where the lime would wash out. Matches tailwind's
+ * accent / accent-deep in tailwind.config.js so className and constant agree. */
+export const ACCENT = { light: '#55741E', dark: '#C5F36A' } as const
 
 /** The flag's red — the card's bookmark once set, the word list's mark, and a
  * flagged column of a round's sweep (hence the dark variant). */

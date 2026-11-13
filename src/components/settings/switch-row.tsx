@@ -18,7 +18,10 @@ export function SwitchRow({ label, value, onValueChange }: SwitchRowProps) {
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: dark ? '#374151' : '#D1D5DB', true: ACCENT }}
+        trackColor={{
+          false: dark ? '#374151' : '#D1D5DB',
+          true: dark ? ACCENT.dark : ACCENT.light,
+        }}
         accessibilityLabel={label}
       />
     </View>

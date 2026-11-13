@@ -78,7 +78,13 @@ export function SelectRow({ label, value, options, onValueChange }: SelectRowPro
                   >
                     {option.label}
                   </Text>
-                  {selected && <Ionicons name="checkmark" size={18} color={ACCENT} />}
+                  {selected && (
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={scheme === 'dark' ? ACCENT.dark : ACCENT.light}
+                    />
+                  )}
                 </Pressable>
               )
             })}
