@@ -128,7 +128,9 @@ function RoundItem({
             <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
           </Pressable>
           {row.reviewTimes > 0 ? (
-            <Text className="font-semibold text-blue-500 text-[13px]">T{row.reviewTimes}</Text>
+            <Text className="font-semibold text-accent-deep dark:text-accent text-[13px]">
+              T{row.reviewTimes}
+            </Text>
           ) : (
             // A done round's draft is doomed (抹零 on re-entry): it counts as
             // nothing rather than promising a walk that will not happen.

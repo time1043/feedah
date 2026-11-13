@@ -185,11 +185,11 @@ function MetricPill({
   return (
     <Pressable
       onPress={onPress}
-      className={`px-3 py-1 rounded-full ${active ? 'bg-blue-500' : 'bg-gray-100 dark:bg-gray-800'}`}
+      className={`px-3 py-1 rounded-full ${active ? 'bg-accent' : 'bg-gray-100 dark:bg-gray-800'}`}
     >
       <Text
         className={`font-semibold text-[13px] ${
-          active ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+          active ? 'text-black' : 'text-gray-500 dark:text-gray-400'
         }`}
       >
         {label}

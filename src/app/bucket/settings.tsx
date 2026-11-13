@@ -83,13 +83,15 @@ export default function BucketSettingsScreen() {
               onPress={() => setStudyDrill(drill.id)}
               className={`rounded-lg p-2.5 flex-1 items-center border ${
                 drill.id === studyDrill
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                  ? 'border-accent bg-accent/10'
                   : 'border-gray-300 dark:border-gray-700'
               }`}
             >
               <Text
                 className={`font-semibold text-[13px] ${
-                  drill.id === studyDrill ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                  drill.id === studyDrill
+                    ? 'text-accent-deep dark:text-accent'
+                    : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {drill.label}
@@ -122,14 +124,14 @@ export default function BucketSettingsScreen() {
                   )
                 }
                 className={`rounded-lg p-2.5 items-center border ${
-                  active
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-300 dark:border-gray-700'
+                  active ? 'border-accent bg-accent/10' : 'border-gray-300 dark:border-gray-700'
                 }`}
               >
                 <Text
                   className={`font-semibold text-[13px] ${
-                    active ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                    active
+                      ? 'text-accent-deep dark:text-accent'
+                      : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {bucket.name}
