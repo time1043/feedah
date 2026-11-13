@@ -41,9 +41,6 @@ export default function Index() {
   const wordsLeft = active ? Math.max(0, active.wordCount - active.pointer) : 0
   const progress = active && active.wordCount > 0 ? (active.pointer / active.wordCount) * 100 : 0
 
-  // Browse opens the deck at the next card the study pointer faces.
-  const browseFrom = Math.max(1, Math.min((active?.pointer ?? 0) + 1, active?.wordCount ?? 1))
-
   return (
     <View className="bg-white dark:bg-black flex-1">
       <TabHeader
@@ -115,7 +112,8 @@ export default function Index() {
           </View>
 
           {/* The launchpad: mode switch, the lime study entry, the review
-              entry with its flag badge, and the quiet browse line. */}
+              entry with its flag badge. Browsing stays behind the bucket
+              list and search — the home launch keeps one job. */}
           <View className="gap-3">
             <View className="bg-gray-100 p-1 dark:bg-gray-800 flex-row rounded-full">
               {getDrills().map((drill) => {
@@ -168,21 +166,6 @@ export default function Index() {
               >
                 <Text className="font-bold text-white text-[13px]">{active?.flagCount ?? 0}</Text>
               </View>
-            </Pressable>
-
-            <Pressable
-              className="py-2 items-center"
-              onPress={() =>
-                router.push({
-                  pathname: '/mode/browse/[position]',
-                  params: { position: String(browseFrom), bucket: activeName },
-                })
-              }
-              accessibilityLabel={`Browse ${activeName} without counting`}
-            >
-              <Text className="text-gray-500 dark:text-gray-400 text-[15px]">
-                Browse {activeName} without counting
-              </Text>
             </Pressable>
           </View>
         </View>
