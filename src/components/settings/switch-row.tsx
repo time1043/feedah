@@ -22,6 +22,9 @@ export function SwitchRow({ label, value, onValueChange }: SwitchRowProps) {
           false: dark ? '#374151' : '#D1D5DB',
           true: dark ? ACCENT.dark : ACCENT.light,
         }}
+        // Android takes the thumb from the platform's blue unless it is
+        // told; white is the knob both platforms agree on.
+        thumbColor="#FFFFFF"
         accessibilityLabel={label}
       />
     </View>

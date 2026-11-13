@@ -5,6 +5,10 @@
  * accent / accent-deep in tailwind.config.js so className and constant agree. */
 export const ACCENT = { light: '#55741E', dark: '#C5F36A' } as const
 
+/** The leaf's lime itself — the brand fill, always under black content.
+ * Also the caret color: a lime cursor inside the fields that wear the ring. */
+export const LIME = '#C5F36A'
+
 /** The flag's red — the card's bookmark once set, the word list's mark, and a
  * flagged column of a round's sweep (hence the dark variant). */
 export const FLAG_RED = { light: '#E5484D', dark: '#F0666B' } as const

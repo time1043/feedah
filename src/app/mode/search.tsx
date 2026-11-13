@@ -9,6 +9,7 @@ import { searchLocalAtom, searchScopeAtom } from '@/atoms/settings'
 import { MUTED } from '@/components/header'
 import { getBuckets } from '@/db/repo/bucket-word'
 import { searchWords, type SearchResult } from '@/db/repo/search'
+import { LIME } from '@/lib/color'
 import { useNavGuard } from '@/lib/use-nav-guard'
 
 /**
@@ -167,6 +168,7 @@ export default function SearchScreen() {
             placeholderTextColor={MUTED[scheme]}
             autoCapitalize="none"
             autoCorrect={false}
+            selectionColor={LIME}
             className="py-2.5 text-black dark:text-white flex-1 text-[17px]"
           />
         </View>

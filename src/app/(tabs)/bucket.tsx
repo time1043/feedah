@@ -11,6 +11,7 @@ import { searchScopeAtom } from '@/atoms/settings'
 import { HeaderIconButton, MUTED, TabHeader } from '@/components/header'
 import { importBucketFile, parseBucketJson } from '@/db/import-bucket'
 import { deleteBucket, getBucketCards, type BucketCard } from '@/db/repo/bucket-word'
+import { ACCENT } from '@/lib/color'
 
 /**
  * The bucket list: one clean card per bucket — progress readout plus two
@@ -99,7 +100,7 @@ export default function BucketScreen() {
         title="Bucket"
         right={
           importing ? (
-            <ActivityIndicator size="small" />
+            <ActivityIndicator size="small" color={dark === 'dark' ? ACCENT.dark : ACCENT.light} />
           ) : (
             <View className="gap-4 flex-row items-center">
               <HeaderIconButton
