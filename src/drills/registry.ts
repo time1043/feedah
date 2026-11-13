@@ -33,7 +33,7 @@ export function registerDrill(drill: Drill): void {
   drills.push(drill)
 }
 
-/** Every registered drill, in manifest order — the settings chips' order. */
+/** Every registered drill, in manifest order — the home mode switch's order. */
 export function getDrills(): Drill[] {
   return [...drills]
 }
