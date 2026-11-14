@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-// Assemble the release APK in the existing android/ project (run `pn expo
-// prebuild` yourself first; this script does no prebuild) and copy it to
-// dist/ (gitignored) under a stamped name:
-//   feedah-<yyMMdd-HHmm>-<short commit>[-<abi>].apk
-//   e.g. feedah-260915-0144-8b21-arm64-v8a.apk
+// Build a release APK and stamp it with the build time and commit, e.g.
+// feedah-260915-0144-8b21.apk. With `--abi` the ABI is appended before the
+// extension, e.g. feedah-260915-0144-8b21-arm64-v8a.apk. The APK lands in
+// dist/ (gitignored): feedah-<yyMMdd-HHmm>-<short commit>[-<abi>].apk
+//
+// No caching layer (yet): prebuild always runs with --no-clean, which syncs
+// config plugins and autolinking into the existing android/ project while
+// keeping gradle's incremental intermediates. Plain prebuild in SDK 57 recreates
+// android/ from scratch and throws away android/app/build/, so every build
+// would pay for a full native recompile.
 //
 // `--abi <abi>` restricts the native libraries to a single architecture so the
 // APK only carries that ABI's .so files (e.g. arm64-v8a for modern phones).
@@ -39,6 +44,9 @@ const buildStamp = () => {
 
 const shortCommit = () =>
   execSync('git rev-parse --short=4 HEAD', { cwd: root, encoding: 'utf8' }).trim()
+
+// Sync the native project in place instead of recreating it.
+run('pnpm exec expo prebuild --platform android --no-clean')
 
 // Assemble the release APK. Windows runs gradlew.bat through cmd; the sh
 // wrapper covers macOS/Linux. Keep the daemon locally (warm JVM + plugin
