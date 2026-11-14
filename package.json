@@ -5,6 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
+    "apk": "node scripts/build-apk.mjs",
+    "apk:arm64-v8a": "node scripts/build-apk.mjs --abi arm64-v8a",
     "db:generate": "drizzle-kit generate",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
