@@ -108,7 +108,7 @@ export default function WordsScreen() {
             <Ionicons
               name={showMeaning ? 'eye' : 'eye-off'}
               size={22}
-              color={showMeaning ? ACCENT : MUTED[scheme]}
+              color={showMeaning ? ACCENT[scheme] : MUTED[scheme]}
             />
           </Pressable>
         }

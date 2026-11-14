@@ -95,18 +95,31 @@ function RoundItem({
 
   return (
     <View>
-      <View className="gap-1 flex-row items-center">
-        <Text className="font-semibold text-black dark:text-white text-[15px]">
-          Round {row.round}
-        </Text>
-        <Text className="text-gray-400 dark:text-gray-500 text-[15px]">
-          · {labelOf(row, studying)}
-        </Text>
+      {/* The title line carries the round's when on the right, above the
+          sweep — the legend below holds only the counts. */}
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <Text className="font-semibold text-black dark:text-white text-[15px]">
+            Round {row.round}
+          </Text>
+          <Text className="text-gray-400 dark:text-gray-500 text-[15px]">
+            {` · ${labelOf(row, studying)}`}
+          </Text>
+        </View>
+        {when && (
+          <Text
+            numberOfLines={1}
+            className="text-gray-400 dark:text-gray-500 flex-shrink text-[12px]"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {when}
+          </Text>
+        )}
       </View>
       <View className="mt-2">
         <RoundBar statuses={statuses} />
       </View>
-      <View className="mt-2 flex-row items-center justify-between">
+      <View className="mt-2 flex-row items-center">
         {/* The legend counts the same statuses the bar paints: a flagged card
             is red and no longer green, so the two never double-count it. The
             review count rides along: the round's walks so far, or the open
@@ -128,7 +141,9 @@ function RoundItem({
             <CountDot color={ROUND_COLORS[scheme].red} value={String(red)} />
           </Pressable>
           {row.reviewTimes > 0 ? (
-            <Text className="font-semibold text-blue-500 text-[13px]">T{row.reviewTimes}</Text>
+            <Text className="font-semibold text-accent-deep dark:text-accent text-[13px]">
+              T{row.reviewTimes}
+            </Text>
           ) : (
             // A done round's draft is doomed (抹零 on re-entry): it counts as
             // nothing rather than promising a walk that will not happen.
@@ -140,14 +155,6 @@ function RoundItem({
             )
           )}
         </View>
-        {when && (
-          <Text
-            className="text-gray-400 dark:text-gray-500 text-[12px]"
-            style={{ fontVariant: ['tabular-nums'] }}
-          >
-            {when}
-          </Text>
-        )}
       </View>
     </View>
   )

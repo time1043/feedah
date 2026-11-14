@@ -11,6 +11,7 @@ import { searchScopeAtom } from '@/atoms/settings'
 import { HeaderIconButton, MUTED, TabHeader } from '@/components/header'
 import { importBucketFile, parseBucketJson } from '@/db/import-bucket'
 import { deleteBucket, getBucketCards, type BucketCard } from '@/db/repo/bucket-word'
+import { ACCENT } from '@/lib/color'
 
 /**
  * The bucket list: one clean card per bucket — progress readout plus two
@@ -99,7 +100,7 @@ export default function BucketScreen() {
         title="Bucket"
         right={
           importing ? (
-            <ActivityIndicator size="small" />
+            <ActivityIndicator size="small" color={dark === 'dark' ? ACCENT.dark : ACCENT.light} />
           ) : (
             <View className="gap-4 flex-row items-center">
               <HeaderIconButton
@@ -119,44 +120,71 @@ export default function BucketScreen() {
       {cards.map((card) => (
         <View
           key={card.name}
-          className={`mx-4 mb-3 rounded-2xl flex-row items-stretch border ${
-            card.name === activeName
-              ? 'border-blue-400 dark:border-blue-600'
-              : 'border-gray-300 dark:border-gray-700'
+          className={`mx-4 mb-3 rounded-2xl bg-gray-100 dark:bg-surface border ${
+            card.name === activeName ? 'border-accent' : 'border-transparent'
           }`}
         >
-          {/* Body: the bucket's word list. Long-press deletes the bucket. */}
-          <Pressable
-            className="p-4 flex-1"
-            onPress={() =>
-              router.push({ pathname: '/bucket/words/[name]', params: { name: card.name } })
-            }
-            onLongPress={() => confirmDelete(card)}
-            accessibilityLabel={`${card.name}, long-press to delete`}
-          >
-            <View className="flex-row items-center justify-between">
-              <Text className="font-semibold text-black dark:text-white text-[17px]">
-                {card.name}
-              </Text>
-            </View>
-            <Text
-              className="mt-1 text-gray-500 dark:text-gray-400 text-[13px]"
-              style={{ fontVariant: ['tabular-nums'] }}
+          <View className="flex-row items-stretch">
+            {/* Body: the bucket's word list. Long-press deletes the bucket. */}
+            <Pressable
+              className="gap-2 p-4 flex-1"
+              onPress={() =>
+                router.push({ pathname: '/bucket/words/[name]', params: { name: card.name } })
+              }
+              onLongPress={() => confirmDelete(card)}
+              accessibilityLabel={`${card.name}, ${card.pointer} of ${card.wordCount} words, round ${card.round}, long-press to delete`}
             >
-              round {card.round} · {card.pointer}/{card.wordCount}
-            </Text>
-          </Pressable>
-          {/* Side: the round list with its red/green timelines. */}
-          <Pressable
-            className="w-14 items-center justify-center"
-            hitSlop={4}
-            accessibilityLabel={`Rounds of ${card.name}`}
-            onPress={() =>
-              router.push({ pathname: '/bucket/rounds/[name]', params: { name: card.name } })
-            }
-          >
-            <Ionicons name="repeat" size={20} color={MUTED[dark]} />
-          </Pressable>
+              <View className="flex-row items-start justify-between">
+                <Text className="font-extrabold text-black dark:text-white leading-8 text-[28px]">
+                  {card.name}
+                </Text>
+                <Text className="text-gray-500 dark:text-gray-400 text-[13px]">
+                  round {card.round}
+                </Text>
+              </View>
+              {/* The bar fills in the accent only for the bucket being
+                  studied; the others stay gray. */}
+              <View className="h-1.5 bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-full">
+                <View
+                  className={`h-1.5 rounded-full ${
+                    card.name === activeName ? 'bg-accent' : 'bg-gray-400 dark:bg-gray-500'
+                  }`}
+                  style={{
+                    width: `${card.wordCount > 0 ? (card.pointer / card.wordCount) * 100 : 0}%`,
+                  }}
+                />
+              </View>
+              <View className="flex-row items-center justify-between">
+                {card.name === activeName ? (
+                  <View className="gap-1.5 flex-row items-center">
+                    <View className="h-1.5 w-1.5 bg-accent rounded-full" />
+                    <Text className="font-semibold text-accent-deep dark:text-accent text-[13px]">
+                      Current bucket
+                    </Text>
+                  </View>
+                ) : (
+                  <View />
+                )}
+                <Text
+                  className="text-gray-500 dark:text-gray-400 text-[13px]"
+                  style={{ fontVariant: ['tabular-nums'] }}
+                >
+                  {card.pointer} / {card.wordCount}
+                </Text>
+              </View>
+            </Pressable>
+            {/* Side: the round list with its red/green timelines. */}
+            <Pressable
+              className="w-12 items-center justify-center"
+              hitSlop={4}
+              accessibilityLabel={`Rounds of ${card.name}`}
+              onPress={() =>
+                router.push({ pathname: '/bucket/rounds/[name]', params: { name: card.name } })
+              }
+            >
+              <Ionicons name="repeat" size={20} color={MUTED[dark]} />
+            </Pressable>
+          </View>
         </View>
       ))}
       {cards.length === 0 && (

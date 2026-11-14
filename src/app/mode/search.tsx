@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { FlatList, Pressable, Text, TextInput, View, useColorScheme } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -9,14 +9,81 @@ import { searchLocalAtom, searchScopeAtom } from '@/atoms/settings'
 import { MUTED } from '@/components/header'
 import { getBuckets } from '@/db/repo/bucket-word'
 import { searchWords, type SearchResult } from '@/db/repo/search'
+import { LIME } from '@/lib/color'
 import { useNavGuard } from '@/lib/use-nav-guard'
+
+/**
+ * Paints the query's hits inside the word in the accent green — the result
+ * shows WHY it matched. Wildcard queries (`%`, `_`, `|`) don't map to plain
+ * substrings, so they render unpainted.
+ */
+function HighlightedWord({ word, query }: { word: string; query: string }) {
+  const plain = (
+    <Text numberOfLines={1} className="text-black dark:text-white flex-1 text-[17px]">
+      {word}
+    </Text>
+  )
+  const needle = query.trim().toLowerCase()
+  if (needle.length === 0 || /[%_\\|]/.test(needle)) return plain
+
+  const parts: ReactNode[] = []
+  const lower = word.toLowerCase()
+  let cursor = 0
+  let index = lower.indexOf(needle)
+  while (index !== -1) {
+    if (index > cursor) parts.push(word.slice(cursor, index))
+    parts.push(
+      <Text key={`${index}`} className="font-bold text-accent-deep dark:text-accent">
+        {word.slice(index, index + needle.length)}
+      </Text>,
+    )
+    cursor = index + needle.length
+    index = lower.indexOf(needle, cursor)
+  }
+  if (cursor < word.length) parts.push(word.slice(cursor))
+  return (
+    <Text numberOfLines={1} className="text-black dark:text-white flex-1 text-[17px]">
+      {parts}
+    </Text>
+  )
+}
+
+/** One scope chip: the lime pill when active, the quiet outline when not. */
+function ScopeChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string
+  active: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      className={`px-4 py-2 rounded-full ${
+        active ? 'bg-accent' : 'border-gray-300 dark:border-gray-700 border'
+      }`}
+    >
+      <Text
+        className={`font-bold text-[15px] ${
+          active ? 'text-black' : 'text-gray-500 dark:text-gray-300'
+        }`}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
 
 /**
  * Word lookup. Without a pinned bucket it spans the configured global scope
  * (all buckets by default); opened from a deck or a review it is pinned to
- * that bucket — unless local search is off, in which case the global scope
- * applies. Results open the browse deck pinned to their bucket, so flagging
- * lands in the right round.
+ * that bucket, and the chips under the field switch — this visit only —
+ * between the bucket and everyone. Results open the browse deck pinned to
+ * their bucket, so flagging lands in the right round.
  */
 export default function SearchScreen() {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
@@ -25,6 +92,11 @@ export default function SearchScreen() {
   const localSearch = useAtomValue(searchLocalAtom)
 
   const pinnedBucket = typeof params.bucket === 'string' && params.bucket ? params.bucket : ''
+
+  // The pinned bucket's scope, per visit like the word list's eye: it starts
+  // from the stored setting and a tap overrides it for this visit only.
+  const [override, setOverride] = useState<boolean | null>(null)
+  const inBucket = pinnedBucket ? (override ?? localSearch) : false
 
   const [scope, setScope] = useState<string[]>([])
   const [query, setQuery] = useState('')
@@ -38,13 +110,13 @@ export default function SearchScreen() {
       // and the pinned bucket simply narrows it.
       const all =
         configuredScope.length > 0 ? configuredScope : (await getBuckets()).map((b) => b.name)
-      const names = pinnedBucket && localSearch ? [pinnedBucket] : all
+      const names = pinnedBucket && inBucket ? [pinnedBucket] : all
       if (!cancelled) setScope(names)
     })()
     return () => {
       cancelled = true
     }
-  }, [pinnedBucket, localSearch, configuredScope])
+  }, [pinnedBucket, inBucket, configuredScope])
 
   // The search itself is debounced and derived: an empty query shows an
   // empty list without touching state, and a stale response never lands.
@@ -85,7 +157,9 @@ export default function SearchScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={MUTED[scheme]} />
         </Pressable>
-        <View className="flex-1 justify-center">
+        {/* The prototype's field: the lime ring with the lens inside. */}
+        <View className="gap-2 rounded-2xl border-accent bg-gray-100 px-3.5 dark:bg-surface flex-1 flex-row items-center border-2">
+          <Ionicons name="search" size={18} color={MUTED[scheme]} />
           <TextInput
             autoFocus
             value={query}
@@ -94,10 +168,22 @@ export default function SearchScreen() {
             placeholderTextColor={MUTED[scheme]}
             autoCapitalize="none"
             autoCorrect={false}
-            className="rounded-xl bg-gray-100 px-4 py-2.5 text-black dark:bg-gray-800 dark:text-white text-[17px]"
+            selectionColor={LIME}
+            className="py-2.5 text-black dark:text-white flex-1 text-[17px]"
           />
         </View>
       </View>
+
+      {pinnedBucket ? (
+        <View className="gap-2 px-4 pb-2 pt-1 flex-row">
+          <ScopeChip label="All buckets" active={!inBucket} onPress={() => setOverride(false)} />
+          <ScopeChip
+            label={`In ${pinnedBucket}`}
+            active={inBucket}
+            onPress={() => setOverride(true)}
+          />
+        </View>
+      ) : null}
 
       <FlatList
         data={visible}
@@ -106,7 +192,7 @@ export default function SearchScreen() {
         keyboardDismissMode="on-drag"
         renderItem={({ item }) => (
           <Pressable
-            className="px-6 py-3 flex-row items-center"
+            className="border-gray-200 px-6 py-3.5 dark:border-gray-800 flex-row items-center border-b"
             style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             onPress={() => openResult(item)}
           >
@@ -116,9 +202,7 @@ export default function SearchScreen() {
             >
               {item.position}
             </Text>
-            <Text numberOfLines={1} className="text-black dark:text-white flex-1 text-[17px]">
-              {item.word}
-            </Text>
+            <HighlightedWord word={item.word} query={trimmed} />
             <Text
               className="ml-2 text-gray-400 dark:text-gray-500 text-[13px]"
               style={{ fontVariant: ['tabular-nums'] }}
@@ -127,6 +211,13 @@ export default function SearchScreen() {
             </Text>
           </Pressable>
         )}
+        ListFooterComponent={
+          visible.length > 0 ? (
+            <Text className="p-6 text-gray-400 dark:text-gray-500 text-[15px]">
+              Tap a result to open it in Browse.
+            </Text>
+          ) : null
+        }
         ListEmptyComponent={
           trimmed.length > 0 ? (
             <Text className="p-6 text-gray-400 dark:text-gray-500 text-[15px]">No matches</Text>

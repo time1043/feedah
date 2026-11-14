@@ -348,12 +348,12 @@ export default function ReviewScreen() {
         banner={
           browsing ? (
             <Pressable
-              className="bg-blue-500 px-4 py-1.5 rounded-full"
+              className="bg-accent px-4 py-1.5 rounded-full"
               onPress={resumeReviewing}
               accessibilityRole="button"
               accessibilityLabel="Resume reviewing"
             >
-              <Text className="font-semibold text-white text-[13px]">Resume reviewing</Text>
+              <Text className="font-semibold text-black text-[13px]">Resume reviewing</Text>
             </Pressable>
           ) : undefined
         }

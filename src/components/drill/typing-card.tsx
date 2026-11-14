@@ -3,6 +3,7 @@ import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 import type { AnswerState } from '@/drills/contract'
 import type { DeckWord } from '@/types/bucket'
 
+import { LIME } from '@/lib/color'
 import { normalizeAnswer } from '@/lib/quiz'
 
 import { BookmarkButton, CardForms, CardHeadword, CardMeaning } from './card-parts'
@@ -72,6 +73,7 @@ export function TypingCard({
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
+              selectionColor={LIME}
               className="mt-4 border-gray-300 pb-2 text-black dark:border-gray-700 dark:text-white h-[64px] border-b-2 text-center text-[32px]"
               style={{ width: underlineWidth }}
             />

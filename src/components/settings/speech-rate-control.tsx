@@ -27,6 +27,7 @@ type RateSliderProps = {
 function RateSlider({ value, min, max, step, onValueChange }: RateSliderProps) {
   const [trackWidth, setTrackWidth] = useState(0)
   const dark = useColorScheme() === 'dark'
+  const accent = dark ? ACCENT.dark : ACCENT.light
 
   const valueAt = (locationX: number): number => {
     if (trackWidth <= 0) return value
@@ -53,11 +54,11 @@ function RateSlider({ value, min, max, step, onValueChange }: RateSliderProps) {
       >
         <View
           className="h-1 rounded-full"
-          style={{ width: `${fraction * 100}%`, backgroundColor: ACCENT }}
+          style={{ width: `${fraction * 100}%`, backgroundColor: accent }}
         />
         <View
           className="h-5 w-5 -top-2 absolute rounded-full"
-          style={{ left: `${fraction * 100}%`, marginLeft: -10, backgroundColor: ACCENT }}
+          style={{ left: `${fraction * 100}%`, marginLeft: -10, backgroundColor: accent }}
         />
       </View>
     </View>
@@ -73,7 +74,7 @@ export function SpeechRateControl() {
   const dark = useColorScheme() === 'dark'
 
   return (
-    <View className="gap-1">
+    <View className="gap-1 py-1">
       <View className="flex-row items-center justify-between">
         <Pressable
           className="gap-1.5 flex-row items-center"

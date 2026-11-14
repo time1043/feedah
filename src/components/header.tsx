@@ -61,14 +61,24 @@ export function ScreenHeader({ title, onBack, onSearch }: ScreenHeaderProps) {
 }
 
 /** Header row of the four tabs: 22px bold title left, optional right slot.
- * The title is optional — an untitled tab renders a spacer so its right
- * slot still lands on the right edge (the home header carries only its
- * search icon). */
-export function TabHeader({ title, right }: { title?: string; right?: ReactNode }) {
+ * The title is optional — an untitled tab renders its `left` slot when given
+ * (the home header's leaf-and-wordmark brand row) or a spacer, so the right
+ * slot still lands on the right edge. */
+export function TabHeader({
+  title,
+  left,
+  right,
+}: {
+  title?: string
+  left?: ReactNode
+  right?: ReactNode
+}) {
   return (
     <View className="px-4 pb-2 pt-3 flex-row items-center justify-between">
       {title !== undefined ? (
         <Text className="font-bold text-black dark:text-white text-[22px]">{title}</Text>
+      ) : left ? (
+        left
       ) : (
         <View className="flex-1" />
       )}

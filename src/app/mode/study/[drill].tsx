@@ -138,12 +138,12 @@ export default function StudyScreen() {
         banner={
           session.browsing ? (
             <Pressable
-              className="bg-blue-500 px-4 py-1.5 rounded-full"
+              className="bg-accent px-4 py-1.5 rounded-full"
               onPress={resumeStudying}
               accessibilityRole="button"
               accessibilityLabel="Resume studying"
             >
-              <Text className="font-semibold text-white text-[13px]">Resume studying</Text>
+              <Text className="font-semibold text-black text-[13px]">Resume studying</Text>
             </Pressable>
           ) : undefined
         }
