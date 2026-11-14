@@ -4,7 +4,7 @@ import { useAtom } from 'jotai'
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { deckHeaderAtom, deckProgressBarAtom, deckTitleAtom, deckFooterAtom } from '@/atoms/deck'
+import { deckFooterAtom, deckHeaderAtom, deckProgressBarAtom, deckTitleAtom } from '@/atoms/deck'
 import { autoSpeakAtom, searchLocalAtom, tapToRevealAtom } from '@/atoms/settings'
 import { wordsMeaningAtom } from '@/atoms/words'
 import { TabHeader } from '@/components/header'
@@ -49,15 +49,11 @@ export default function SettingsScreen() {
         contentContainerStyle={{ gap: 24, padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Speech */}
-        <View className="gap-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">
-          <SpeechRateControl />
-        </View>
-
         {/* Study deck */}
         <View className="gap-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">
           <Text className="font-semibold text-black dark:text-white text-[15px]">Study deck</Text>
           <View className="gap-1">
+            <SpeechRateControl />
             <SwitchRow label="Auto speak" value={autoSpeak} onValueChange={setAutoSpeak} />
             <SwitchRow label="Tap to reveal" value={tapToReveal} onValueChange={setTapToReveal} />
             <SwitchRow label="Header" value={showHeader} onValueChange={setShowHeader} />
@@ -71,17 +67,22 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Words & search */}
+        {/* Bucket */}
         <View className="gap-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">
-          <Text className="font-semibold text-black dark:text-white text-[15px]">
-            Words & search
-          </Text>
+          <Text className="font-semibold text-black dark:text-white text-[15px]">Bucket</Text>
           <View className="gap-1">
             <SwitchRow
               label="Word list meanings"
               value={wordsMeaning}
               onValueChange={setWordsMeaning}
             />
+          </View>
+        </View>
+
+        {/* Search */}
+        <View className="gap-3 rounded-xl border-gray-300 p-3 dark:border-gray-700 border">
+          <Text className="font-semibold text-black dark:text-white text-[15px]">Search</Text>
+          <View className="gap-1">
             <SwitchRow
               label="Search stays in the opened bucket"
               value={localSearch}

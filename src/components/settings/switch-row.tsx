@@ -13,7 +13,7 @@ export function SwitchRow({ label, value, onValueChange }: SwitchRowProps) {
   const dark = useColorScheme() === 'dark'
 
   return (
-    <View className="py-2 flex-row items-center justify-between">
+    <View className="py-1 flex-row items-center justify-between">
       <Text className="text-black dark:text-white">{label}</Text>
       <Switch
         value={value}

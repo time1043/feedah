@@ -74,7 +74,7 @@ export function SpeechRateControl() {
   const dark = useColorScheme() === 'dark'
 
   return (
-    <View className="gap-1">
+    <View className="gap-1 py-1">
       <View className="flex-row items-center justify-between">
         <Pressable
           className="gap-1.5 flex-row items-center"
