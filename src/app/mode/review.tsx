@@ -1,9 +1,10 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import type { AnswerState } from '@/drills/contract'
 import type { DeckWord } from '@/types/bucket'
 
 import { activeBucketAtom } from '@/atoms/bucket'
@@ -12,6 +13,7 @@ import {
   autoSpeakAtom,
   speechRateAtom,
   speechRateReadyAtom,
+  studyDrillAtom,
   tapToRevealAtom,
 } from '@/atoms/settings'
 import { ScreenHeader } from '@/components/header'
@@ -25,6 +27,7 @@ import {
   type ReviewSessionRow,
 } from '@/db/repo/review-session'
 import { getProgress, getWordsWithRoundFlag, setRoundFlag } from '@/db/repo/study-round'
+import { getDrill } from '@/drills/registry'
 import { goBack } from '@/lib/back'
 import { formatDayLabel } from '@/lib/format'
 import { speakWord } from '@/lib/speech'
@@ -72,9 +75,12 @@ type Walk = RoundWalk | DayWalk
  * (round walks) and the frontier stay where the walk actually was.
  *
  * The screen keeps two concerns apart on purpose: the walk owns the queue
- * and the cursor (and stays answer-free), while the card and the answer
- * policy are the drill layer's — when the drill registry lands, its card
- * plugs into this deck without reshaping the walks.
+ * and the cursor (and stays answer-free in the database), while the card
+ * and the answer policy are the drill layer's. The drill is the user's
+ * study choice (study and review share it — browse stays swipe-only), so a
+ * quiz review is quizzed and a typing review is dictated to. Answers,
+ * drafts and auto-advance are session-local: a review records nothing but
+ * its watermark and its flag toggles.
  */
 export default function ReviewScreen() {
   const params = useLocalSearchParams<{
@@ -85,6 +91,11 @@ export default function ReviewScreen() {
   }>()
   const activeName = useAtomValue(activeBucketAtom)
   const bucketName = typeof params.bucket === 'string' && params.bucket ? params.bucket : activeName
+
+  // The drill card is the study choice: study and review share it (browse
+  // stays on the plain swipe card). Unknown stored ids fall back to swipe.
+  const studyDrill = useAtomValue(studyDrillAtom)
+  const drill = getDrill(studyDrill)
 
   const speechRate = useAtomValue(speechRateAtom)
   const speechRateReady = useAtomValue(speechRateReadyAtom)
@@ -107,6 +118,17 @@ export default function ReviewScreen() {
   // Review decks count toward the daily "studying" metric too.
   useStudyUsage()
 
+  // The drill layer's session-local state: answers and drafts live per walk
+  // (every focus reload restarts the walk, so they restart with it) and are
+  // never written down — the walk records only its watermark and flags.
+  const [answers, setAnswers] = useState<Record<number, AnswerState>>({})
+  const [drafts, setDrafts] = useState<Record<number, string>>({})
+  // The drill's auto-advance decision: a correct answer slides the deck on
+  // its own, exactly as study does.
+  const [pendingAdvance, setPendingAdvance] = useState<{ position: number; dueAt: number } | null>(
+    null,
+  )
+
   const deckRef = useRef<WordDeckHandle>(null)
   // Free-swiping state entered by scrubbing; exited by Resume reviewing.
   // The frontier is the farthest card index reached in the current walk.
@@ -124,6 +146,9 @@ export default function ReviewScreen() {
       setSeen(1)
       setFrontier(0)
       setBrowsing(false)
+      setAnswers({})
+      setDrafts({})
+      setPendingAdvance(null)
       void (async () => {
         try {
           // Date walks replay a date across buckets and rounds: params.day
@@ -140,6 +165,9 @@ export default function ReviewScreen() {
               return
             }
             if (!cancelled) {
+              // The drill rebuilds its per-card private data (quiz options,
+              // …) for this walk; recycled cards must not reshuffle.
+              drill.prepare?.(queue)
               setWalk({ kind: flagDay ? 'flagDay' : 'day', day: flagDay || studyDay, queue })
             }
             return
@@ -186,6 +214,10 @@ export default function ReviewScreen() {
           const countedCount = session.counted
             ? (session.number ?? 1) - 1
             : await countedReviewCount(bucketName, resolved)
+          // The drill rebuilds its per-card private data (quiz options, …)
+          // for this walk. The pool is the round's full word list — the same
+          // distractor pool study draws from — not just the flagged subset.
+          drill.prepare?.(words)
           // Resume at the first snapshot word the walk has not passed yet;
           // the hud opens on that card, not one frame behind the deck's
           // first mirror. The frontier opens there too — the deck fires no
@@ -211,8 +243,23 @@ export default function ReviewScreen() {
       return () => {
         cancelled = true
       }
-    }, [bucketName, params.round, params.day, params.flagDay]),
+      // drill's identity is registry-stable per id: it only re-arms the
+      // effect when the user's study choice actually changed.
+    }, [bucketName, params.round, params.day, params.flagDay, drill]),
   )
+
+  // Executes the drill's auto-advance decision: slides to the pending card
+  // when it is still on screen, then reports back. The countdown is
+  // dueAt-based, so restarts on unrelated renders keep the schedule.
+  useEffect(() => {
+    if (!pendingAdvance) return
+    const remaining = Math.max(0, pendingAdvance.dueAt - Date.now())
+    const timer = setTimeout(() => {
+      if (deckRef.current?.showsWord(pendingAdvance.position)) deckRef.current.advance()
+      setPendingAdvance(null)
+    }, remaining)
+    return () => clearTimeout(timer)
+  }, [pendingAdvance])
 
   if (walk === null) {
     return <View className="bg-white dark:bg-black flex-1" />
@@ -271,17 +318,40 @@ export default function ReviewScreen() {
    * cards under the reader's thumb. The session flip and the round_flag row
    * say the same thing; date walks write the entry's own bucket and round
    * (they span buckets, where positions collide). */
-  const toggleFlag = (word: DeckWord) => {
-    setWalk((prev) => (prev ? withQueueFlag(prev, word, !word.flagged) : null))
+  const flagWord = (word: DeckWord, flagged: boolean) => {
+    setWalk((prev) => (prev ? withQueueFlag(prev, word, flagged) : null))
     const entry = word as DeckWord & { bucketName?: string; round?: number }
     const target =
       walk.kind === 'round'
         ? { bucketName, round: walk.session.round }
         : { bucketName: entry.bucketName ?? bucketName, round: entry.round ?? 0 }
-    void setRoundFlag(target.bucketName, target.round, word.position, !word.flagged).catch(
-      (error) => console.error('[review] flag write failed', error),
+    void setRoundFlag(target.bucketName, target.round, word.position, flagged).catch((error) =>
+      console.error('[review] flag write failed', error),
     )
   }
+
+  const toggleFlag = (word: DeckWord) => flagWord(word, !word.flagged)
+
+  /** A drill card's answer, session-local. The walk records nothing — the
+   * policy's side effects are what land: a correct pick arms the drill's
+   * auto-advance (the deck slides on its own, like study), a wrong one
+   * applies the drill's auto-flag into the walk's own round. */
+  const recordAnswer = (word: DeckWord, correct: boolean, picked?: string) => {
+    setAnswers((prev) => ({ ...prev, [word.position]: { correct, picked } }))
+    if (correct && drill.autoAdvanceMs) {
+      setPendingAdvance({ position: word.position, dueAt: Date.now() + drill.autoAdvanceMs })
+    }
+    if (!correct && (drill.autoFlagOnWrong ?? false)) flagWord(word, true)
+  }
+
+  /** Typing's reveal-without-answer: locks the card like an answer (the
+   * settle gate opens) but records nothing about correctness. */
+  const skipWord = (word: DeckWord) =>
+    setAnswers((prev) => ({ ...prev, [word.position]: { skipped: true } }))
+
+  /** The typing card's draft, lifted so it survives card recycling. */
+  const draftWord = (word: DeckWord, value: string) =>
+    setDrafts((prev) => ({ ...prev, [word.position]: value }))
 
   const { queue } = walk
   const timeLabel =
@@ -322,10 +392,25 @@ export default function ReviewScreen() {
         resetKey={walk.kind === 'round' ? `round:${walk.session.id}` : `${walk.kind}:${walk.day}`}
         initialIndex={walk.kind === 'round' ? walk.startIndex : 0}
         progressBar={showProgressBar}
+        scrubbable={drill.scrubbable}
+        autoSpeak={drill.speakOnSettle}
         tapToReveal={tapToReveal}
         canSpeak={canSpeak}
         onSpeak={(word) => speakWord(word.word, speechRate)}
         onToggleFlag={toggleFlag}
+        renderCard={(word, helpers) =>
+          drill.renderCard({
+            word,
+            answered: answers[word.position],
+            onAnswer: (correct, picked) => recordAnswer(word, correct, picked),
+            onSkip: () => skipWord(word),
+            draft: drafts[word.position] ?? '',
+            onDraft: (value) => draftWord(word, value),
+            onReplay: helpers.onReplay,
+            onToggleFlag: () => toggleFlag(word),
+            tapToReveal: helpers.tapToReveal,
+          })
+        }
         onIndexChange={(index) => setSeen(index + 1)}
         // Every settled landing advances the resume watermark on forward
         // settles unless browsing — a round walk left half-way picks up at
@@ -341,10 +426,22 @@ export default function ReviewScreen() {
             }
           }
         }}
+        // The study gate, verbatim: an answer-gated drill cannot scroll past
+        // an unanswered card — the only way forward is answering — and
+        // browse mode (scrubbing) opens it.
+        canSettle={(from, to) => {
+          if (drill.scrollable || browsing) return true
+          const fromWord = queue[from]
+          if (!fromWord) return true
+          return to <= from || answers[fromWord.position] !== undefined
+        }}
         // Scrubbing enters browse mode: the pill floats over the cards — not
         // the header, which settings can hide — and is the way back to the
-        // walk's frontier.
-        onScrub={() => setBrowsing(true)}
+        // walk's frontier. A pending auto-advance is scrubbed away with it.
+        onScrub={() => {
+          setPendingAdvance(null)
+          setBrowsing(true)
+        }}
         banner={
           browsing ? (
             <Pressable
