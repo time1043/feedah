@@ -114,20 +114,20 @@ describe('the daily pointer', () => {
   it('snapshots the end-of-day position on settle and on completion', async () => {
     const [, words] = await getWordsWithRoundFlag(BUCKET, 1)
     const wordCount = words.length
-    // The ordinal is 1-based: settling the card at index 1 (the second card)
-    // freezes global position 2.
+    // The settled count is the watermark: parking on the card at index 1
+    // means card index 0 settled — global position 1. The card parked ON is
+    // not credited until the next settle pins it.
     await settleCard(BUCKET, 1)
     const pointers = await listDailyPointers()
     expect(pointers).toHaveLength(1)
     expect(pointers[0]).toMatchObject({
       day: todayLocalDate(),
       bucketName: BUCKET,
-      globalPosition: 2,
+      globalPosition: 1,
     })
     await finishFeedRound()
     const [endOfDay] = await listDailyPointers()
-    // The completion itself is exposure: the end card lands on today's
-    // watermark at the round's end.
+    // A completed round has settled exactly its word count.
     expect(endOfDay.globalPosition).toBe(wordCount)
   })
 
@@ -136,7 +136,7 @@ describe('the daily pointer', () => {
     await settleCard(BUCKET, 1)
     const pointers = await listDailyPointers()
     expect(pointers).toHaveLength(1)
-    expect(pointers[0].globalPosition).toBe(4)
+    expect(pointers[0].globalPosition).toBe(3)
   })
 })
 
@@ -298,20 +298,19 @@ describe('day review reconstruction', () => {
   it('a day spanning two rounds replays every round without dedup', async () => {
     const wordCount = (await getWordsWithRoundFlag(BUCKET, 1))[1].length
     const positions = await wordPositions()
-    // Exposure semantics: the first snapshot's gain covers the walk up to
-    // the watermark — settling the second card credits the first card too.
+    // Settled-count semantics: each snapshot pins the cards settled so far —
+    // parking on the next card credits nothing until that card settles.
     await settleCard(BUCKET, 1)
     await finishFeedRound()
     await settleCard(BUCKET, 1)
 
     const entries = await getWordsCompletedOn(todayLocalDate())
     // Round 1's whole stretch (the completion pins its end) plus round 2's
-    // gain: the same word may appear once per round it was walked in.
-    expect(entries).toHaveLength(wordCount + 2)
+    // settled card: the same word may appear once per round it was walked in.
+    expect(entries).toHaveLength(wordCount + 1)
     expect(entries[0]).toMatchObject({ bucketName: BUCKET, round: 1, position: positions[0] })
-    const lastTwo = entries.slice(-2)
-    expect(lastTwo.map((entry) => entry.round)).toEqual([2, 2])
-    expect(lastTwo.map((entry) => entry.position)).toEqual([positions[0], positions[1]])
+    const [lastEntry] = entries.slice(-1)
+    expect(lastEntry).toMatchObject({ round: 2, position: positions[0] })
   })
 
   it('shows each round its own flag state', async () => {

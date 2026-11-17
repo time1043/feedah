@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite'
 
 import migrations from '../../drizzle/migrations'
 import { DB_NAME, openDb, type Db } from './client'
+import { repairLegacyDailyPointers } from './repair'
 import { seedBuckets } from './seed'
 
 export { getRawDb, withTransaction, type Db } from './client'
@@ -34,6 +35,10 @@ async function openMigrateAndSeed(): Promise<Db> {
   try {
     await migrate(db, migrations)
     await seedBuckets(db)
+    // One-time repairs run after migrate+seed: a failure here must not fail
+    // the open (the stale rows they fix are cosmetic, not structural), so
+    // the repair swallows its own errors.
+    await repairLegacyDailyPointers(db)
     return db
   } catch (error) {
     await raw.closeAsync().catch(() => {})

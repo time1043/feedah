@@ -93,8 +93,10 @@ async function wordCountOf(db: Awaited<ReturnType<typeof getDb>>, bucketName: st
 }
 
 /** The end-of-day global position snapshot: (round - 1) * wordCount plus the
- * 1-based ordinal of the card (pointer + 1) — the same number the day replay
- * decodes back into (round, card) with, for arbitrary word positions. */
+ * cards settled in the round (pointer — the card parked ON is not settled
+ * yet, so it is not credited). The home readout and the stats word counts
+ * both read the settled count, and the day replay decodes the same number
+ * back into (round, card) for arbitrary word positions. */
 async function snapshotDailyPointer(
   db: Awaited<ReturnType<typeof getDb>>,
   bucketName: string,
@@ -102,7 +104,7 @@ async function snapshotDailyPointer(
   pointer: number,
 ): Promise<void> {
   const wordCount = await wordCountOf(db, bucketName)
-  await upsertDailyPointer(db, todayLocalDate(), bucketName, (round - 1) * wordCount + pointer + 1)
+  await upsertDailyPointer(db, todayLocalDate(), bucketName, (round - 1) * wordCount + pointer)
 }
 
 /**
@@ -124,8 +126,9 @@ export async function completeRound(bucketName: string, now: number): Promise<vo
     const finished = rows[0] ?? { round: 1, roundStartedAt: 0 }
     const next = finished.round + 1
 
-    // The end card completes the round's last word on today's watermark:
-    // the completion itself is exposure (the day replay counts it).
+    // Pin the watermark at the round's end: a completed round has settled
+    // exactly its word count (the last settle already wrote this value —
+    // the pin keeps the row right even if the end card never settled).
     const endWordCount = await wordCountOf(db, bucketName)
     await upsertDailyPointer(db, todayLocalDate(), bucketName, finished.round * endWordCount)
 
